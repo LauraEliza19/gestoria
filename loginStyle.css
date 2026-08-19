@@ -1,8 +1,3 @@
-/* ==========================================================
-   GestorIA — Design tokens
-   Cores, tipografia e componentes-base reutilizáveis
-   em todas as telas do sistema.
-   ========================================================== */
 
 :root{
   /* Cores da marca */
@@ -37,10 +32,7 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   outline-offset:2px;
 }
 
-/* ==========================================================
-   Layout de duas colunas (usado em login, cadastro, etc.)
-   ========================================================== */
-
+  
 .layout{
   display:grid;
   grid-template-columns:1.05fr 1fr;
@@ -48,7 +40,7 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   width:100%;
 }
 
-/* ---------- Painel de marca (lado escuro) ---------- */
+/* Painel de marca (lado escuro) */
 
 .brand-panel{
   background:radial-gradient(120% 140% at 15% 10%, var(--indigo-deep) 0%, var(--navy-ink) 55%, #070B1F 100%);
@@ -102,7 +94,7 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   color:#6C77A6;
 }
 
-/* ---------- Gráfico de fluxo (assinatura visual) ---------- */
+/*  Gráfico de fluxo (assinatura visual) */
 
 .flow-graphic{
   margin-top:44px;
@@ -163,7 +155,7 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   .flow-chip{animation:none; opacity:1; transform:none;}
 }
 
-/* ---------- Painel de formulário (lado claro) ---------- */
+/*  Painel de formulário (lado claro) */
 
 .form-panel{
   display:flex;
@@ -201,9 +193,7 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   margin-bottom:32px;
 }
 
-/* ==========================================================
-   Componentes de formulário (reutilizáveis em outras telas)
-   ========================================================== */
+/* Componentes de formulário (reutilizáveis em outras telas) */
 
 .field{
   margin-bottom:18px;
@@ -343,9 +333,7 @@ a:focus-visible, input:focus-visible, button:focus-visible{
 }
 .signup-line a:hover{text-decoration:underline;}
 
-/* ==========================================================
-   Responsivo
-   ========================================================== */
+/* Responsivo */
 
 @media (max-width: 860px){
   .layout{grid-template-columns:1fr;}
