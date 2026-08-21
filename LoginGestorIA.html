@@ -6,7 +6,7 @@
 <title>GestorIA — Entrar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="loginStyle.css">
+<link rel="stylesheet" href="/assets/loginStyle.css">
 </head>
 <body>
 
@@ -86,7 +86,8 @@
           <a href="#">Esqueci minha senha</a>
         </div>
 
-        <button type="submit" class="btn-primary">Entrar</button>
+        <div class="form-status" id="formStatus" role="alert" aria-live="polite"></div>
+        <button type="submit" class="btn-primary" id="submitBtn">Entrar</button>
       </form>
 
       <div class="divider-line">novo por aqui</div>
@@ -107,6 +108,8 @@
   });
 
   const form = document.getElementById('loginForm');
+  const formStatus = document.getElementById('formStatus');
+  const submitBtn = document.getElementById('submitBtn');
   const emailField = document.getElementById('emailField');
   const passwordField = document.getElementById('passwordField');
   const emailInput = document.getElementById('email');
@@ -115,9 +118,10 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     let valid = true;
+    formStatus.textContent = '';
 
     if(!isValidEmail(emailInput.value)){
       emailField.classList.add('error');
@@ -133,8 +137,35 @@
       passwordField.classList.remove('error');
     }
 
-    if(valid){
-      alert('Mockup: aqui o formulário chamaria o backend (POST /auth/login).');
+    if(!valid) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Entrando...';
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailInput.value.trim(),
+          password: passwordInput.value
+        })
+      });
+
+      const body = await response.json();
+      const detail = Array.isArray(body.detail) ? body.detail[0]?.msg : body.detail;
+      if(!response.ok) throw new Error(detail || 'Não foi possível entrar.');
+
+      const storage = document.getElementById('remember').checked ? localStorage : sessionStorage;
+      localStorage.removeItem('gestoria_token');
+      sessionStorage.removeItem('gestoria_token');
+      storage.setItem('gestoria_token', body.access_token);
+      window.location.href = '/dashboard';
+    } catch(error) {
+      formStatus.textContent = error.message;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Entrar';
     }
   });
 

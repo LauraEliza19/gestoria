@@ -299,6 +299,18 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   transition:background 0.15s ease, transform 0.05s ease;
 }
 
+.btn-primary:disabled{
+  cursor:wait;
+  opacity:.7;
+}
+
+.form-status{
+  min-height:20px;
+  margin:-4px 0 12px;
+  color:var(--alert);
+  font-size:13px;
+}
+
 .btn-primary:hover{background:var(--signal-blue-hover);}
 .btn-primary:active{transform:scale(0.99);}
 

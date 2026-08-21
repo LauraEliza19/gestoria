@@ -1,0 +1,32 @@
+from datetime import datetime, timedelta, timezone
+
+import jwt
+from jwt import InvalidTokenError
+from pwdlib import PasswordHash
+
+from app.config import settings
+
+password_hash = PasswordHash.recommended()
+
+
+def hash_password(password: str) -> str:
+    return password_hash.hash(password)
+
+
+def verify_password(password: str, encoded_password: str) -> bool:
+    return password_hash.verify(password, encoded_password)
+
+
+def create_access_token(user_id: str, organization_id: str) -> str:
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.jwt_expire_minutes
+    )
+    payload = {"sub": user_id, "organization_id": organization_id, "exp": expires_at}
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
+def decode_access_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    except InvalidTokenError as exc:
+        raise ValueError("Invalid access token") from exc

@@ -1,4 +1,4 @@
-,<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -6,7 +6,7 @@
 <title>GestorIA — Painel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styleDashboard.css">
+<link rel="stylesheet" href="/assets/startup-main/styleDashboard.css">
 </head>
 <body>
 
@@ -541,13 +541,57 @@
   const modalCloseBtn = document.getElementById('modalCloseBtn');
   const toastContainer = document.getElementById('toastContainer');
 
-  function showToast(message){
+  function getAccessToken(){
+    return localStorage.getItem('gestoria_token') || sessionStorage.getItem('gestoria_token');
+  }
+
+  function clearSession(){
+    localStorage.removeItem('gestoria_token');
+    sessionStorage.removeItem('gestoria_token');
+  }
+
+  async function apiFetch(path, options = {}){
+    const token = getAccessToken();
+    if(!token){
+      window.location.replace('/');
+      throw new Error('Faça login para continuar.');
+    }
+
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {})
+      }
+    });
+
+    if(response.status === 401){
+      clearSession();
+      window.location.replace('/');
+      throw new Error('Sua sessão expirou.');
+    }
+
+    const body = response.status === 204 ? null : await response.json();
+    const detail = Array.isArray(body?.detail) ? body.detail[0]?.msg : body?.detail;
+    if(!response.ok) throw new Error(detail || 'Não foi possível concluir a operação.');
+    return body;
+  }
+
+  function escapeHtml(value){
+    return String(value).replace(/[&<>'"]/g, character => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'
+    })[character]);
+  }
+
+  function showToast(message, type = 'success'){
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = `toast ${type}`;
     toast.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-      <span>${message}</span>
+      <span></span>
     `;
+    toast.querySelector('span').textContent = message;
     toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.style.transition = 'opacity 0.25s ease';
@@ -573,7 +617,7 @@
       <div class="log-item">
         <div class="log-icon ${e.status}">${logIconSvg(e.status)}</div>
         <div class="log-content">
-          <div class="log-description">${e.description}</div>
+          <div class="log-description">${escapeHtml(e.description)}</div>
           <div class="log-meta">
             <span class="log-time">${e.time}</span>
             <span class="badge ${e.actor === 'IA (chat)' ? 'badge-blue' : 'badge-gray'}">${e.actor}</span>
@@ -778,7 +822,8 @@
   });
 
   function handleLogout(){
-    window.location.href = '../Login.Cliente/LoginGestorIA.html';
+    clearSession();
+    window.location.href = '/';
   }
   menuLogoutBtn.addEventListener('click', handleLogout);
   logoutBtnConfig.addEventListener('click', handleLogout);
@@ -835,22 +880,40 @@
       fields: [
         { id:'nome', label:'Nome do produto', type:'text', placeholder:'Ex: Croissant', required:true },
         { id:'preco', label:'Preço', type:'text', placeholder:'Ex: 12,90', required:true, editValue: r => r.preco.toFixed(2).replace('.', ',') },
-        { id:'estoque', label:'Estoque', type:'text', placeholder:'Ex: 20 un', required:true },
-        { id:'status', label:'Status', type:'select', options:['Disponível','Estoque baixo','Esgotado'], required:true },
+        { id:'estoque', label:'Estoque (unidades)', type:'text', placeholder:'Ex: 20', required:true, editValue: r => r.stock_quantity },
       ],
-      onSave: (data, editing) => {
+      onSave: async (data, editing) => {
         const precoNum = parsePriceBR(data.preco);
+        const estoqueNum = Number.parseInt(data.estoque, 10);
+        const precoValido = /^\d+([,.]\d{1,2})?$/.test(data.preco);
+        const estoqueValido = /^\d+$/.test(data.estoque);
+        if(!precoValido || !estoqueValido || precoNum < 0 || estoqueNum < 0){
+          throw new Error('Informe preço e estoque válidos.');
+        }
+
+        const payload = {
+          name: data.nome,
+          price: precoNum,
+          stock_quantity: estoqueNum,
+          is_active: editing ? editing.is_active : true
+        };
+
         if(editing){
-          editing.nome = data.nome;
-          editing.preco = precoNum;
-          editing.estoque = data.estoque;
-          editing.status = data.status;
+          const updated = await apiFetch(`/api/products/${editing.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+          });
+          Object.assign(editing, productFromApi(updated));
           showToast(`Produto "${data.nome}" atualizado.`);
-          addLogEntry(`Produto atualizado: ${data.nome} (${data.status})`, 'executado', 'Manual');
+          addLogEntry(`Produto atualizado: ${data.nome}`, 'executado', 'Manual');
         } else {
-          produtosData.unshift({ id: nextProdutoId++, nome:data.nome, preco:precoNum, estoque:data.estoque, status:data.status });
+          const created = await apiFetch('/api/products', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          produtosData.unshift(productFromApi(created));
           showToast(`Produto "${data.nome}" adicionado ao catálogo.`);
-          addLogEntry(`Produto adicionado: ${data.nome} (${data.status})`, 'executado', 'Manual');
+          addLogEntry(`Produto adicionado: ${data.nome}`, 'executado', 'Manual');
         }
         renderProdutos();
       }
@@ -941,7 +1004,7 @@
 
     document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
 
-    modalForm.onsubmit = (e) => {
+    modalForm.onsubmit = async (e) => {
       e.preventDefault();
       let valid = true;
       const data = {};
@@ -961,8 +1024,16 @@
 
       if(!valid) return;
 
-      config.onSave(data, editingRecord);
-      closeModal();
+      const submitButton = modalForm.querySelector('[type="submit"]');
+      submitButton.disabled = true;
+      try {
+        await config.onSave(data, editingRecord);
+        closeModal();
+      } catch(error) {
+        showToast(error.message, 'error');
+      } finally {
+        submitButton.disabled = false;
+      }
     };
 
     modalOverlay.classList.add('open');
@@ -1007,9 +1078,14 @@
   }
   document.getElementById('confirmDeleteCloseBtn').addEventListener('click', closeConfirmDelete);
   document.getElementById('confirmDeleteCancelBtn').addEventListener('click', closeConfirmDelete);
-  document.getElementById('confirmDeleteConfirmBtn').addEventListener('click', () => {
-    if(pendingDeleteAction) pendingDeleteAction();
-    closeConfirmDelete();
+  document.getElementById('confirmDeleteConfirmBtn').addEventListener('click', async () => {
+    if(!pendingDeleteAction) return;
+    try {
+      await pendingDeleteAction();
+      closeConfirmDelete();
+    } catch(error) {
+      showToast(error.message, 'error');
+    }
   });
   confirmDeleteOverlay.addEventListener('click', (e) => {
     if(e.target === confirmDeleteOverlay) closeConfirmDelete();
@@ -1130,13 +1206,7 @@
   });
 
   // ---- Seção Produtos: dados e tabela ----
-  const produtosData = [
-    { id:1, nome:'Pão francês (kg)', preco:14.90, estoque:'48 kg', status:'Disponível' },
-    { id:2, nome:'Bolo de fubá', preco:32.00, estoque:'6 un', status:'Disponível' },
-    { id:3, nome:'Café especial (pacote)', preco:27.50, estoque:'3 un', status:'Estoque baixo' },
-    { id:4, nome:'Torta de frango', preco:45.00, estoque:'0 un', status:'Esgotado' },
-  ];
-  let nextProdutoId = 5;
+  const produtosData = [];
 
   const produtosTableBody = document.getElementById('produtosTableBody');
   const produtosEmpty = document.getElementById('produtosEmpty');
@@ -1147,6 +1217,57 @@
     if(status === 'Disponível') return 'badge-green';
     if(status === 'Estoque baixo') return 'badge-amber';
     return 'badge-red';
+  }
+
+  function applyCurrentSession(session){
+    const roleLabels = { owner:'Proprietário', admin:'Administrador', member:'Membro' };
+    const initials = session.full_name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+
+    const staff = {
+      name: session.full_name,
+      email: session.email,
+      cargo: roleLabels[session.role] || session.role,
+      initials
+    };
+
+    staffMembers.splice(0, staffMembers.length, staff);
+    activeStaffIndex = 0;
+    avatarBtnEl.textContent = staff.initials;
+    avatarLgHeader.textContent = staff.initials;
+    avatarLgProfile.textContent = staff.initials;
+    dropdownNameEl.textContent = staff.name;
+    dropdownEmailEl.textContent = staff.email;
+    profileNameEl.textContent = staff.name;
+    profileEmailEl.textContent = staff.email;
+    profileRoleBadge.textContent = staff.cargo;
+
+    companyData.nome = session.organization.name;
+    document.querySelector('.tenant-chip').textContent = 'Empresa: ' + session.organization.name;
+    renderCompanyCard();
+    renderStaffLists();
+    updateGreeting();
+  }
+
+  function productFromApi(product){
+    return {
+      id: product.id,
+      nome: product.name,
+      preco: Number(product.price),
+      stock_quantity: product.stock_quantity,
+      is_active: product.is_active,
+      status: product.status
+    };
+  }
+
+  async function loadProducts(){
+    const products = await apiFetch('/api/products');
+    produtosData.splice(0, produtosData.length, ...products.map(productFromApi));
+    renderProdutos();
   }
 
   function renderProdutos(){
@@ -1161,10 +1282,10 @@
 
     produtosTableBody.innerHTML = produtosData.map(p => `
       <tr>
-        <td>${p.nome}</td>
+        <td>${escapeHtml(p.nome)}</td>
         <td>R$ ${p.preco.toFixed(2).replace('.', ',')}</td>
-        <td>${p.estoque}</td>
-        <td><span class="badge ${produtoBadgeClass(p.status)}">${p.status}</span></td>
+        <td>${p.stock_quantity} un</td>
+        <td><span class="badge ${produtoBadgeClass(p.status)}">${escapeHtml(p.status)}</span></td>
         <td>${rowActionsHtml(p.id)}</td>
       </tr>
     `).join('');
@@ -1177,14 +1298,15 @@
   produtosTableBody.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
-    const id = parseInt(btn.dataset.id, 10);
+    const id = btn.dataset.id;
     const record = produtosData.find(p => p.id === id);
     if(!record) return;
 
     if(btn.dataset.action === 'edit') openModal('produto', record);
 
     if(btn.dataset.action === 'delete'){
-      openConfirmDelete(`Excluir o produto "${record.nome}"? Essa ação não pode ser desfeita.`, () => {
+      openConfirmDelete(`Excluir o produto "${record.nome}"? Essa ação não pode ser desfeita.`, async () => {
+        await apiFetch(`/api/products/${record.id}`, { method: 'DELETE' });
         const idx = produtosData.findIndex(p => p.id === id);
         if(idx > -1) produtosData.splice(idx, 1);
         renderProdutos();
@@ -1658,7 +1780,11 @@
   function addBubble(text, sender){
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + sender;
-    bubble.innerHTML = text + '<span class="meta">' + nowLabel() + '</span>';
+    bubble.textContent = text;
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = nowLabel();
+    bubble.appendChild(meta);
     chatMessages.appendChild(bubble);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return bubble;
@@ -1792,7 +1918,7 @@
 
     return {
       chatReply: 'Ainda não reconheço esse tipo de comando neste protótipo, mas essa é exatamente a interpretação que o AI Orchestrator vai aprender a fazer.',
-      render: () => renderTextResult('Nenhum resultado estruturado para: <strong>"' + text + '"</strong>. Em produção, o AI Orchestrator tentaria mapear isso para um intent válido.')
+      render: () => renderTextResult('Nenhum resultado estruturado para: <strong>"' + escapeHtml(text) + '"</strong>. Em produção, o AI Orchestrator tentaria mapear isso para um intent válido.')
     };
   }
 
@@ -1809,7 +1935,7 @@
     const fieldsHtml = config.fields.map(f => `
       <div class="confirm-field-row">
         <label>${f.label}</label>
-        <input type="text" data-key="${f.key}" value="${f.value}">
+        <input type="text" data-key="${escapeHtml(f.key)}" value="${escapeHtml(f.value)}">
       </div>
     `).join('');
 
@@ -1887,6 +2013,18 @@
     clearResults();
     resultsArea.innerHTML = '<div class="result-block"><div class="result-answer">Peça algo no chat ao lado — os resultados vão aparecer aqui.</div></div>';
   });
+
+  async function initializeApp(){
+    try {
+      const session = await apiFetch('/api/auth/me');
+      applyCurrentSession(session);
+      await loadProducts();
+    } catch(error) {
+      if(getAccessToken()) showToast(error.message, 'error');
+    }
+  }
+
+  initializeApp();
 </script>
 
 </body>
