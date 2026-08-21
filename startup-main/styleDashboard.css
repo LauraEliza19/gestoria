@@ -1080,6 +1080,9 @@ a:focus-visible, input:focus-visible, button:focus-visible{
 }
 
 .toast svg{width:16px;height:16px;color:#1F9D6C; flex-shrink:0;}
+.toast.error{border-color:rgba(226,87,76,.35);}
+.toast.error svg{color:var(--alert);}
+.modal-actions .btn-primary:disabled{cursor:wait;opacity:.65;}
 
 @keyframes toastIn{
   from{opacity:0; transform:translateY(8px);}

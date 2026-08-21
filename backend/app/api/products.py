@@ -1,0 +1,77 @@
+import uuid
+
+from fastapi import APIRouter, HTTPException, Response, status
+from sqlalchemy.exc import IntegrityError
+
+from app.api.dependencies import CurrentUser, DatabaseSession
+from app.repositories import ProductRepository
+from app.schemas import ProductCreate, ProductRead, ProductUpdate
+
+router = APIRouter(prefix="/api/products", tags=["products"])
+
+
+def product_not_found() -> HTTPException:
+    return HTTPException(status_code=404, detail="Produto não encontrado.")
+
+
+def duplicate_product() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Já existe um produto com esse nome nesta empresa.",
+    )
+
+
+@router.get("", response_model=list[ProductRead])
+def list_products(db: DatabaseSession, current: CurrentUser) -> list[ProductRead]:
+    return ProductRepository.list_for_organization(db, current.organization.id)
+
+
+@router.post("", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+def create_product(
+    payload: ProductCreate, db: DatabaseSession, current: CurrentUser
+) -> ProductRead:
+    try:
+        return ProductRepository.create(
+            db,
+            current.organization.id,
+            payload.model_dump(),
+        )
+    except IntegrityError:
+        db.rollback()
+        raise duplicate_product()
+
+
+@router.patch("/{product_id}", response_model=ProductRead)
+def update_product(
+    product_id: uuid.UUID,
+    payload: ProductUpdate,
+    db: DatabaseSession,
+    current: CurrentUser,
+) -> ProductRead:
+    product = ProductRepository.get_for_organization(
+        db, product_id, current.organization.id
+    )
+    if not product:
+        raise product_not_found()
+
+    try:
+        return ProductRepository.update(
+            db, product, payload.model_dump(exclude_unset=True)
+        )
+    except IntegrityError:
+        db.rollback()
+        raise duplicate_product()
+
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(
+    product_id: uuid.UUID, db: DatabaseSession, current: CurrentUser
+) -> Response:
+    product = ProductRepository.get_for_organization(
+        db, product_id, current.organization.id
+    )
+    if not product:
+        raise product_not_found()
+
+    ProductRepository.delete(db, product)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
