@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from app.api import auth, products
+from app.api import auth, customers, orders, products
 from app.config import settings
 
 project_root = Path(__file__).resolve().parents[2]
@@ -12,6 +12,8 @@ frontend_dir = Path(settings.frontend_dir) if settings.frontend_dir else project
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.include_router(auth.router)
 app.include_router(products.router)
+app.include_router(customers.router)
+app.include_router(orders.router)
 
 
 @app.get("/api/health", tags=["health"])
