@@ -1,169 +1,62 @@
-<div align="center">
+# GestorIA - base funcional com PostgreSQL
 
-# GestorIA
+Primeira integração do protótipo com um backend real. O escopo foi mantido pequeno para liberar o desenvolvimento do frontend sem fechar prematuramente o domínio do produto.
 
-**Inteligência que organiza.**
+## O que já funciona
 
-Plataforma de gestão empresarial que transforma linguagem natural em dados estruturados e operações confiáveis.
-
-![Status](https://img.shields.io/badge/status-MVP-3D63F5)
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-
-</div>
-
-## Sobre o projeto
-
-O **GestorIA** é uma plataforma web criada para simplificar a gestão de empresas por meio da Inteligência Artificial. A proposta é permitir que gestores e equipes registrem, consultem e analisem informações utilizando linguagem natural, sem depender de fluxos complexos ou de múltiplos formulários.
-
-O projeto nasceu como uma iniciativa acadêmica de estudantes do 6º período de Ciência da Computação da PUC Minas, com a intenção de evoluir para um produto real. Por isso, o MVP já adota fundamentos de arquitetura, segurança, organização de código e isolamento de dados compatíveis com a evolução futura da plataforma.
-
-## Estado atual do MVP
-
-Nesta etapa, o sistema possui uma base funcional para autenticação e gerenciamento de produtos:
-
-- Login integrado ao backend.
-- Senhas protegidas com Argon2.
-- Sessões autenticadas com JWT.
-- Usuários vinculados a empresas.
-- Arquitetura multi-tenant com isolamento por `organization_id`.
+- Login com senha protegida por Argon2 e sessão JWT.
+- Usuário vinculado a uma empresa (tenant).
 - Cadastro, listagem, edição e exclusão de produtos.
-- Persistência dos dados em PostgreSQL.
-- Migrations versionadas com Alembic.
-- Documentação interativa da API.
-- Testes automatizados de autenticação, CRUD e isolamento entre empresas.
+- Toda consulta de produto é filtrada pela empresa autenticada.
+- PostgreSQL com migration versionada pelo Alembic.
+- Documentação interativa da API em `http://localhost:8000/docs`.
 
-As telas de clientes, pedidos, orçamentos, relatórios e IA ainda funcionam como demonstrações do produto e serão conectadas ao backend nas próximas etapas.
+As telas de clientes, pedidos, orçamentos, relatórios e IA continuam como protótipo local. Elas não foram persistidas nesta entrega.
 
-## Arquitetura
+## Rodar o projeto
 
-```mermaid
-flowchart TD
-    U["Usuário"] --> F["Frontend web"]
-    F --> B["API FastAPI"]
-    B --> D[("PostgreSQL")]
-    B -. "integração futura" .-> A["AI Orchestrator"]
-```
-
-O frontend nunca acessa o banco diretamente. Todas as operações passam pela API, responsável por autenticação, autorização, validação, regras de negócio e isolamento dos dados de cada empresa.
-
-## Tecnologias
-
-| Camada | Tecnologias |
-| --- | --- |
-| Frontend | HTML, CSS e JavaScript |
-| Backend | Python 3.12 e FastAPI |
-| Persistência | PostgreSQL 17 e SQLAlchemy 2 |
-| Migrations | Alembic |
-| Autenticação | JWT e Argon2 |
-| Infraestrutura local | Docker e Docker Compose |
-| Testes | Pytest e SQLite temporário |
-
-## Estrutura do projeto
-
-```text
-gestoria/
-├── backend/
-│   ├── alembic/              # Migrations do banco
-│   ├── app/
-│   │   ├── api/              # Rotas e dependências HTTP
-│   │   ├── config.py         # Configurações da aplicação
-│   │   ├── database.py       # Conexão e sessões do banco
-│   │   ├── models.py         # Entidades SQLAlchemy
-│   │   ├── repositories.py   # Consultas controladas
-│   │   ├── schemas.py        # Validação de entrada e saída
-│   │   ├── security.py       # Hash de senha e JWT
-│   │   ├── services.py       # Regras da aplicação
-│   │   └── seed.py           # Dados iniciais de desenvolvimento
-│   └── tests/                # Testes automatizados
-├── startup-main/             # Dashboard do protótipo
-├── LoginGestorIA.html        # Tela de autenticação
-├── docker-compose.yml        # API e PostgreSQL
-└── .env.example              # Variáveis de ambiente de exemplo
-```
-
-## Como executar
-
-### Pré-requisitos
-
-- Git
-- Docker Desktop
-
-### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/LauraEliza19/gestoria.git
-cd gestoria
-```
-
-### 2. Criar o arquivo de ambiente
-
-No PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-No Linux, macOS ou Git Bash:
+Requisito: Docker Desktop aberto.
 
 ```bash
 cp .env.example .env
-```
-
-### 3. Iniciar a aplicação
-
-```bash
 docker compose up --build
 ```
 
-Quando os serviços estiverem ativos, acesse:
+Acesse `http://localhost:8000` e entre com:
 
-| Serviço | Endereço |
-| --- | --- |
-| Aplicação | http://localhost:8000 |
-| Documentação da API | http://localhost:8000/docs |
-| PostgreSQL | `localhost:5432` |
+- E-mail: `admin@gestoria.dev`
+- Senha: `GestorIA@123`
 
-### Credenciais de desenvolvimento
+Essas credenciais são apenas para desenvolvimento e podem ser alteradas no arquivo `.env`.
 
-```text
-E-mail: admin@gestoria.dev
-Senha:  GestorIA@123
-```
+## Fluxo rápido para o Lucas
 
-Essas credenciais são exclusivas do ambiente local e podem ser alteradas no arquivo `.env`.
+1. Fazer login pela tela inicial.
+2. Abrir **Produtos** no menu lateral.
+3. Clicar em **Novo produto** e salvar.
+4. Atualizar a página: o registro continuará salvo no PostgreSQL.
+5. Editar ou excluir o produto para testar o restante do CRUD.
 
-## Banco de dados
-
-### Modelo atual
+## Estrutura do banco
 
 | Tabela | Responsabilidade |
 | --- | --- |
 | `organizations` | Empresas atendidas pela plataforma |
 | `users` | Identidade e credenciais dos usuários |
-| `organization_members` | Vínculo e papel do usuário em cada empresa |
+| `organization_members` | Papel do usuário dentro de cada empresa |
 | `products` | Catálogo isolado por `organization_id` |
 
-O status de estoque é calculado pela aplicação a partir de `stock_quantity` e `is_active`, evitando duplicidade e inconsistência de dados.
+O status do estoque não é duplicado no banco: ele é calculado a partir de `stock_quantity` e `is_active`.
 
-### Conexão local
+## Inspecionar o PostgreSQL
 
-```text
-Host:     localhost
-Porta:    5432
-Banco:    gestoria
-Usuário:  gestoria
-Senha:    gestoria_dev
-```
-
-Para acessar pelo terminal:
+Entre no terminal do banco:
 
 ```bash
 docker compose exec db psql -U gestoria -d gestoria
 ```
 
-Comandos úteis no `psql`:
+Comandos úteis para estudo:
 
 ```sql
 \dt
@@ -172,102 +65,64 @@ Comandos úteis no `psql`:
 SELECT id, name, price, stock_quantity, organization_id
 FROM products
 ORDER BY created_at DESC;
+
+SELECT u.full_name, u.email, om.role, o.name AS organization
+FROM users AS u
+JOIN organization_members AS om ON om.user_id = u.id
+JOIN organizations AS o ON o.id = om.organization_id;
 ```
 
-Use `\q` para sair.
+Saia do `psql` com `\q`.
 
-## API disponível
+## API implementada
 
-| Método | Rota | Descrição |
+| Método | Rota | Uso |
 | --- | --- | --- |
-| `POST` | `/api/auth/login` | Autentica o usuário |
-| `GET` | `/api/auth/me` | Retorna o usuário e a empresa da sessão |
-| `GET` | `/api/products` | Lista os produtos da empresa autenticada |
-| `POST` | `/api/products` | Cadastra um produto |
-| `PATCH` | `/api/products/{id}` | Atualiza um produto |
-| `DELETE` | `/api/products/{id}` | Exclui um produto |
-| `GET` | `/api/health` | Verifica a disponibilidade da API |
+| `POST` | `/api/auth/login` | Autenticar usuário |
+| `GET` | `/api/auth/me` | Consultar sessão atual |
+| `GET` | `/api/products` | Listar produtos da empresa |
+| `POST` | `/api/products` | Cadastrar produto |
+| `PATCH` | `/api/products/{id}` | Editar produto |
+| `DELETE` | `/api/products/{id}` | Excluir produto |
+| `GET` | `/api/health` | Verificar se a API está ativa |
 
-## Testes
+## Organização do código
 
-Os testes utilizam SQLite apenas como banco temporário, permitindo validar rapidamente a aplicação sem alterar os dados do PostgreSQL local.
-
-No PowerShell:
-
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-pytest -q
+```text
+backend/
+  alembic/             migrations do banco
+  app/
+    api/               rotas e dependências HTTP
+    models.py          tabelas SQLAlchemy
+    schemas.py         validação de entrada e saída
+    repositories.py    consultas controladas ao banco
+    services.py        autenticação e regras de aplicação
+    security.py        senha e token
+    seed.py            usuário inicial de desenvolvimento
+  tests/               testes de login, CRUD e isolamento
 ```
 
-No Linux, macOS ou Git Bash:
+As rotas não executam SQL direto e o frontend nunca recebe credenciais do banco.
+
+## Testes automatizados
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 pytest -q
 ```
 
-## Migrations
+Os testes usam SQLite somente como banco temporário e rápido. A aplicação executada pelo Docker usa PostgreSQL.
 
-Depois de alterar os modelos do banco, crie e aplique uma nova migration:
+## Evolução do schema
+
+Depois de alterar os modelos, gere e aplique uma nova migration:
 
 ```bash
 docker compose exec api alembic revision --autogenerate -m "descricao da alteracao"
 docker compose exec api alembic upgrade head
 ```
 
-Alterações estruturais no banco não devem ser feitas manualmente em ambientes compartilhados.
-
-## Fluxo de contribuição
-
-Para manter o histórico organizado, crie uma branch para cada alteração:
-
-```bash
-git switch -c feat/nome-da-funcionalidade
-git add .
-git commit -m "feat: descreve a funcionalidade"
-git push -u origin feat/nome-da-funcionalidade
-```
-
-Depois, abra um Pull Request no GitHub para revisão da equipe.
-
-Prefixos recomendados para commits:
-
-| Prefixo | Uso |
-| --- | --- |
-| `feat:` | Nova funcionalidade |
-| `fix:` | Correção de problema |
-| `docs:` | Alteração de documentação |
-| `refactor:` | Reorganização sem mudança de comportamento |
-| `test:` | Criação ou alteração de testes |
-| `chore:` | Configuração, dependências ou manutenção |
-
-## Próximas etapas
-
-- [x] Autenticação e sessão de usuário
-- [x] Núcleo multi-tenant
-- [x] CRUD de produtos
-- [x] Ambiente PostgreSQL com Docker
-- [ ] Persistência de clientes
-- [ ] Pedidos e orçamentos
-- [ ] Relatórios calculados pelo backend
-- [ ] AI Orchestrator e contratos de intents
-- [ ] Auditoria das operações
-- [ ] Estratégia de implantação e observabilidade
-
-## Segurança
-
-- O frontend não recebe credenciais do banco.
-- Senhas não são armazenadas em texto puro.
-- As consultas de produtos são limitadas à empresa autenticada.
-- A IA não possui acesso direto ao PostgreSQL.
-- `JWT_SECRET`, credenciais do PostgreSQL e usuário demonstrativo devem ser alterados antes de qualquer publicação.
-
----
-
-Desenvolvido pela equipe **GestorIA** como projeto acadêmico com visão de evolução para produto.
+Não altere tabelas manualmente em ambientes compartilhados. Antes de publicar, troque `JWT_SECRET`, senha do PostgreSQL e credenciais demo.

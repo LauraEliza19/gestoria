@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GestorIA — Painel</title>
+<script>
+  (function(){
+    try {
+      if(localStorage.getItem('gestoria_theme') === 'dark'){
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch(e) {}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/startup-main/styleDashboard.css">
@@ -100,6 +109,7 @@
         <div class="tenant-chip">Empresa: Padaria Bom Pão</div>
       </div>
       <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Alternar modo escuro" aria-label="Alternar modo escuro"></button>
         <div class="user-menu-wrap">
           <button class="user-avatar" id="avatarBtn">JS</button>
 
@@ -389,6 +399,42 @@
 
 </div>
 
+<!-- Modal: Novo pedido (cliente + itens dinâmicos, dados reais da API) -->
+<div class="modal-overlay" id="pedidoModalOverlay">
+  <div class="modal-card" style="width:480px;">
+    <div class="modal-header">
+      <h3>Novo pedido</h3>
+      <button class="modal-close" id="pedidoModalCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub">Selecione o cliente e os produtos deste pedido.</div>
+
+    <form id="pedidoForm">
+      <div class="field" data-field="cliente">
+        <label for="ped-cliente">Cliente</label>
+        <select id="ped-cliente"></select>
+        <div class="error-msg">Selecione um cliente.</div>
+      </div>
+
+      <div class="section-label" style="margin:18px 0 6px 0;">Itens do pedido</div>
+      <div id="pedidoItemsList"></div>
+      <div class="items-error" id="pedidoItemsError">Adicione ao menos um item com produto selecionado.</div>
+      <button type="button" class="btn-secondary" id="addPedidoItemBtn" style="margin-top:10px;">+ Adicionar item</button>
+
+      <div class="orcamento-total-row">
+        <span>Total estimado</span>
+        <strong id="pedidoTotalDisplay">R$ 0,00</strong>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="pedidoCancelBtn">Cancelar</button>
+        <button type="submit" class="btn-primary btn-inline">Salvar pedido</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal: Novo orçamento (com itens dinâmicos) -->
 <div class="modal-overlay" id="orcamentoModalOverlay">
   <div class="modal-card" style="width:480px;">
@@ -516,7 +562,7 @@
   </div>
 </div>
 
-<!-- Modal de ação rápida (Novo cliente / produto / pedido) -->
+<!-- Modal de ação rápida (Novo cliente / produto / status do pedido / empresa) -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-card">
     <div class="modal-header">
@@ -851,21 +897,23 @@
         { id:'nome', label:'Nome', type:'text', placeholder:'Ex: Maria Souza', required:true },
         { id:'telefone', label:'Telefone', type:'text', placeholder:'(31) 99999-0000', required:true },
       ],
-      onSave: (data, editing) => {
+      onSave: async (data, editing) => {
+        const payload = { name: data.nome, phone: data.telefone };
+
         if(editing){
-          editing.nome = data.nome;
-          editing.telefone = data.telefone;
+          const updated = await apiFetch(`/api/customers/${editing.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+          });
+          Object.assign(editing, customerFromApi(updated));
           showToast(`Cliente "${data.nome}" atualizado.`);
           addLogEntry(`Cliente atualizado: ${data.nome} (${data.telefone})`, 'executado', 'Manual');
         } else {
-          clientesData.unshift({
-            id: nextClienteId++,
-            nome:data.nome,
-            telefone:data.telefone,
-            gasto:0,
-            desdeLabel:'Agora',
-            desdeOrdem: clientesData.length + 1
+          const created = await apiFetch('/api/customers', {
+            method: 'POST',
+            body: JSON.stringify(payload)
           });
+          clientesData.unshift(customerFromApi(created));
           showToast(`Cliente "${data.nome}" cadastrado com sucesso.`);
           addLogEntry(`Cliente cadastrado: ${data.nome} (${data.telefone})`, 'executado', 'Manual');
         }
@@ -918,30 +966,24 @@
         renderProdutos();
       }
     },
-    pedido: {
-      title: 'Novo pedido',
-      editTitle: 'Editar pedido',
-      sub: 'Registre um pedido manualmente.',
-      editSub: 'Atualize os dados deste pedido.',
+    // Edição de pedido = só o status (é tudo que o backend permite alterar
+    // depois de criado; cliente e itens só existem no momento da criação).
+    pedidoStatus: {
+      title: 'Atualizar status',
+      editTitle: 'Atualizar status do pedido',
+      sub: 'Selecione o novo status.',
+      editSub: 'Selecione o novo status.',
       fields: [
-        { id:'cliente', label:'Cliente', type:'text', placeholder:'Ex: João Pereira', required:true },
-        { id:'valor', label:'Valor', type:'text', placeholder:'Ex: 150', required:true, editValue: r => r.valor.toFixed(2).replace('.', ',') },
-        { id:'status', label:'Status', type:'select', options:['Em preparo','Concluído','Cancelado'], required:true },
+        { id:'status', label:'Status', type:'select', options:['Em preparo','Concluído','Cancelado'], editValue: r => r.status },
       ],
-      onSave: (data, editing) => {
-        const valorNum = parsePriceBR(data.valor);
-        if(editing){
-          editing.cliente = data.cliente;
-          editing.valor = valorNum;
-          editing.status = data.status;
-          showToast(`Pedido #${editing.id} atualizado.`);
-          addLogEntry(`Pedido atualizado: #${editing.id} — ${data.cliente} (${data.status})`, 'executado', 'Manual');
-        } else {
-          const id = nextPedidoId++;
-          pedidosData.unshift({ id, cliente:data.cliente, valor:valorNum, status:data.status });
-          showToast(`Pedido de "${data.cliente}" registrado.`);
-          addLogEntry(`Pedido registrado: #${id} — ${data.cliente} (R$ ${data.valor})`, 'executado', 'Manual');
-        }
+      onSave: async (data, editing) => {
+        const updated = await apiFetch(`/api/orders/${editing.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: STATUS_TO_API[data.status] })
+        });
+        Object.assign(editing, orderFromApi(updated));
+        showToast(`Pedido atualizado para "${data.status}".`);
+        addLogEntry(`Pedido #${editing.id.slice(0,8)} atualizado: ${data.status}`, 'executado', 'Manual');
         renderPedidos();
       }
     },
@@ -1045,9 +1087,6 @@
 
   document.getElementById('openNewClienteBtn').addEventListener('click', () => openModal('cliente'));
   document.getElementById('openNewProdutoBtn').addEventListener('click', () => openModal('produto'));
-  document.getElementById('openNewPedidoBtn').addEventListener('click', () => openModal('pedido'));
-
-  let nextPedidoId = 1043;
 
   // ---- Ícones reutilizados nas ações de linha ----
   const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
@@ -1122,15 +1161,36 @@
     item.addEventListener('click', () => switchSection(item.dataset.section));
   });
 
-  // ---- Seção Clientes: dados, busca e ordenação ----
-  const clientesData = [
-    { id:1, nome:'João Pereira', telefone:'(31) 99999-0001', gasto:15400, desdeLabel:'Jan 2025', desdeOrdem:1 },
-    { id:2, nome:'Maria Souza', telefone:'(31) 99999-0002', gasto:12100, desdeLabel:'Mar 2025', desdeOrdem:2 },
-    { id:3, nome:'Carlos Lima', telefone:'(31) 99999-0003', gasto:9800, desdeLabel:'Jun 2025', desdeOrdem:3 },
-    { id:4, nome:'Ana Ribeiro', telefone:'(31) 99999-0004', gasto:7300, desdeLabel:'Ago 2025', desdeOrdem:4 },
-    { id:5, nome:'Pedro Alves', telefone:'(31) 99999-0005', gasto:6900, desdeLabel:'Nov 2025', desdeOrdem:5 },
-  ];
-  let nextClienteId = 6;
+  // ---- Utilitários compartilhados de dinheiro/data ----
+  function formatCurrency(value){
+    return 'R$ ' + value.toLocaleString('pt-BR');
+  }
+
+  function formatMoney(value){
+    return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+
+  function parsePriceBR(value){
+    if(!value) return 0;
+    const cleaned = String(value).trim().replace(/[^\d,.-]/g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+
+  function formatDateBR(isoDate){
+    if(!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function formatMonthYearLabel(isoString){
+    const date = new Date(isoString);
+    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+
+  // ---- Seção Clientes: dados (API real), busca e ordenação ----
+  const clientesData = [];
 
   const clientesTableBody = document.getElementById('clientesTableBody');
   const clientesEmpty = document.getElementById('clientesEmpty');
@@ -1140,8 +1200,24 @@
   const clientSearch = document.getElementById('clientSearch');
   const clientSort = document.getElementById('clientSort');
 
-  function formatCurrency(value){
-    return 'R$ ' + value.toLocaleString('pt-BR');
+  function customerFromApi(customer){
+    return {
+      id: customer.id,
+      nome: customer.name,
+      telefone: customer.phone,
+      // "Total gasto" ainda não é calculado a partir dos Pedidos reais —
+      // fica 0 até essa regra ser implementada no backend.
+      gasto: 0,
+      desdeLabel: formatMonthYearLabel(customer.created_at),
+      desdeOrdem: new Date(customer.created_at).getTime(),
+      is_active: customer.is_active
+    };
+  }
+
+  async function loadClientes(){
+    const customers = await apiFetch('/api/customers');
+    clientesData.splice(0, clientesData.length, ...customers.map(customerFromApi));
+    renderClientes();
   }
 
   function renderClientes(){
@@ -1167,8 +1243,8 @@
 
     clientesTableBody.innerHTML = list.map(c => `
       <tr>
-        <td><button class="cell-link" data-action="view-cliente" data-id="${c.id}">${c.nome}</button></td>
-        <td>${c.telefone}</td>
+        <td><button class="cell-link" data-action="view-cliente" data-id="${c.id}">${escapeHtml(c.nome)}</button></td>
+        <td>${escapeHtml(c.telefone)}</td>
         <td>${formatCurrency(c.gasto)}</td>
         <td>${c.desdeLabel}</td>
         <td>${rowActionsHtml(c.id)}</td>
@@ -1187,7 +1263,7 @@
   clientesTableBody.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
-    const id = parseInt(btn.dataset.id, 10);
+    const id = btn.dataset.id;
     const record = clientesData.find(c => c.id === id);
     if(!record) return;
 
@@ -1195,7 +1271,8 @@
     if(btn.dataset.action === 'edit') openModal('cliente', record);
 
     if(btn.dataset.action === 'delete'){
-      openConfirmDelete(`Excluir o cliente "${record.nome}"? Essa ação não pode ser desfeita.`, () => {
+      openConfirmDelete(`Excluir o cliente "${record.nome}"? Essa ação não pode ser desfeita.`, async () => {
+        await apiFetch(`/api/customers/${record.id}`, { method: 'DELETE' });
         const idx = clientesData.findIndex(c => c.id === id);
         if(idx > -1) clientesData.splice(idx, 1);
         renderClientes();
@@ -1205,7 +1282,7 @@
     }
   });
 
-  // ---- Seção Produtos: dados e tabela ----
+  // ---- Seção Produtos: dados (API real) e tabela ----
   const produtosData = [];
 
   const produtosTableBody = document.getElementById('produtosTableBody');
@@ -1316,25 +1393,43 @@
     }
   });
 
-  // ---- Seção Pedidos: dados e tabela ----
-  const pedidosData = [
-    { id:1042, cliente:'João Pereira', valor:320, status:'Concluído',
-      itens:[{produto:'Pão francês (kg)', qtd:10, preco:14.90}, {produto:'Bolo de fubá', qtd:2, preco:32.00}] },
-    { id:1041, cliente:'Maria Souza', valor:180, status:'Em preparo',
-      itens:[{produto:'Café especial (pacote)', qtd:4, preco:27.50}] },
-    { id:1040, cliente:'Carlos Lima', valor:95, status:'Concluído' },
-    { id:1039, cliente:'Ana Ribeiro', valor:210, status:'Cancelado' },
-  ];
+  // ---- Seção Pedidos: dados (API real), criação com itens dinâmicos ----
+  const pedidosData = [];
 
   const pedidosTableBody = document.getElementById('pedidosTableBody');
   const pedidosEmpty = document.getElementById('pedidosEmpty');
   const pedidosTrueEmpty = document.getElementById('pedidosTrueEmpty');
   const pedidosTableWrap = document.querySelector('#section-pedidos .data-table-wrap');
 
+  // Tradução de status: o backend guarda em inglês, a tela mostra em português.
+  const STATUS_FROM_API = { in_preparation:'Em preparo', completed:'Concluído', cancelled:'Cancelado' };
+  const STATUS_TO_API = { 'Em preparo':'in_preparation', 'Concluído':'completed', 'Cancelado':'cancelled' };
+
   function pedidoBadgeClass(status){
     if(status === 'Concluído') return 'badge-green';
     if(status === 'Em preparo') return 'badge-blue';
     return 'badge-red';
+  }
+
+  function orderFromApi(order){
+    return {
+      id: order.id,
+      customer_id: order.customer_id,
+      cliente: order.customer_name,
+      valor: Number(order.total_amount),
+      status: STATUS_FROM_API[order.status] || order.status,
+      itens: order.items.map(it => ({
+        produto: it.product_name,
+        qtd: it.quantity,
+        preco: Number(it.unit_price)
+      }))
+    };
+  }
+
+  async function loadOrders(){
+    const orders = await apiFetch('/api/orders');
+    pedidosData.splice(0, pedidosData.length, ...orders.map(orderFromApi));
+    renderPedidos();
   }
 
   function renderPedidos(){
@@ -1349,8 +1444,8 @@
 
     pedidosTableBody.innerHTML = pedidosData.map(p => `
       <tr>
-        <td><button class="cell-link" data-action="view-pedido" data-id="${p.id}">#${p.id}</button></td>
-        <td>${p.cliente}</td>
+        <td><button class="cell-link" data-action="view-pedido" data-id="${p.id}">#${p.id.slice(0,8)}</button></td>
+        <td>${escapeHtml(p.cliente)}</td>
         <td>${formatMoney(p.valor)}</td>
         <td><span class="badge ${pedidoBadgeClass(p.status)}">${p.status}</span></td>
         <td>${rowActionsHtml(p.id)}</td>
@@ -1358,50 +1453,167 @@
     `).join('');
   }
 
-  document.getElementById('emptyStateNewPedidoBtn').addEventListener('click', () => openModal('pedido'));
-
   renderPedidos();
 
   pedidosTableBody.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
-    const id = parseInt(btn.dataset.id, 10);
+    const id = btn.dataset.id;
     const record = pedidosData.find(p => p.id === id);
     if(!record) return;
 
     if(btn.dataset.action === 'view-pedido'){
-      openViewItemsModal(`Pedido #${record.id}`, `${record.cliente} — ${record.status}`, record.itens || [], record.valor);
+      openViewItemsModal(`Pedido #${record.id.slice(0,8)}`, `${record.cliente} — ${record.status}`, record.itens, record.valor);
     }
-    if(btn.dataset.action === 'edit') openModal('pedido', record);
+    if(btn.dataset.action === 'edit') openModal('pedidoStatus', record);
 
     if(btn.dataset.action === 'delete'){
-      openConfirmDelete(`Excluir o pedido #${record.id}? Essa ação não pode ser desfeita.`, () => {
+      openConfirmDelete(`Excluir o pedido #${record.id.slice(0,8)}? Essa ação não pode ser desfeita.`, async () => {
+        await apiFetch(`/api/orders/${record.id}`, { method: 'DELETE' });
         const idx = pedidosData.findIndex(p => p.id === id);
         if(idx > -1) pedidosData.splice(idx, 1);
         renderPedidos();
-        showToast(`Pedido #${record.id} excluído.`);
-        addLogEntry(`Pedido excluído: #${record.id} (${record.cliente})`, 'executado', 'Manual');
+        showToast(`Pedido #${record.id.slice(0,8)} excluído.`);
+        addLogEntry(`Pedido excluído: #${record.id.slice(0,8)} (${record.cliente})`, 'executado', 'Manual');
       });
     }
   });
 
-  // ---- Orçamentos ----
-  function formatMoney(value){
-    return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  // ---- Modal: Novo pedido (cliente + itens dinâmicos, selecionados de dados reais) ----
+  const pedidoModalOverlay = document.getElementById('pedidoModalOverlay');
+  const pedidoForm = document.getElementById('pedidoForm');
+  const pedidoClienteSelect = document.getElementById('ped-cliente');
+  const pedidoClienteField = pedidoForm.querySelector('[data-field="cliente"]');
+  const pedidoItemsList = document.getElementById('pedidoItemsList');
+  const pedidoItemsError = document.getElementById('pedidoItemsError');
+  const pedidoTotalDisplay = document.getElementById('pedidoTotalDisplay');
+
+  function updatePedidoTotal(){
+    let total = 0;
+    pedidoItemsList.querySelectorAll('.pedido-item-row').forEach(row => {
+      const select = row.querySelector('.item-produto-select');
+      const qtd = parseFloat(row.querySelector('.item-qtd').value) || 0;
+      const produto = produtosData.find(p => p.id === select.value);
+      if(produto) total += qtd * produto.preco;
+    });
+    pedidoTotalDisplay.textContent = formatMoney(total);
   }
 
-  function parsePriceBR(value){
-    if(!value) return 0;
-    const cleaned = String(value).trim().replace(/[^\d,.-]/g, '').replace(',', '.');
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? 0 : num;
+  function addPedidoItemRow(){
+    const row = document.createElement('div');
+    row.className = 'pedido-item-row';
+    row.innerHTML = `
+      <select class="item-produto-select">
+        ${produtosData.map(p => `<option value="${p.id}">${escapeHtml(p.nome)} (R$ ${p.preco.toFixed(2).replace('.', ',')})</option>`).join('')}
+      </select>
+      <input type="number" class="item-qtd" placeholder="Qtd" min="1" value="1">
+      <span class="item-subtotal">R$ 0,00</span>
+      <button type="button" class="remove-item-btn" title="Remover item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    `;
+    pedidoItemsList.appendChild(row);
+
+    const select = row.querySelector('.item-produto-select');
+    const qtdInput = row.querySelector('.item-qtd');
+    const subtotalEl = row.querySelector('.item-subtotal');
+
+    function refreshSubtotal(){
+      const produto = produtosData.find(p => p.id === select.value);
+      const qtd = parseFloat(qtdInput.value) || 0;
+      subtotalEl.textContent = produto ? formatMoney(qtd * produto.preco) : 'R$ 0,00';
+      updatePedidoTotal();
+    }
+
+    select.addEventListener('change', refreshSubtotal);
+    qtdInput.addEventListener('input', refreshSubtotal);
+    row.querySelector('.remove-item-btn').addEventListener('click', () => {
+      row.remove();
+      updatePedidoTotal();
+    });
+
+    refreshSubtotal();
   }
 
-  function formatDateBR(isoDate){
-    if(!isoDate) return '';
-    const [y, m, d] = isoDate.split('-');
-    return `${d}/${m}/${y}`;
+  function openPedidoModal(){
+    if(clientesData.length === 0){
+      showToast('Cadastre um cliente antes de criar um pedido.', 'error');
+      return;
+    }
+    if(produtosData.length === 0){
+      showToast('Cadastre um produto antes de criar um pedido.', 'error');
+      return;
+    }
+
+    pedidoClienteSelect.innerHTML = clientesData.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+    pedidoClienteField.classList.remove('error');
+    pedidoItemsError.classList.remove('show');
+    pedidoItemsList.innerHTML = '';
+    addPedidoItemRow();
+    updatePedidoTotal();
+    pedidoModalOverlay.classList.add('open');
   }
+
+  function closePedidoModal(){ pedidoModalOverlay.classList.remove('open'); }
+
+  document.getElementById('openNewPedidoBtn').addEventListener('click', openPedidoModal);
+  document.getElementById('emptyStateNewPedidoBtn').addEventListener('click', openPedidoModal);
+  document.getElementById('addPedidoItemBtn').addEventListener('click', addPedidoItemRow);
+  document.getElementById('pedidoModalCloseBtn').addEventListener('click', closePedidoModal);
+  document.getElementById('pedidoCancelBtn').addEventListener('click', closePedidoModal);
+  pedidoModalOverlay.addEventListener('click', (e) => { if(e.target === pedidoModalOverlay) closePedidoModal(); });
+
+  pedidoForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let valid = true;
+
+    if(!pedidoClienteSelect.value){
+      pedidoClienteField.classList.add('error');
+      valid = false;
+    } else {
+      pedidoClienteField.classList.remove('error');
+    }
+
+    const items = [];
+    pedidoItemsList.querySelectorAll('.pedido-item-row').forEach(row => {
+      const productId = row.querySelector('.item-produto-select').value;
+      const quantity = parseInt(row.querySelector('.item-qtd').value, 10) || 0;
+      if(productId && quantity > 0){
+        items.push({ product_id: productId, quantity });
+      }
+    });
+
+    if(items.length === 0){
+      pedidoItemsError.classList.add('show');
+      valid = false;
+    } else {
+      pedidoItemsError.classList.remove('show');
+    }
+
+    if(!valid) return;
+
+    const submitButton = pedidoForm.querySelector('[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      const created = await apiFetch('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify({ customer_id: pedidoClienteSelect.value, items })
+      });
+      const novoPedido = orderFromApi(created);
+      pedidosData.unshift(novoPedido);
+      renderPedidos();
+      showToast(`Pedido criado para "${novoPedido.cliente}".`);
+      addLogEntry(`Pedido criado: #${novoPedido.id.slice(0,8)} — ${novoPedido.cliente} (${formatMoney(novoPedido.valor)})`, 'executado', 'Manual');
+      closePedidoModal();
+    } catch(error) {
+      showToast(error.message, 'error');
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  // ---- Orçamentos (ainda protótipo local — backend futuro) ----
+  let nextLocalPedidoRef = 9000;
 
   const orcamentosData = [
     { id:2001, cliente:'Ana Ribeiro', validade:'25/08/2026', status:'Pendente',
@@ -1448,14 +1660,14 @@
       if(o.status === 'Aprovado'){
         actions += ` · <button class="link-btn" data-action="converter" data-id="${o.id}">Converter em pedido</button>`;
       }
-      if(o.status === 'Convertido' && o.pedidoId){
-        actions += ` · <span class="badge badge-blue">Pedido #${o.pedidoId}</span>`;
+      if(o.status === 'Convertido' && o.pedidoRef){
+        actions += ` · <span class="badge badge-blue">Ref. #${o.pedidoRef}</span>`;
       }
 
       return `
         <tr>
           <td>#${o.id}</td>
-          <td>${o.cliente}</td>
+          <td>${escapeHtml(o.cliente)}</td>
           <td>${o.itens.length} ${o.itens.length === 1 ? 'item' : 'itens'}</td>
           <td>${formatMoney(total)}</td>
           <td>${o.validade}</td>
@@ -1493,16 +1705,16 @@
     }
 
     if(action === 'converter'){
-      const total = orcamentoTotal(orcamento);
-      const pedidoId = nextPedidoId++;
-      pedidosData.unshift({ id: pedidoId, cliente: orcamento.cliente, valor: total, status: 'Em preparo', itens: orcamento.itens });
-      renderPedidos();
-
+      // NOTA: Orçamentos ainda não têm backend próprio. Essa conversão continua
+      // sendo só local/visual — não cria um Pedido de verdade via API. Quando
+      // Orçamentos for implementado no backend, essa lógica deve ser trocada
+      // por uma chamada real, análoga à criação de Pedido.
+      const pedidoRef = nextLocalPedidoRef++;
       orcamento.status = 'Convertido';
-      orcamento.pedidoId = pedidoId;
+      orcamento.pedidoRef = pedidoRef;
       renderOrcamentos();
-      showToast(`Orçamento #${orcamento.id} convertido no pedido #${pedidoId}.`);
-      addLogEntry(`Orçamento #${orcamento.id} (${orcamento.cliente}) convertido em pedido #${pedidoId}`, 'executado', 'Manual');
+      showToast(`Orçamento #${orcamento.id} marcado como convertido (referência local #${pedidoRef}). Registre o pedido manualmente em "Pedidos".`);
+      addLogEntry(`Orçamento #${orcamento.id} (${orcamento.cliente}) marcado como convertido`, 'executado', 'Manual');
     }
   });
 
@@ -1524,7 +1736,7 @@
       viewItemsEmptyMsg.style.display = 'none';
       viewItemsTableBody.innerHTML = itens.map(it => `
         <tr>
-          <td>${it.produto}</td>
+          <td>${escapeHtml(it.produto)}</td>
           <td>${it.qtd}</td>
           <td>${formatMoney(it.preco)}</td>
           <td>${formatMoney(it.qtd * it.preco)}</td>
@@ -1566,7 +1778,7 @@
     clienteDetailInfo.innerHTML = `
       <div class="detail-info-item">
         <div class="detail-label">Telefone</div>
-        <div class="detail-value">${cliente.telefone}</div>
+        <div class="detail-value">${escapeHtml(cliente.telefone)}</div>
       </div>
       <div class="detail-info-item">
         <div class="detail-label">Total gasto</div>
@@ -1574,11 +1786,12 @@
       </div>
     `;
 
-    const pedidosDoCliente = pedidosData.filter(p => p.cliente === cliente.nome);
+    // Pedidos reais são ligados por customer_id (confiável).
+    const pedidosDoCliente = pedidosData.filter(p => p.customer_id === cliente.id);
     if(pedidosDoCliente.length > 0){
       clienteDetailPedidos.innerHTML = pedidosDoCliente.map(p => `
         <tr>
-          <td>#${p.id}</td>
+          <td>#${p.id.slice(0,8)}</td>
           <td>${formatMoney(p.valor)}</td>
           <td><span class="badge ${pedidoBadgeClass(p.status)}">${p.status}</span></td>
         </tr>
@@ -1589,6 +1802,8 @@
       clienteDetailPedidosEmpty.style.display = 'block';
     }
 
+    // Orçamentos ainda são só locais, então a ligação continua sendo por nome
+    // (limitação conhecida, será resolvida quando Orçamentos tiver backend).
     const orcamentosDoCliente = orcamentosData.filter(o => o.cliente === cliente.nome);
     if(orcamentosDoCliente.length > 0){
       clienteDetailOrcamentos.innerHTML = orcamentosDoCliente.map(o => `
@@ -1612,7 +1827,7 @@
   document.getElementById('clienteDetailCloseBtn2').addEventListener('click', closeClienteDetail);
   clienteDetailOverlay.addEventListener('click', (e) => { if(e.target === clienteDetailOverlay) closeClienteDetail(); });
 
-  // ---- Modal: Novo orçamento (itens dinâmicos) ----
+  // ---- Modal: Novo orçamento (itens dinâmicos, ainda local) ----
   const orcamentoModalOverlay = document.getElementById('orcamentoModalOverlay');
   const orcamentoForm = document.getElementById('orcamentoForm');
   const orcamentoItemsList = document.getElementById('orcamentoItemsList');
@@ -1853,7 +2068,6 @@
     }
 
     if(lower.includes('cadastr') && lower.includes('cliente')){
-      // Extração simples do nome e telefone a partir do texto (simulação de NLP)
       const nameMatch = text.match(/cadastr\w*\s+(?:a|o)?\s*([a-zà-úA-ZÀ-Ú\s]+?)\s+como\s+cliente/i);
       const phoneMatch = text.match(/(\(?\d{2}\)?\s?\d{4,5}-?\d{4})/);
 
@@ -1875,17 +2089,20 @@
             { key:'nome', label:'Nome', value: nome || 'Não identificado — preencha' },
             { key:'telefone', label:'Telefone', value: telefone || 'Não identificado — preencha' },
           ],
-          onConfirm: (values) => {
-            clientesData.unshift({
-              nome: values.nome,
-              telefone: values.telefone,
-              gasto: 0,
-              desdeLabel: 'Agora',
-              desdeOrdem: clientesData.length + 1
-            });
-            renderClientes();
-            showToast(`Cliente "${values.nome}" cadastrado com sucesso.`);
-            addLogEntry(`Cliente cadastrado via chat: ${values.nome} (${values.telefone})`, 'executado', 'IA (chat)');
+          onConfirm: async (values) => {
+            try {
+              const created = await apiFetch('/api/customers', {
+                method: 'POST',
+                body: JSON.stringify({ name: values.nome, phone: values.telefone })
+              });
+              clientesData.unshift(customerFromApi(created));
+              renderClientes();
+              showToast(`Cliente "${values.nome}" cadastrado com sucesso.`);
+              addLogEntry(`Cliente cadastrado via chat: ${values.nome} (${values.telefone})`, 'executado', 'IA (chat)');
+            } catch(error) {
+              showToast(error.message, 'error');
+              addLogEntry(`Falha ao cadastrar cliente via chat: ${error.message}`, 'cancelado', 'IA (chat)');
+            }
           },
           onCancel: () => {
             addLogEntry(`Cadastro de cliente cancelado (comando: "${text}")`, 'cancelado', 'IA (chat)');
@@ -1897,15 +2114,17 @@
     if(lower.includes('pedido') || lower.includes('venda')){
       return {
         chatReply: 'Aqui estão os pedidos mais recentes.',
-        render: () => renderTableResult(
-          'Pedidos recentes:',
-          ['Pedido', 'Cliente', 'Valor', 'Status'],
-          [
-            ['#1042', 'João Pereira', 'R$ 320', 'Concluído'],
-            ['#1041', 'Maria Souza', 'R$ 180', 'Em preparo'],
-            ['#1040', 'Carlos Lima', 'R$ 95', 'Concluído'],
-          ]
-        )
+        render: () => {
+          if(pedidosData.length === 0){
+            renderTextResult('Nenhum pedido registrado ainda.');
+            return;
+          }
+          renderTableResult(
+            'Pedidos recentes:',
+            ['Pedido', 'Cliente', 'Valor', 'Status'],
+            pedidosData.slice(0, 5).map(p => [`#${p.id.slice(0,8)}`, p.cliente, formatMoney(p.valor), p.status])
+          );
+        }
       };
     }
 
@@ -1952,12 +2171,12 @@
       </div>
     `;
 
-    bubble.querySelector('[data-action="confirm"]').addEventListener('click', () => {
+    bubble.querySelector('[data-action="confirm"]').addEventListener('click', async () => {
       const values = {};
       bubble.querySelectorAll('.confirm-field-row input').forEach(input => {
         values[input.dataset.key] = input.value.trim();
       });
-      config.onConfirm(values);
+      await config.onConfirm(values);
       resolveConfirmCard(bubble, 'executed', '✓ Confirmado e executado.');
     });
 
@@ -2019,10 +2238,34 @@
       const session = await apiFetch('/api/auth/me');
       applyCurrentSession(session);
       await loadProducts();
+      await loadClientes();
+      await loadOrders();
     } catch(error) {
       if(getAccessToken()) showToast(error.message, 'error');
     }
   }
+
+  // ---- Modo escuro ----
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const ICON_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>';
+  const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>';
+
+  function applyTheme(theme){
+    if(theme === 'dark'){
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    try { localStorage.setItem('gestoria_theme', theme); } catch(e) {}
+    themeToggleBtn.innerHTML = theme === 'dark' ? ICON_SUN : ICON_MOON;
+  }
+
+  themeToggleBtn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 
   initializeApp();
 </script>
