@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -7,13 +9,14 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Numeric,
     String,
     UniqueConstraint,
     Uuid,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -81,6 +84,7 @@ class Product(Base, TimestampMixin):
         UniqueConstraint("organization_id", "name", name="uq_product_org_name"),
         CheckConstraint("price >= 0", name="ck_product_price_nonnegative"),
         CheckConstraint("stock_quantity >= 0", name="ck_product_stock_nonnegative"),
+        Index("ix_products_org_created_at", "organization_id", "created_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -94,6 +98,7 @@ class Product(Base, TimestampMixin):
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     stock_quantity: Mapped[int] = mapped_column(default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    order_items: Mapped[list[OrderItem]] = relationship(back_populates="product")
 
     @property
     def status(self) -> str:
@@ -105,10 +110,13 @@ class Product(Base, TimestampMixin):
             return "Estoque baixo"
         return "Disponível"
 
+
 class Customer(Base, TimestampMixin):
     __tablename__ = "customers"
     __table_args__ = (
         UniqueConstraint("organization_id", "phone", name="uq_customer_org_phone"),
+        Index("ix_customers_org_created_at", "organization_id", "created_at"),
+        Index("ix_customers_org_name", "organization_id", "name"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -120,6 +128,7 @@ class Customer(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     phone: Mapped[str] = mapped_column(String(30), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    orders: Mapped[list[Order]] = relationship(back_populates="customer")
 
 
 class Order(Base, TimestampMixin):
@@ -130,6 +139,14 @@ class Order(Base, TimestampMixin):
             name="ck_order_status",
         ),
         CheckConstraint("total_amount >= 0", name="ck_order_total_nonnegative"),
+        Index("ix_orders_org_created_at", "organization_id", "created_at"),
+        Index(
+            "ix_orders_org_status_created_at",
+            "organization_id",
+            "status",
+            "created_at",
+        ),
+        Index("ix_orders_org_customer", "organization_id", "customer_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -143,8 +160,16 @@ class Order(Base, TimestampMixin):
         ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    status: Mapped[str] = mapped_column(String(20), default="in_preparation", nullable=False)
-    total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), default="in_preparation", nullable=False
+    )
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=0, nullable=False
+    )
+    customer: Mapped[Customer] = relationship(back_populates="orders")
+    items: Mapped[list[OrderItem]] = relationship(
+        back_populates="order", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class OrderItem(Base, TimestampMixin):
@@ -152,6 +177,8 @@ class OrderItem(Base, TimestampMixin):
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_order_item_quantity_positive"),
         CheckConstraint("unit_price >= 0", name="ck_order_item_price_nonnegative"),
+        Index("ix_order_items_order_id", "order_id"),
+        Index("ix_order_items_product_id", "product_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -167,3 +194,5 @@ class OrderItem(Base, TimestampMixin):
     )
     quantity: Mapped[int] = mapped_column(nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    order: Mapped[Order] = relationship(back_populates="items")
+    product: Mapped[Product] = relationship(back_populates="order_items")

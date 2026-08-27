@@ -982,6 +982,7 @@
           body: JSON.stringify({ status: STATUS_TO_API[data.status] })
         });
         Object.assign(editing, orderFromApi(updated));
+        await loadClientes();
         showToast(`Pedido atualizado para "${data.status}".`);
         addLogEntry(`Pedido #${editing.id.slice(0,8)} atualizado: ${data.status}`, 'executado', 'Manual');
         renderPedidos();
@@ -1205,9 +1206,8 @@
       id: customer.id,
       nome: customer.name,
       telefone: customer.phone,
-      // "Total gasto" ainda não é calculado a partir dos Pedidos reais —
-      // fica 0 até essa regra ser implementada no backend.
-      gasto: 0,
+      gasto: Number(customer.total_spent || 0),
+      pedidos: Number(customer.orders_count || 0),
       desdeLabel: formatMonthYearLabel(customer.created_at),
       desdeOrdem: new Date(customer.created_at).getTime(),
       is_active: customer.is_active
@@ -1473,6 +1473,7 @@
         const idx = pedidosData.findIndex(p => p.id === id);
         if(idx > -1) pedidosData.splice(idx, 1);
         renderPedidos();
+        await loadClientes();
         showToast(`Pedido #${record.id.slice(0,8)} excluído.`);
         addLogEntry(`Pedido excluído: #${record.id.slice(0,8)} (${record.cliente})`, 'executado', 'Manual');
       });
@@ -1602,6 +1603,7 @@
       const novoPedido = orderFromApi(created);
       pedidosData.unshift(novoPedido);
       renderPedidos();
+      await loadClientes();
       showToast(`Pedido criado para "${novoPedido.cliente}".`);
       addLogEntry(`Pedido criado: #${novoPedido.id.slice(0,8)} — ${novoPedido.cliente} (${formatMoney(novoPedido.valor)})`, 'executado', 'Manual');
       closePedidoModal();

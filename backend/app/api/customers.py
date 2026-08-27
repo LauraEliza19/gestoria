@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 
-from app.api.dependencies import CurrentUser, DatabaseSession
+from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import CustomerRepository
 from app.schemas import CustomerCreate, CustomerRead, CustomerUpdate
 
@@ -18,6 +18,13 @@ def duplicate_customer() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail="Já existe um cliente com esse telefone nesta empresa.",
+    )
+
+
+def customer_in_use() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Este cliente possui pedidos vinculados e não pode ser excluído.",
     )
 
 
@@ -67,11 +74,16 @@ def update_customer(
 def delete_customer(
     customer_id: uuid.UUID, db: DatabaseSession, current: CurrentUser
 ) -> Response:
+    require_role(current, {"owner", "admin"})
     customer = CustomerRepository.get_for_organization(
         db, customer_id, current.organization.id
     )
     if not customer:
         raise customer_not_found()
 
-    CustomerRepository.delete(db, customer)
+    try:
+        CustomerRepository.delete(db, customer)
+    except IntegrityError:
+        db.rollback()
+        raise customer_in_use()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

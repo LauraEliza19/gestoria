@@ -44,3 +44,11 @@ def get_current_user(
 
 
 CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
+
+
+def require_role(current: AuthenticatedUser, allowed: set[str]) -> None:
+    if current.membership.role not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não possui permissão para executar essa ação.",
+        )
