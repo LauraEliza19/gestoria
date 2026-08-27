@@ -51,10 +51,10 @@ O frontend (`dashboard.html`) já tinha o protótipo visual completo de todas as
 |---|---|
 | **Estoque ao criar Pedido** | Desconta automaticamente; **bloqueia** a criação se não houver estoque suficiente |
 | **Excluir Cliente com Pedidos vinculados** | O banco de dados recusa a exclusão (`ON DELETE RESTRICT`) |
-| **Quem pode excluir registros** | Apenas `owner` e `admin` — implementado em Pedidos; **pendente** em Clientes/Produtos |
+| **Quem pode excluir registros** | Apenas `owner` e `admin` em Clientes, Produtos e Pedidos |
 | **Pedido com múltiplos produtos** | Sim, por consistência com Orçamentos (que já suportam múltiplos itens) |
-| **Transição de status do Pedido** | Livre entre `in_preparation` / `completed` / `cancelled`, sem regra de fluxo travada |
-| **"Total gasto" do cliente** | Ainda não implementado — deve somar apenas Pedidos `completed` |
+| **Transição de status do Pedido** | Livre entre `in_preparation` / `completed` / `cancelled`; cancelar recompõe o estoque e reativar faz nova validação |
+| **"Total gasto" do cliente** | Calculado no banco, somando apenas Pedidos `completed` |
 
 ---
 
@@ -91,18 +91,19 @@ O frontend (`dashboard.html`) já tinha o protótipo visual completo de todas as
 alembic/versions/c1f605ddacfc_add_customers_and_orders_tables.py
 ```
 
-Gerado via `alembic revision --autogenerate`, aplicado via `alembic upgrade head`.
+Gerado via `alembic revision --autogenerate`, aplicado via `alembic upgrade head`. A migration `0003` acrescenta índices compostos para as consultas por empresa, cliente, status e data.
 
 ### 3.3 Schemas (`app/schemas.py`)
 
-- `CustomerCreate`, `CustomerUpdate`, `CustomerRead`
+- `CustomerCreate`, `CustomerUpdate`, `CustomerRead` — telefone normalizado e retorno com `total_spent` e `orders_count`
 - `OrderItemCreate` — **não aceita preço do cliente**, só `product_id` e `quantity`. O preço vem sempre do banco
 - `OrderCreate`, `OrderStatusUpdate` (com regex restringindo aos 3 status válidos)
 - `OrderItemRead`, `OrderRead` — incluem `product_name` e `customer_name` resolvidos manualmente
 
 ### 3.4 Repositories (`app/repositories.py`)
 
-- `CustomerRepository` — CRUD padrão, mesmo formato do `ProductRepository`
+- `CustomerRepository` — CRUD e resumo agregado de gasto/pedidos por cliente
+- `OrderRepository` — carregamento otimizado de cliente, itens e produtos, sem uma consulta por linha da tabela
 - `OrderRepository` / `OrderItemRepository` — `create()` usa `db.flush()` em vez de `db.commit()` (ver seção 3.5)
 
 ### 3.5 Service (`app/services.py`) — a parte mais importante
@@ -138,7 +139,7 @@ Exceções customizadas: `CustomerNotFoundError` (404), `ProductNotFoundError` (
 
 ---
 
-## 🔹 Testes realizados (via Swagger `/docs`)
+## 🔹 Testes realizados
 
 Autenticado como `admin@gestoria.dev`:
 
@@ -151,13 +152,7 @@ Autenticado como `admin@gestoria.dev`:
 | 5 | Esgotar estoque e tentar de novo | ✅ Bloqueado corretamente (`disponível 0`) |
 | 6 | Repor estoque e criar pedido de novo | ✅ `201`, resposta completa com nomes de cliente/produto |
 
-**Pendente:**
-- [ ] Cliente/produto inexistente (`404`)
-- [ ] Atualização de status (`PATCH /api/orders/{id}`)
-- [ ] Listagem de pedidos (`GET /api/orders`)
-- [ ] Exclusão como `owner`/`admin` (`204`)
-- [ ] Exclusão como `member` (deveria dar `403` — precisa de um usuário de teste `member`)
-- [ ] Exclusão de cliente com pedido vinculado (deveria ser recusada)
+Além dos testes manuais no Swagger, a suíte automatizada cobre login, CRUD, normalização de telefone, atualização de status, cálculo do total gasto, rollback por falta de estoque, bloqueio de exclusões vinculadas, permissões por papel e isolamento entre empresas.
 
 ---
 
@@ -172,16 +167,13 @@ Todos foram erros de digitação — nenhum problema estrutural:
 5. `update_at` → `updated_at` (apareceu 2x, em arquivos diferentes)
 6. `db.commmit()` → `db.commit()` (`services.py`)
 7. `item_read` declarado vs. `item_reads` usado (`api/orders.py`)
+8. A rota de atualização de status enviava `order_id` e `organization_id` ao serviço no lugar do objeto `Order` e do novo status (`api/orders.py`)
 
 ---
 
 ## 🔹 Roadmap / próximos passos
 
-- [ ] Completar os testes pendentes (seção acima)
 - [ ] Corrigir o produto de teste (ficou com `name: "string"`, `price: 0`)
-- [ ] Aplicar `require_role` (só owner/admin excluir) em Cliente e Produto
-- [ ] **Conectar o `dashboard.html`** — trocar a lista fixa de Pedidos por chamadas reais a `/api/orders`
-- [ ] Calcular "Total gasto" do cliente a partir dos pedidos `completed`
 - [ ] Ainda 100% frontend (sem persistência real): Orçamentos, Relatórios, Log de Atividade, Dados da empresa
 
 ---

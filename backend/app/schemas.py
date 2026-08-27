@@ -1,11 +1,19 @@
+import re
 import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 Money = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2)]
+
+
+def normalize_phone(value: str) -> str:
+    digits = re.sub(r"\D", "", value)
+    if not 10 <= len(digits) <= 15:
+        raise ValueError("O telefone deve conter entre 10 e 15 dígitos.")
+    return digits
 
 
 class LoginRequest(BaseModel):
@@ -68,40 +76,59 @@ class ProductRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class CustomerCreate(BaseModel):
-    name: str = Field (min_length=1, max_length=120)
+    name: str = Field(min_length=1, max_length=120)
     phone: str = Field(min_length=1, max_length=30)
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return normalize_phone(value)
+
+
 class CustomerUpdate(BaseModel):
-    name: str | None = Field (default=None, min_length=1, max_length=120)
-    phone: str | None = Field (default=None, min_length=1, max_length=120)
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    phone: str | None = Field(default=None, min_length=1, max_length=30)
     is_active: bool | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_phone(value) if value is not None else None
+
 
 class CustomerRead(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
     name: str
-    phone:str 
+    phone: str
     is_active: bool
+    total_spent: Money = Decimal(0)
+    orders_count: int = 0
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-class OrderItemCreate (BaseModel):
-    product_id: uuid.UUID
-    quantity: int = Field (gt=0, le=1_000_000)
 
-class OrderCreate (BaseModel):
+class OrderItemCreate(BaseModel):
+    product_id: uuid.UUID
+    quantity: int = Field(gt=0, le=1_000_000)
+
+
+class OrderCreate(BaseModel):
     customer_id: uuid.UUID
     items: list[OrderItemCreate] = Field(min_length=1)
 
+
 class OrderStatusUpdate(BaseModel):
     status: str = Field(pattern="^(in_preparation|completed|cancelled)$")
+
 
 class OrderItemRead(BaseModel):
     id: uuid.UUID
@@ -111,6 +138,7 @@ class OrderItemRead(BaseModel):
     unit_price: Money
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class OrderRead(BaseModel):
     id: uuid.UUID
@@ -124,4 +152,3 @@ class OrderRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
