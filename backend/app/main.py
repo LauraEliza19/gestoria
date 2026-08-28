@@ -2,12 +2,29 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import auth, customers, orders, products
 from app.config import settings
 
 project_root = Path(__file__).resolve().parents[2]
-frontend_dir = Path(settings.frontend_dir) if settings.frontend_dir else project_root
+
+
+def resolve_frontend_dir() -> Path:
+    candidates: list[Path] = []
+    if settings.frontend_dir:
+        configured = Path(settings.frontend_dir)
+        candidates.extend([configured, configured / "frontend"])
+    candidates.append(project_root / "frontend")
+
+    for candidate in candidates:
+        if (candidate / "views").is_dir() and (candidate / "static").is_dir():
+            return candidate
+
+    raise RuntimeError("Pasta do frontend não encontrada (views/ e static/).")
+
+
+frontend_dir = resolve_frontend_dir()
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.include_router(auth.router)
@@ -23,21 +40,16 @@ def health() -> dict[str, str]:
 
 @app.get("/", include_in_schema=False)
 def login_page() -> FileResponse:
-    return FileResponse(frontend_dir / "LoginGestorIA.html")
+    return FileResponse(frontend_dir / "views" / "login.html")
 
 
 @app.get("/dashboard", include_in_schema=False)
 def dashboard_page() -> FileResponse:
-    return FileResponse(frontend_dir / "startup-main" / "dashboard.html")
+    return FileResponse(frontend_dir / "views" / "dashboard.html")
 
 
-@app.get("/assets/loginStyle.css", include_in_schema=False)
-def login_styles() -> FileResponse:
-    return FileResponse(frontend_dir / "loginStyle.css", media_type="text/css")
-
-
-@app.get("/assets/startup-main/styleDashboard.css", include_in_schema=False)
-def dashboard_styles() -> FileResponse:
-    return FileResponse(
-        frontend_dir / "startup-main" / "styleDashboard.css", media_type="text/css"
-    )
+app.mount(
+    "/static",
+    StaticFiles(directory=frontend_dir / "static"),
+    name="static",
+)

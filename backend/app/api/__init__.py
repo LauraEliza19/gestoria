@@ -1,1 +1,1 @@
-"""HTTP routes exposed by the GestorIA API."""
+"""HTTP controllers (rotas) da API GestorIA."""

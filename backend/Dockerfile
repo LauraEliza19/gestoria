@@ -1,3 +1,11 @@
+FROM node:22-alpine AS frontend
+
+WORKDIR /frontend
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -9,8 +17,8 @@ COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
-COPY LoginGestorIA.html loginStyle.css /frontend/
-COPY startup-main/ /frontend/startup-main/
+COPY --from=frontend /frontend/views /frontend/views
+COPY --from=frontend /frontend/static /frontend/static
 
 ENV FRONTEND_DIR=/frontend
 

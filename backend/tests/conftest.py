@@ -26,7 +26,7 @@ def enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
     cursor.close()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def database() -> None:
     Base.metadata.create_all(engine)
     with TestingSession() as db:
@@ -36,7 +36,13 @@ def database() -> None:
 
 
 @pytest.fixture
-def client() -> TestClient:
+def db(database) -> Session:
+    with TestingSession() as session:
+        yield session
+
+
+@pytest.fixture
+def client(database) -> TestClient:
     def override_get_db():
         with TestingSession() as db:
             yield db
