@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestorIA — Painel</title>
+<script>
+  (function(){
+    try {
+      if(localStorage.getItem('gestoria_theme') === 'dark'){
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch(e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- LEFT: navigation rail + chat sidebar -->
+  <div class="chat-sidebar">
+
+    <div class="nav-rail">
+      <div class="nav-rail-logo">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 4C11.16 4 4 11.16 4 20C4 28.84 11.16 36 20 36" stroke="#8FB4FF" stroke-width="6" stroke-linecap="round"/>
+          <rect x="21" y="19" width="15" height="15" rx="3" fill="#3D63F5"/>
+        </svg>
+      </div>
+
+      <div class="nav-rail-items">
+        <button class="nav-item active" data-section="overview" title="Visão geral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span class="nav-label">Visão geral</span>
+        </button>
+        <button class="nav-item" data-section="clientes" title="Clientes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.5 14.2c2.6.3 4.5 2.6 4.5 5.8"/></svg>
+          <span class="nav-label">Clientes</span>
+        </button>
+        <button class="nav-item" data-section="produtos" title="Produtos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+          <span class="nav-label">Produtos</span>
+        </button>
+        <button class="nav-item" data-section="pedidos" title="Pedidos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l1 5H5l1-5z"/><path d="M5 8h14l-1.2 11a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 8z"/><path d="M9.5 12h5"/></svg>
+          <span class="nav-label">Pedidos</span>
+        </button>
+        <button class="nav-item" data-section="orcamentos" title="Orçamentos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+          <span class="nav-label">Orçamentos</span>
+        </button>
+        <button class="nav-item" data-section="relatorios" title="Relatórios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>
+          <span class="nav-label">Relatórios</span>
+        </button>
+        <button class="nav-item" data-section="log" title="Atividade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>
+          <span class="nav-label">Atividade</span>
+        </button>
+      </div>
+
+      <div class="nav-rail-bottom">
+        <button class="nav-item" data-section="config" title="Meu perfil">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="nav-label">Perfil</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-sidebar-header">
+        <div class="brand-mark">
+          <div class="wordmark">Gestor<span>IA</span></div>
+        </div>
+        <button class="new-chat-btn" id="newChatBtn">+ nova conversa</button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-bubble ai">
+          Olá! Sou a IA da GestorIA. Pode falar comigo como falaria com um assistente — por exemplo:
+          <em>"quais foram meus 10 maiores clientes"</em> ou <em>"cadastre a Maria como cliente"</em>.
+          <span class="meta">agora</span>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Digite um comando ou pergunta..." autocomplete="off">
+          <button class="chat-send-btn" id="sendBtn" aria-label="Enviar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 20L20 12L4 4V10L14 12L4 14V20Z" fill="white"/>
+            </svg>
+          </button>
+        </div>
+        <div class="chat-hint">Este é um protótipo — as respostas abaixo são simuladas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: main data area -->
+  <div class="main-area">
+    <div class="topbar">
+      <div style="display:flex; align-items:center;">
+        <div class="page-title" id="pageTitle">Visão geral</div>
+        <div class="tenant-chip">Empresa: Padaria Bom Pão</div>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Alternar modo escuro" aria-label="Alternar modo escuro"></button>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" id="avatarBtn">JS</button>
+
+          <div class="user-dropdown" id="userDropdown">
+            <div class="user-dropdown-header">
+              <div class="user-avatar-lg">JS</div>
+              <div>
+                <div class="user-dropdown-name">João Silva</div>
+                <div class="user-dropdown-email">joao@padariabompao.com</div>
+              </div>
+            </div>
+            <div class="dropdown-divider"></div>
+
+            <button class="dropdown-item" id="menuProfileBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Meu perfil
+            </button>
+
+            <button class="dropdown-item" id="menuSwitchBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg>
+              Trocar de funcionário
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="staff-switch-list" id="staffSwitchList"></div>
+
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item danger" id="menuLogoutBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+              Sair
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+
+      <!-- Visão geral -->
+      <div class="content-section active" id="section-overview">
+        <div class="greeting-header">
+          <h2 id="greetingText">Olá!</h2>
+          <p>Bem vindo ao GestorIA. Como podemos ajudar sua empresa?</p>
+          <button class="toggle-values-btn" id="toggleValuesBtn"></button>
+        </div>
+
+        <div class="section-label">Resumo do mês</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="label">Faturamento</div>
+            <div class="value">R$ 48.200</div>
+            <div class="trend">↑ 12% vs. mês anterior</div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">Clientes ativos</div>
+            <div class="value">312</div>
+            <div class="trend">↑ 8 novos esta semana</div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">Pedidos hoje</div>
+            <div class="value">24</div>
+            <div class="trend down">↓ 3% vs. ontem</div>
+          </div>
+        </div>
+
+        <div class="activity-widget-header">
+          <div class="section-label">Atividade recente</div>
+          <button class="link-btn" id="viewAllLogBtn">Ver tudo</button>
+        </div>
+        <div class="activity-widget">
+          <div class="log-list" id="activityWidgetList"></div>
+        </div>
+
+        <div class="section-label">Resultados de comandos</div>
+        <div id="resultsArea">
+          <div class="result-block">
+            <div class="result-answer">Peça algo no chat ao lado — os resultados de perguntas e comandos vão aparecer aqui, em formato de texto ou tabela dependendo do que fizer mais sentido.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clientes -->
+      <div class="content-section" id="section-clientes">
+        <div class="btn-row-header">
+          <div class="section-label" style="margin-bottom:0;">Todos os clientes</div>
+          <button class="btn-primary btn-inline" id="openNewClienteBtn">+ Novo cliente</button>
+        </div>
+
+        <div class="table-toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="clientSearch" placeholder="Buscar por nome ou telefone...">
+          </div>
+          <select id="clientSort" class="select-filter">
+            <option value="gasto-desc">Ordenar: maior gasto</option>
+            <option value="nome-asc">Ordenar: nome (A-Z)</option>
+            <option value="recente">Ordenar: mais recente</option>
+          </select>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Cliente</th><th>Telefone</th><th>Total gasto</th><th>Cliente desde</th><th>Ações</th></tr></thead>
+            <tbody id="clientesTableBody"></tbody>
+          </table>
+          <div class="table-empty" id="clientesEmpty" style="display:none;">Nenhum cliente encontrado para essa busca.</div>
+        </div>
+
+        <div class="empty-state" id="clientesTrueEmpty">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.5 14.2c2.6.3 4.5 2.6 4.5 5.8"/></svg>
+          </div>
+          <div class="empty-state-title">Você ainda não tem clientes</div>
+          <div class="empty-state-sub">Cadastre seu primeiro cliente para começar a acompanhar vendas, pedidos e orçamentos.</div>
+          <button class="btn-primary btn-inline" id="emptyStateNewClienteBtn">+ Cadastrar primeiro cliente</button>
+        </div>
+      </div>
+
+      <!-- Produtos -->
+      <div class="content-section" id="section-produtos">
+        <div class="btn-row-header">
+          <div class="section-label" style="margin-bottom:0;">Catálogo de produtos e serviços</div>
+          <button class="btn-primary btn-inline" id="openNewProdutoBtn">+ Novo produto</button>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Produto</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="produtosTableBody"></tbody>
+          </table>
+          <div class="table-empty" id="produtosEmpty" style="display:none;"></div>
+        </div>
+
+        <div class="empty-state" id="produtosTrueEmpty">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+          </div>
+          <div class="empty-state-title">Nenhum produto cadastrado ainda</div>
+          <div class="empty-state-sub">Adicione produtos ou serviços para começar a montar seu catálogo.</div>
+          <button class="btn-primary btn-inline" id="emptyStateNewProdutoBtn">+ Cadastrar primeiro produto</button>
+        </div>
+      </div>
+
+      <!-- Pedidos -->
+      <div class="content-section" id="section-pedidos">
+        <div class="btn-row-header">
+          <div class="section-label" style="margin-bottom:0;">Todos os pedidos</div>
+          <button class="btn-primary btn-inline" id="openNewPedidoBtn">+ Novo pedido</button>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="pedidosTableBody"></tbody>
+          </table>
+          <div class="table-empty" id="pedidosEmpty" style="display:none;"></div>
+        </div>
+
+        <div class="empty-state" id="pedidosTrueEmpty">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l1 5H5l1-5z"/><path d="M5 8h14l-1.2 11a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 8z"/><path d="M9.5 12h5"/></svg>
+          </div>
+          <div class="empty-state-title">Nenhum pedido registrado ainda</div>
+          <div class="empty-state-sub">Registre pedidos manualmente ou converta um orçamento aprovado em pedido.</div>
+          <button class="btn-primary btn-inline" id="emptyStateNewPedidoBtn">+ Registrar primeiro pedido</button>
+        </div>
+      </div>
+
+      <!-- Orçamentos -->
+      <div class="content-section" id="section-orcamentos">
+        <div class="btn-row-header">
+          <div class="section-label" style="margin-bottom:0;">Orçamentos</div>
+          <button class="btn-primary btn-inline" id="openNewOrcamentoBtn">+ Novo orçamento</button>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Orçamento</th><th>Cliente</th><th>Itens</th><th>Valor total</th><th>Validade</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="orcamentosTableBody"></tbody>
+          </table>
+          <div class="table-empty" id="orcamentosEmpty" style="display:none;"></div>
+        </div>
+
+        <div class="empty-state" id="orcamentosTrueEmpty">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+          </div>
+          <div class="empty-state-title">Nenhum orçamento cadastrado ainda</div>
+          <div class="empty-state-sub">Monte orçamentos detalhados para seus clientes antes de fechar a venda.</div>
+          <button class="btn-primary btn-inline" id="emptyStateNewOrcamentoBtn">+ Criar primeiro orçamento</button>
+        </div>
+      </div>
+
+      <!-- Relatórios -->
+      <div class="content-section" id="section-relatorios">
+        <div class="section-label">Relatórios</div>
+        <div class="result-block">
+          <div class="result-answer">Os números aqui vêm sempre calculados pelo backend — a IA nunca estima valores, apenas explica o que já foi calculado.</div>
+        </div>
+
+        <div class="report-actions">
+          <button class="btn-secondary" id="exportCsvBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+            Exportar CSV
+          </button>
+          <button class="btn-secondary" id="exportPdfBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg>
+            Exportar PDF
+          </button>
+        </div>
+
+        <div class="section-label">Resumo do mês</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="label">Faturamento</div>
+            <div class="value">R$ 48.200</div>
+            <div class="trend">↑ 12% vs. mês anterior</div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">Clientes ativos</div>
+            <div class="value">312</div>
+            <div class="trend">↑ 8 novos esta semana</div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">Pedidos hoje</div>
+            <div class="value">24</div>
+            <div class="trend down">↓ 3% vs. ontem</div>
+          </div>
+        </div>
+
+        <div class="section-label">Maiores clientes do mês</div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Posição</th><th>Cliente</th><th>Total gasto</th></tr></thead>
+            <tbody>
+              <tr><td>1º</td><td>João Pereira</td><td>R$ 15.400</td></tr>
+              <tr><td>2º</td><td>Maria Souza</td><td>R$ 12.100</td></tr>
+              <tr><td>3º</td><td>Carlos Lima</td><td>R$ 9.800</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Configurações -->
+      <div class="content-section" id="section-config">
+        <div class="section-label">Meu perfil</div>
+        <div class="profile-card">
+          <div class="user-avatar-lg">JS</div>
+          <div>
+            <div class="profile-name">João Silva</div>
+            <div class="profile-email">joao@padariabompao.com</div>
+            <span class="badge badge-blue profile-role-badge" id="profileRoleBadge">Proprietário</span>
+          </div>
+        </div>
+
+        <div class="section-label" style="margin-top:28px;">Dados da empresa</div>
+        <div class="data-table-wrap" style="padding:18px 20px; margin-bottom:14px;">
+          <div class="detail-info-grid" id="companyInfoGrid" style="margin:0;"></div>
+        </div>
+        <button class="btn-secondary" id="editEmpresaBtn" style="margin-bottom:32px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Editar dados da empresa
+        </button>
+
+        <div class="section-label">Funcionários</div>
+        <div class="data-table-wrap">
+          <div class="staff-list-full" id="staffFullList"></div>
+        </div>
+
+        <div class="section-label" style="margin-top:28px;">Sessão</div>
+        <button class="btn-secondary" id="logoutBtnConfig" style="color:var(--alert); border-color:rgba(226,87,76,0.3);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Sair da conta
+        </button>
+      </div>
+
+      <!-- Atividade / Log de ações -->
+      <div class="content-section" id="section-log">
+        <div class="section-label">Log de ações</div>
+        <div class="result-block">
+          <div class="result-answer">Todas as ações que alteram dados — feitas pela IA ou manualmente — ficam registradas aqui, com data, tipo e status. Isso ajuda a auditar o que o sistema executou.</div>
+        </div>
+        <div class="data-table-wrap">
+          <div class="log-list" id="fullLogList"></div>
+          <div class="log-empty" id="logEmpty" style="display:none;">Nenhuma ação registrada ainda.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Novo pedido (cliente + itens dinâmicos, dados reais da API) -->
+<div class="modal-overlay" id="pedidoModalOverlay">
+  <div class="modal-card" style="width:480px;">
+    <div class="modal-header">
+      <h3>Novo pedido</h3>
+      <button class="modal-close" id="pedidoModalCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub">Selecione o cliente e os produtos deste pedido.</div>
+
+    <form id="pedidoForm">
+      <div class="field" data-field="cliente">
+        <label for="ped-cliente">Cliente</label>
+        <select id="ped-cliente"></select>
+        <div class="error-msg">Selecione um cliente.</div>
+      </div>
+
+      <div class="section-label" style="margin:18px 0 6px 0;">Itens do pedido</div>
+      <div id="pedidoItemsList"></div>
+      <div class="items-error" id="pedidoItemsError">Adicione ao menos um item com produto selecionado.</div>
+      <button type="button" class="btn-secondary" id="addPedidoItemBtn" style="margin-top:10px;">+ Adicionar item</button>
+
+      <div class="orcamento-total-row">
+        <span>Total estimado</span>
+        <strong id="pedidoTotalDisplay">R$ 0,00</strong>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="pedidoCancelBtn">Cancelar</button>
+        <button type="submit" class="btn-primary btn-inline">Salvar pedido</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Novo orçamento (com itens dinâmicos) -->
+<div class="modal-overlay" id="orcamentoModalOverlay">
+  <div class="modal-card" style="width:480px;">
+    <div class="modal-header">
+      <h3>Novo orçamento</h3>
+      <button class="modal-close" id="orcamentoModalCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub">Monte um orçamento detalhado com os itens do pedido.</div>
+
+    <form id="orcamentoForm">
+      <div class="field" data-field="cliente">
+        <label for="orc-cliente">Cliente</label>
+        <div class="input-wrap">
+          <input type="text" id="orc-cliente" placeholder="Ex: Maria Souza">
+        </div>
+        <div class="error-msg">Informe o cliente.</div>
+      </div>
+
+      <div class="field" data-field="validade">
+        <label for="orc-validade">Válido até</label>
+        <div class="input-wrap">
+          <input type="date" id="orc-validade">
+        </div>
+        <div class="error-msg">Informe a validade.</div>
+      </div>
+
+      <div class="section-label" style="margin:18px 0 6px 0;">Itens do orçamento</div>
+      <div id="orcamentoItemsList"></div>
+      <div class="items-error" id="orcamentoItemsError">Adicione ao menos um item com nome preenchido.</div>
+      <button type="button" class="btn-secondary" id="addOrcamentoItemBtn" style="margin-top:10px;">+ Adicionar item</button>
+
+      <div class="orcamento-total-row">
+        <span>Total do orçamento</span>
+        <strong id="orcamentoTotalDisplay">R$ 0,00</strong>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="orcamentoCancelBtn">Cancelar</button>
+        <button type="submit" class="btn-primary btn-inline">Salvar orçamento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Ver itens (orçamento ou pedido) — somente leitura -->
+<div class="modal-overlay" id="viewItemsOverlay">
+  <div class="modal-card" style="width:440px;">
+    <div class="modal-header">
+      <h3 id="viewItemsTitle">Itens</h3>
+      <button class="modal-close" id="viewItemsCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="viewItemsSub"></div>
+    <div class="data-table-wrap" id="viewItemsTableWrap" style="margin-bottom:14px;">
+      <table class="data-table">
+        <thead><tr><th>Produto</th><th>Qtd</th><th>Preço unit.</th><th>Subtotal</th></tr></thead>
+        <tbody id="viewItemsTableBody"></tbody>
+      </table>
+    </div>
+    <div class="table-empty" id="viewItemsEmptyMsg" style="display:none; padding:16px 0;"></div>
+    <div class="orcamento-total-row">
+      <span>Total</span>
+      <strong id="viewItemsTotal">R$ 0,00</strong>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="viewItemsCloseBtn2">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Detalhes do cliente (histórico) -->
+<div class="modal-overlay" id="clienteDetailOverlay">
+  <div class="modal-card" style="width:480px;">
+    <div class="modal-header">
+      <h3 id="clienteDetailTitle">Detalhes do cliente</h3>
+      <button class="modal-close" id="clienteDetailCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="clienteDetailSub"></div>
+
+    <div class="detail-info-grid" id="clienteDetailInfo"></div>
+
+    <div class="section-label" style="margin-top:20px;">Pedidos deste cliente</div>
+    <div class="data-table-wrap" style="margin-bottom:16px;">
+      <table class="data-table">
+        <thead><tr><th>Pedido</th><th>Valor</th><th>Status</th></tr></thead>
+        <tbody id="clienteDetailPedidos"></tbody>
+      </table>
+      <div class="table-empty" id="clienteDetailPedidosEmpty" style="display:none;">Nenhum pedido registrado para este cliente.</div>
+    </div>
+
+    <div class="section-label">Orçamentos deste cliente</div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Orçamento</th><th>Valor</th><th>Status</th></tr></thead>
+        <tbody id="clienteDetailOrcamentos"></tbody>
+      </table>
+      <div class="table-empty" id="clienteDetailOrcamentosEmpty" style="display:none;">Nenhum orçamento registrado para este cliente.</div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="clienteDetailCloseBtn2">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar exclusão (reutilizável) -->
+<div class="modal-overlay" id="confirmDeleteOverlay">
+  <div class="modal-card" style="width:380px;">
+    <div class="modal-header">
+      <h3>Confirmar exclusão</h3>
+      <button class="modal-close" id="confirmDeleteCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="confirmDeleteMessage">Tem certeza que deseja excluir este registro?</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="confirmDeleteCancelBtn">Cancelar</button>
+      <button type="button" class="btn-danger" id="confirmDeleteConfirmBtn">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de ação rápida (Novo cliente / produto / status do pedido / empresa) -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modalTitle">Novo registro</h3>
+      <button class="modal-close" id="modalCloseBtn" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="modalSub">Preencha os dados abaixo.</div>
+    <form id="modalForm"></form>
+  </div>
+</div>
+
+<!-- Toasts de confirmação -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="module" src="/static/js/controllers/dashboard.controller.js"></script>
+
+</body>
+</html>
