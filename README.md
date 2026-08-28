@@ -19,7 +19,7 @@ Orçamentos, relatórios, atividade, dados cadastrais da empresa e a integraçã
 
 | Camada | Tecnologias |
 | --- | --- |
-| Frontend | HTML, CSS e JavaScript |
+| Frontend | HTML, JavaScript (MVC) e Tailwind CSS |
 | API | Python 3.12 e FastAPI |
 | Persistência | PostgreSQL 17 e SQLAlchemy 2 |
 | Migrations | Alembic |
@@ -109,23 +109,42 @@ Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não exi
 | `DELETE` | `/api/orders/{id}` | Excluir pedido e recompor estoque como owner/admin |
 | `GET` | `/api/health` | Verificar a disponibilidade da API |
 
-## Organização do backend
+## Organização
+
+O backend segue arquitetura em camadas (mais adequada que MVC clássico para uma API FastAPI). O frontend segue MVC.
 
 ```text
+frontend/
+  views/                 páginas HTML
+  static/
+    css/                 Tailwind (input.css → app.css) e CSS do painel
+    js/
+      models/            sessão e cliente HTTP da API
+      views/             formatação e toasts
+      controllers/       eventos e orquestração das telas
+
 backend/
-  alembic/             migrations versionadas do banco
+  alembic/               migrations versionadas do banco
   app/
-    api/               rotas e dependências HTTP
-    models.py          tabelas e relacionamentos SQLAlchemy
-    schemas.py         validação de entrada e saída
-    repositories.py    consultas e operações de persistência
-    services.py        autenticação e regras transacionais
-    security.py        senha e token
-    seed.py            dados iniciais de desenvolvimento
-  tests/               testes de API, transações e isolamento
+    api/                 controllers HTTP (rotas)
+    models/              tabelas e relacionamentos SQLAlchemy
+    schemas/             validação de entrada e saída
+    repositories/        consultas e persistência
+    services/            autenticação e regras transacionais
+    security.py          senha e token
+    seed.py              dados iniciais de desenvolvimento
+  tests/                 testes de API, transações e isolamento
 ```
 
 As rotas não executam SQL diretamente e o frontend nunca recebe credenciais do banco.
+
+Para regenerar o CSS do Tailwind depois de alterar classes nas views:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
 
 ## Testes e qualidade
 

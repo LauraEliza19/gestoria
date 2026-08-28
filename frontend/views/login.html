@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GestorIA — Entrar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="min-h-screen bg-paper font-sans text-navy">
+
+<div class="grid min-h-screen w-full grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
+
+  <div class="relative flex flex-col justify-between overflow-hidden bg-[radial-gradient(120%_140%_at_15%_10%,var(--color-indigo-deep)_0%,var(--color-navy)_55%,#070B1F_100%)] px-7 py-9 text-white sm:px-16 sm:py-14">
+    <div>
+      <div class="flex items-center gap-3">
+        <svg class="h-[34px] w-[34px] shrink-0" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 4C11.16 4 4 11.16 4 20C4 28.84 11.16 36 20 36" stroke="#8FB4FF" stroke-width="6" stroke-linecap="round"/>
+          <rect x="21" y="19" width="15" height="15" rx="3" fill="#3D63F5"/>
+        </svg>
+        <div class="font-display text-[22px] font-bold tracking-tight">Gestor<span class="text-sky-tint">IA</span></div>
+      </div>
+
+      <div class="mt-7 max-w-[380px] lg:mt-12">
+        <h1 class="font-display text-[clamp(28px,3.2vw,38px)] font-semibold leading-[1.15] tracking-tight">Inteligência que organiza.</h1>
+        <p class="mt-4 hidden text-[15px] leading-relaxed text-[#B7C1E0] sm:block">Transforme a interação com a gestão da sua empresa por meio da linguagem natural. Sem menus, sem telas complicadas — apenas diga o que precisa.</p>
+      </div>
+
+      <div class="mt-6 flex flex-col max-[860px]:max-h-[700px]:hidden lg:mt-11" aria-hidden="true">
+        <div class="flex items-center gap-3.5 py-3.5">
+          <div class="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-sky-tint bg-indigo-deep font-mono text-[10px] text-sky-tint">01</div>
+          <div class="animate-rise flex-1 rounded-lg border border-sky-tint/25 bg-white/6 px-3.5 py-2.5 font-mono text-xs text-[#DCE4FF] opacity-0 translate-y-1.5 [animation-delay:0.15s]">"cadastre a Maria como cliente, telefone 99999-9999"</div>
+        </div>
+        <div class="flex items-center gap-3.5">
+          <div class="ml-[11px] w-0.5 self-stretch bg-linear-to-b from-transparent via-sky-tint/35 to-transparent"></div>
+        </div>
+        <div class="flex items-center gap-3.5 py-3.5">
+          <div class="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-sky-tint bg-indigo-deep font-mono text-[10px] text-sky-tint">02</div>
+          <div class="animate-rise flex-1 rounded-lg border border-signal bg-signal/14 px-3.5 py-2.5 font-mono text-xs text-[#DCE4FF] opacity-0 translate-y-1.5 [animation-delay:0.45s]">{ intent: create_customer }</div>
+        </div>
+        <div class="flex items-center gap-3.5">
+          <div class="ml-[11px] w-0.5 self-stretch bg-linear-to-b from-transparent via-sky-tint/35 to-transparent"></div>
+        </div>
+        <div class="flex items-center gap-3.5 py-3.5">
+          <div class="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-sky-tint bg-indigo-deep font-mono text-[10px] text-sky-tint">03</div>
+          <div class="animate-rise flex-1 rounded-lg border border-sky-tint/25 bg-white/6 px-3.5 py-2.5 font-mono text-xs text-[#DCE4FF] opacity-0 translate-y-1.5 [animation-delay:0.75s]">cliente cadastrado com sucesso</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 text-[12.5px] text-[#6C77A6]">GestorIA © 2026 — Plataforma de gestão empresarial</div>
+  </div>
+
+  <div class="flex items-center justify-center bg-paper px-6 py-8 sm:px-10">
+    <div class="w-full max-w-[380px]">
+      <div class="mb-2.5 font-mono text-[11.5px] uppercase tracking-[0.06em] text-signal">Área do cliente</div>
+      <h2 class="font-display text-[26px] font-semibold tracking-tight">Bem-vindo de volta</h2>
+      <p class="mb-8 mt-2 text-[14.5px] text-slate-muted">Entre com as credenciais da sua empresa para continuar.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="group mb-[18px]" id="emailField">
+          <label for="email" class="mb-1.5 block text-[13px] font-medium text-navy">E-mail</label>
+          <input type="email" id="email" name="email" placeholder="voce@suaempresa.com.br" autocomplete="email"
+            class="w-full rounded-[10px] border-[1.5px] border-[#DDE2F0] bg-white px-3.5 py-[13px] text-[14.5px] text-navy outline-none transition placeholder:text-[#A6ADC7] focus:border-signal focus:shadow-[0_0_0_3px_rgba(61,99,245,0.14)] group-data-[error=true]:border-alert">
+          <div class="mt-1.5 hidden text-[12.5px] text-alert group-data-[error=true]:block">Informe um e-mail válido.</div>
+        </div>
+
+        <div class="group mb-[18px]" id="passwordField">
+          <label for="password" class="mb-1.5 block text-[13px] font-medium text-navy">Senha</label>
+          <div class="relative">
+            <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password"
+              class="w-full rounded-[10px] border-[1.5px] border-[#DDE2F0] bg-white px-3.5 py-[13px] pr-16 text-[14.5px] text-navy outline-none transition placeholder:text-[#A6ADC7] focus:border-signal focus:shadow-[0_0_0_3px_rgba(61,99,245,0.14)] group-data-[error=true]:border-alert">
+            <button type="button" id="toggleBtn" class="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer border-0 bg-transparent px-1.5 py-1 font-mono text-xs text-slate-muted">mostrar</button>
+          </div>
+          <div class="mt-1.5 hidden text-[12.5px] text-alert group-data-[error=true]:block">A senha é obrigatória.</div>
+        </div>
+
+        <div class="mb-[26px] mt-1 flex items-center justify-between">
+          <label class="flex items-center gap-2 text-[13.5px] text-slate-muted">
+            <input type="checkbox" id="remember" class="h-3.5 w-3.5 accent-signal">
+            Manter conectado
+          </label>
+          <a href="#" class="text-[13.5px] font-medium text-signal no-underline hover:underline">Esqueci minha senha</a>
+        </div>
+
+        <div id="formStatus" class="-mt-1 mb-3 min-h-5 text-[13px] text-alert" role="alert" aria-live="polite"></div>
+        <button type="submit" id="submitBtn" class="w-full cursor-pointer rounded-[10px] border-0 bg-signal py-3.5 text-[14.5px] font-semibold text-white transition hover:bg-signal-hover active:scale-[0.99] disabled:cursor-wait disabled:opacity-70">Entrar</button>
+      </form>
+
+      <div class="my-[26px] flex items-center gap-3 text-[12.5px] text-[#A6ADC7] before:h-px before:flex-1 before:bg-[#E4E8F3] after:h-px after:flex-1 after:bg-[#E4E8F3]">novo por aqui</div>
+      <div class="text-center text-sm text-slate-muted">Ainda não é cliente GIA? <a href="#" class="font-semibold text-signal no-underline hover:underline">Fale com a gente</a></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="/static/js/controllers/login.controller.js"></script>
+</body>
+</html>

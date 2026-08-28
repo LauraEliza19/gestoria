@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@source "../../views/**/*.html";
+@source "../js/**/*.js";
+
+@theme {
+  --color-navy: #0b1330;
+  --color-indigo-deep: #131b4a;
+  --color-signal: #3d63f5;
+  --color-signal-hover: #3355de;
+  --color-sky-tint: #8fb4ff;
+  --color-paper: #f7f8fc;
+  --color-slate-muted: #5b6688;
+  --color-alert: #e2574c;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@keyframes rise-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-rise {
+  animation: rise-in 0.6s ease forwards;
+}

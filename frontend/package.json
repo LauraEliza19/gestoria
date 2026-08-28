@@ -1,0 +1,12 @@
+{
+  "name": "gestoria-frontend",
+  "private": true,
+  "scripts": {
+    "build": "tailwindcss -i ./static/css/input.css -o ./static/css/app.css --minify",
+    "watch": "tailwindcss -i ./static/css/input.css -o ./static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.12",
+    "tailwindcss": "^4.1.12"
+  }
+}
