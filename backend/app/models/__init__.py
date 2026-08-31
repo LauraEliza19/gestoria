@@ -8,6 +8,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Date,
     ForeignKey,
     Index,
     Numeric,
@@ -29,6 +30,8 @@ __all__ = [
     "Customer",
     "Order",
     "OrderItem",
+    "Quote",
+    "QuoteItem"
 ]
 
 
@@ -110,6 +113,7 @@ class Product(Base, TimestampMixin):
     stock_quantity: Mapped[int] = mapped_column(default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     order_items: Mapped[list[OrderItem]] = relationship(back_populates="product")
+    quote_items: Mapped[list[QuoteItem]] = relationship(back_populates="product")
 
     @property
     def status(self) -> str:
@@ -140,6 +144,7 @@ class Customer(Base, TimestampMixin):
     phone: Mapped[str] = mapped_column(String(30), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     orders: Mapped[list[Order]] = relationship(back_populates="customer")
+    quotes: Mapped[list[Quote]] = relationship(back_populates="customer")
 
 
 class Order(Base, TimestampMixin):
@@ -207,3 +212,73 @@ class OrderItem(Base, TimestampMixin):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     order: Mapped[Order] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="order_items")
+
+class Quote(Base, TimestampMixin):
+    __tablename__ = "quotes"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected', 'converted')",
+            name="ck_quote_status",
+        ),
+        CheckConstraint("total_amount >= 0", name="ck_quote_total_nonnegative"),
+        Index("ix_quotes_org_created_at", "organization_id", "created_at"),
+        Index(
+            "ix_quotes_org_status_created_at",
+            "organization_id",
+            "status",
+            "created_at",
+        ),
+        Index("ix_quotes_org_customer", "organization_id", "customer_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    valid_until: Mapped[datetime] = mapped_column(Date, nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=0, nullable=False
+    )
+    converted_order_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    customer: Mapped[Customer] = relationship(back_populates="quotes")
+    items: Mapped[list[QuoteItem]] = relationship(
+        back_populates="quote", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class QuoteItem(Base, TimestampMixin):
+    __tablename__ = "quote_items"
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_quote_item_quantity_positive"),
+        CheckConstraint("unit_price >= 0", name="ck_quote_item_price_nonnegative"),
+        Index("ix_quote_items_quote_id", "quote_id"),
+        Index("ix_quote_items_product_id", "product_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    quote_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("quotes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("products.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    quantity: Mapped[int] = mapped_column(nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    quote: Mapped[Quote] = relationship(back_populates="items")
+    product: Mapped[Product] = relationship(back_populates="quote_items")
