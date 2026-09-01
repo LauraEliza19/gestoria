@@ -13,6 +13,16 @@ from app.schemas.order import (
     OrderRead,
     OrderStatusUpdate,
 )
+
+from app.schemas.quote import (
+    QuoteCreate,
+    QuoteRead,
+    QuoteItemRead,
+    QuoteStatusUpdate,
+    QuoteItemCreate,
+)
+
+
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 
 __all__ = [
@@ -33,4 +43,9 @@ __all__ = [
     "OrderStatusUpdate",
     "OrderItemRead",
     "OrderRead",
+    "QuoteCreate",
+    "QuoteRead",
+    "QuoteItemRead",
+    "QuoteStatusUpdate",
+    "QuoteItemCreate",
 ]
