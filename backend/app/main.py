@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from app.api import auth, customers, orders, products, quotes
 
 from app.api import auth, customers, orders, products
 from app.config import settings
@@ -31,6 +32,7 @@ app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(customers.router)
 app.include_router(orders.router)
+app.include_router(quotes.router)
 
 
 @app.get("/api/health", tags=["health"])

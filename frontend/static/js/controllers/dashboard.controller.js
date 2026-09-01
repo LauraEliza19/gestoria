@@ -956,31 +956,49 @@ import { showToast } from "../views/toast.js";
     }
   });
 
-  // ---- Orçamentos (ainda protótipo local — backend futuro) ----
-  let nextLocalPedidoRef = 9000;
-
-  const orcamentosData = [
-    { id:2001, cliente:'Ana Ribeiro', validade:'25/08/2026', status:'Pendente',
-      itens:[{produto:'Bolo de fubá', qtd:2, preco:32.00}, {produto:'Café especial (pacote)', qtd:1, preco:27.50}] },
-    { id:2002, cliente:'Pedro Alves', validade:'20/08/2026', status:'Aprovado',
-      itens:[{produto:'Pão francês (kg)', qtd:5, preco:14.90}] },
-  ];
-  let nextOrcamentoId = 2003;
+  // ---- Orçamentos: dados (API real), criação com itens dinâmicos ----
+  const orcamentosData = [];
 
   const orcamentosTableBody = document.getElementById('orcamentosTableBody');
   const orcamentosEmpty = document.getElementById('orcamentosEmpty');
   const orcamentosTrueEmpty = document.getElementById('orcamentosTrueEmpty');
   const orcamentosTableWrap = document.querySelector('#section-orcamentos .data-table-wrap');
 
-  function orcamentoTotal(o){
-    return o.itens.reduce((sum, it) => sum + (it.qtd * it.preco), 0);
-  }
+  const QUOTE_STATUS_FROM_API = { pending:'Pendente', approved:'Aprovado', rejected:'Recusado', converted:'Convertido' };
+  const QUOTE_STATUS_TO_API = { 'Pendente':'pending', 'Aprovado':'approved', 'Recusado':'rejected' };
 
   function statusBadgeClass(status){
     if(status === 'Pendente') return 'badge-amber';
     if(status === 'Aprovado') return 'badge-green';
     if(status === 'Recusado') return 'badge-red';
     return 'badge-blue'; // Convertido
+  }
+
+  function quoteFromApi(quote){
+    return {
+      id: quote.id,
+      customer_id: quote.customer_id,
+      cliente: quote.customer_name,
+      validade: formatDateBR(quote.valid_until),
+      status: QUOTE_STATUS_FROM_API[quote.status] || quote.status,
+      total: Number(quote.total_amount),
+      convertedOrderId: quote.converted_order_id,
+      itens: quote.items.map(it => ({
+        produto: it.product_name,
+        qtd: it.quantity,
+        preco: Number(it.unit_price)
+      }))
+    };
+  }
+
+  function orcamentoTotal(o){
+    return o.total !== undefined ? o.total : o.itens.reduce((sum, it) => sum + (it.qtd * it.preco), 0);
+  }
+
+  async function loadQuotes(){
+    const quotes = await apiFetch('/api/quotes');
+    orcamentosData.splice(0, orcamentosData.length, ...quotes.map(quoteFromApi));
+    renderOrcamentos();
   }
 
   function renderOrcamentos(){
@@ -1004,15 +1022,15 @@ import { showToast } from "../views/toast.js";
       if(o.status === 'Aprovado'){
         actions += ` · <button class="link-btn" data-action="converter" data-id="${o.id}">Converter em pedido</button>`;
       }
-      if(o.status === 'Convertido' && o.pedidoRef){
-        actions += ` · <span class="badge badge-blue">Ref. #${o.pedidoRef}</span>`;
+      if(o.status !== 'Convertido'){
+        actions += ` · <button class="link-btn" data-action="excluir" data-id="${o.id}" style="color:var(--alert);">Excluir</button>`;
       }
 
       return `
         <tr>
-          <td>#${o.id}</td>
+          <td>#${o.id.slice(0,8)}</td>
           <td>${escapeHtml(o.cliente)}</td>
-          <td>${o.itens.length} ${o.itens.length === 1 ? 'item' : 'itens'}</td>
+          <td>${o.itens.length}</td>
           <td>${formatMoney(total)}</td>
           <td>${o.validade}</td>
           <td><span class="badge ${statusBadgeClass(o.status)}">${o.status}</span></td>
@@ -1024,41 +1042,57 @@ import { showToast } from "../views/toast.js";
 
   renderOrcamentos();
 
-  orcamentosTableBody.addEventListener('click', (e) => {
+  orcamentosTableBody.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
-    const id = parseInt(btn.dataset.id, 10);
+    const id = btn.dataset.id;
     const action = btn.dataset.action;
     const orcamento = orcamentosData.find(o => o.id === id);
     if(!orcamento) return;
 
-    if(action === 'ver') openViewItemsModal(`Itens do orçamento #${orcamento.id}`, `${orcamento.cliente} — válido até ${orcamento.validade}`, orcamento.itens);
-
-    if(action === 'aprovar'){
-      orcamento.status = 'Aprovado';
-      renderOrcamentos();
-      showToast(`Orçamento #${orcamento.id} aprovado.`);
-      addLogEntry(`Orçamento #${orcamento.id} (${orcamento.cliente}) aprovado`, 'executado', 'Manual');
+    if(action === 'ver'){
+      openViewItemsModal(`Orçamento #${orcamento.id.slice(0,8)}`, `${orcamento.cliente} — válido até ${orcamento.validade}`, orcamento.itens);
     }
 
-    if(action === 'recusar'){
-      orcamento.status = 'Recusado';
-      renderOrcamentos();
-      showToast(`Orçamento #${orcamento.id} recusado.`);
-      addLogEntry(`Orçamento #${orcamento.id} (${orcamento.cliente}) recusado`, 'cancelado', 'Manual');
+    if(action === 'aprovar' || action === 'recusar'){
+      const novoStatus = action === 'aprovar' ? 'Aprovado' : 'Recusado';
+      try {
+        const updated = await apiFetch(`/api/quotes/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: QUOTE_STATUS_TO_API[novoStatus] })
+        });
+        Object.assign(orcamento, quoteFromApi(updated));
+        renderOrcamentos();
+        showToast(`Orçamento #${orcamento.id.slice(0,8)} ${novoStatus === 'Aprovado' ? 'aprovado' : 'recusado'}.`);
+        addLogEntry(`Orçamento #${orcamento.id.slice(0,8)} (${orcamento.cliente}) ${novoStatus === 'Aprovado' ? 'aprovado' : 'recusado'}`, novoStatus === 'Aprovado' ? 'executado' : 'cancelado', 'Manual');
+      } catch(error) {
+        showToast(error.message, 'error');
+      }
     }
 
     if(action === 'converter'){
-      // NOTA: Orçamentos ainda não têm backend próprio. Essa conversão continua
-      // sendo só local/visual — não cria um Pedido de verdade via API. Quando
-      // Orçamentos for implementado no backend, essa lógica deve ser trocada
-      // por uma chamada real, análoga à criação de Pedido.
-      const pedidoRef = nextLocalPedidoRef++;
-      orcamento.status = 'Convertido';
-      orcamento.pedidoRef = pedidoRef;
-      renderOrcamentos();
-      showToast(`Orçamento #${orcamento.id} marcado como convertido (referência local #${pedidoRef}). Registre o pedido manualmente em "Pedidos".`);
-      addLogEntry(`Orçamento #${orcamento.id} (${orcamento.cliente}) marcado como convertido`, 'executado', 'Manual');
+      try {
+        const updated = await apiFetch(`/api/quotes/${id}/convert`, { method: 'POST' });
+        Object.assign(orcamento, quoteFromApi(updated));
+        renderOrcamentos();
+        await loadOrders();
+        await loadClientes();
+        showToast(`Orçamento #${orcamento.id.slice(0,8)} convertido em pedido #${orcamento.convertedOrderId.slice(0,8)}.`);
+        addLogEntry(`Orçamento #${orcamento.id.slice(0,8)} (${orcamento.cliente}) convertido em pedido #${orcamento.convertedOrderId.slice(0,8)}`, 'executado', 'Manual');
+      } catch(error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    if(action === 'excluir'){
+      openConfirmDelete(`Excluir o orçamento #${orcamento.id.slice(0,8)}? Essa ação não pode ser desfeita.`, async () => {
+        await apiFetch(`/api/quotes/${id}`, { method: 'DELETE' });
+        const idx = orcamentosData.findIndex(o => o.id === id);
+        if(idx > -1) orcamentosData.splice(idx, 1);
+        renderOrcamentos();
+        showToast(`Orçamento #${orcamento.id.slice(0,8)} excluído.`);
+        addLogEntry(`Orçamento excluído: #${orcamento.id.slice(0,8)} (${orcamento.cliente})`, 'executado', 'Manual');
+      });
     }
   });
 
@@ -1146,13 +1180,13 @@ import { showToast } from "../views/toast.js";
       clienteDetailPedidosEmpty.style.display = 'block';
     }
 
-    // Orçamentos ainda são só locais, então a ligação continua sendo por nome
-    // (limitação conhecida, será resolvida quando Orçamentos tiver backend).
-    const orcamentosDoCliente = orcamentosData.filter(o => o.cliente === cliente.nome);
+    // Orçamentos agora vêm da API, ligados por customer_id (confiável,
+    // igual já fazíamos com os Pedidos).
+    const orcamentosDoCliente = orcamentosData.filter(o => o.customer_id === cliente.id);
     if(orcamentosDoCliente.length > 0){
       clienteDetailOrcamentos.innerHTML = orcamentosDoCliente.map(o => `
         <tr>
-          <td>#${o.id}</td>
+          <td>#${o.id.slice(0,8)}</td>
           <td>${formatMoney(orcamentoTotal(o))}</td>
           <td><span class="badge ${statusBadgeClass(o.status)}">${o.status}</span></td>
         </tr>
@@ -1171,34 +1205,36 @@ import { showToast } from "../views/toast.js";
   document.getElementById('clienteDetailCloseBtn2').addEventListener('click', closeClienteDetail);
   clienteDetailOverlay.addEventListener('click', (e) => { if(e.target === clienteDetailOverlay) closeClienteDetail(); });
 
-  // ---- Modal: Novo orçamento (itens dinâmicos, ainda local) ----
+  // ---- Modal: Novo orçamento (cliente + itens dinâmicos, dados reais da API) ----
   const orcamentoModalOverlay = document.getElementById('orcamentoModalOverlay');
   const orcamentoForm = document.getElementById('orcamentoForm');
+  const orcamentoClienteSelect = document.getElementById('orc-cliente');
   const orcamentoItemsList = document.getElementById('orcamentoItemsList');
   const orcamentoItemsError = document.getElementById('orcamentoItemsError');
   const orcamentoTotalDisplay = document.getElementById('orcamentoTotalDisplay');
   const orcClienteField = orcamentoForm.querySelector('[data-field="cliente"]');
   const orcValidadeField = orcamentoForm.querySelector('[data-field="validade"]');
-  const orcClienteInput = document.getElementById('orc-cliente');
   const orcValidadeInput = document.getElementById('orc-validade');
 
   function updateOrcamentoTotal(){
     let total = 0;
-    orcamentoItemsList.querySelectorAll('.orcamento-item-row').forEach(row => {
+    orcamentoItemsList.querySelectorAll('.pedido-item-row').forEach(row => {
+      const select = row.querySelector('.item-produto-select');
       const qtd = parseFloat(row.querySelector('.item-qtd').value) || 0;
-      const preco = parsePriceBR(row.querySelector('.item-preco').value);
-      total += qtd * preco;
+      const produto = produtosData.find(p => p.id === select.value);
+      if(produto) total += qtd * produto.preco;
     });
     orcamentoTotalDisplay.textContent = formatMoney(total);
   }
 
   function addOrcamentoItemRow(){
     const row = document.createElement('div');
-    row.className = 'orcamento-item-row';
+    row.className = 'pedido-item-row';
     row.innerHTML = `
-      <input type="text" class="item-produto" placeholder="Produto">
+      <select class="item-produto-select">
+        ${produtosData.map(p => `<option value="${p.id}">${escapeHtml(p.nome)} (R$ ${p.preco.toFixed(2).replace('.', ',')})</option>`).join('')}
+      </select>
       <input type="number" class="item-qtd" placeholder="Qtd" min="1" value="1">
-      <input type="text" class="item-preco" placeholder="Ex: 14,90">
       <span class="item-subtotal">R$ 0,00</span>
       <button type="button" class="remove-item-btn" title="Remover item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
@@ -1206,29 +1242,40 @@ import { showToast } from "../views/toast.js";
     `;
     orcamentoItemsList.appendChild(row);
 
+    const select = row.querySelector('.item-produto-select');
     const qtdInput = row.querySelector('.item-qtd');
-    const precoInput = row.querySelector('.item-preco');
     const subtotalEl = row.querySelector('.item-subtotal');
 
     function refreshSubtotal(){
+      const produto = produtosData.find(p => p.id === select.value);
       const qtd = parseFloat(qtdInput.value) || 0;
-      const preco = parsePriceBR(precoInput.value);
-      subtotalEl.textContent = formatMoney(qtd * preco);
+      subtotalEl.textContent = produto ? formatMoney(qtd * produto.preco) : 'R$ 0,00';
       updateOrcamentoTotal();
     }
 
+    select.addEventListener('change', refreshSubtotal);
     qtdInput.addEventListener('input', refreshSubtotal);
-    precoInput.addEventListener('input', refreshSubtotal);
     row.querySelector('.remove-item-btn').addEventListener('click', () => {
       row.remove();
       updateOrcamentoTotal();
     });
+
+    refreshSubtotal();
   }
 
   document.getElementById('addOrcamentoItemBtn').addEventListener('click', addOrcamentoItemRow);
 
   function openOrcamentoModal(){
-    orcClienteInput.value = '';
+    if(clientesData.length === 0){
+      showToast('Cadastre um cliente antes de criar um orçamento.', 'error');
+      return;
+    }
+    if(produtosData.length === 0){
+      showToast('Cadastre um produto antes de criar um orçamento.', 'error');
+      return;
+    }
+
+    orcamentoClienteSelect.innerHTML = clientesData.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
     orcValidadeInput.value = '';
     orcClienteField.classList.remove('error');
     orcValidadeField.classList.remove('error');
@@ -1237,7 +1284,6 @@ import { showToast } from "../views/toast.js";
     addOrcamentoItemRow();
     updateOrcamentoTotal();
     orcamentoModalOverlay.classList.add('open');
-    setTimeout(() => orcClienteInput.focus(), 50);
   }
 
   function closeOrcamentoModal(){ orcamentoModalOverlay.classList.remove('open'); }
@@ -1248,35 +1294,34 @@ import { showToast } from "../views/toast.js";
   document.getElementById('orcamentoCancelBtn').addEventListener('click', closeOrcamentoModal);
   orcamentoModalOverlay.addEventListener('click', (e) => { if(e.target === orcamentoModalOverlay) closeOrcamentoModal(); });
 
-  orcamentoForm.addEventListener('submit', (e) => {
+  orcamentoForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     let valid = true;
 
-    if(orcClienteInput.value.trim().length === 0){
+    if(!orcamentoClienteSelect.value){
       orcClienteField.classList.add('error');
       valid = false;
     } else {
       orcClienteField.classList.remove('error');
     }
 
-    if(orcValidadeInput.value.trim().length === 0){
+    if(!orcValidadeInput.value){
       orcValidadeField.classList.add('error');
       valid = false;
     } else {
       orcValidadeField.classList.remove('error');
     }
 
-    const itens = [];
-    orcamentoItemsList.querySelectorAll('.orcamento-item-row').forEach(row => {
-      const produto = row.querySelector('.item-produto').value.trim();
-      const qtd = parseFloat(row.querySelector('.item-qtd').value) || 0;
-      const preco = parsePriceBR(row.querySelector('.item-preco').value);
-      if(produto.length > 0 && qtd > 0){
-        itens.push({ produto, qtd, preco });
+    const items = [];
+    orcamentoItemsList.querySelectorAll('.pedido-item-row').forEach(row => {
+      const productId = row.querySelector('.item-produto-select').value;
+      const quantity = parseInt(row.querySelector('.item-qtd').value, 10) || 0;
+      if(productId && quantity > 0){
+        items.push({ product_id: productId, quantity });
       }
     });
 
-    if(itens.length === 0){
+    if(items.length === 0){
       orcamentoItemsError.classList.add('show');
       valid = false;
     } else {
@@ -1285,19 +1330,28 @@ import { showToast } from "../views/toast.js";
 
     if(!valid) return;
 
-    const novoOrcamento = {
-      id: nextOrcamentoId++,
-      cliente: orcClienteInput.value.trim(),
-      validade: formatDateBR(orcValidadeInput.value),
-      status: 'Pendente',
-      itens
-    };
-
-    orcamentosData.unshift(novoOrcamento);
-    renderOrcamentos();
-    showToast(`Orçamento #${novoOrcamento.id} criado para "${novoOrcamento.cliente}".`);
-    addLogEntry(`Orçamento criado: #${novoOrcamento.id} — ${novoOrcamento.cliente} (${formatMoney(orcamentoTotal(novoOrcamento))})`, 'executado', 'Manual');
-    closeOrcamentoModal();
+    const submitButton = orcamentoForm.querySelector('[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      const created = await apiFetch('/api/quotes', {
+        method: 'POST',
+        body: JSON.stringify({
+          customer_id: orcamentoClienteSelect.value,
+          valid_until: orcValidadeInput.value,
+          items
+        })
+      });
+      const novoOrcamento = quoteFromApi(created);
+      orcamentosData.unshift(novoOrcamento);
+      renderOrcamentos();
+      showToast(`Orçamento criado para "${novoOrcamento.cliente}".`);
+      addLogEntry(`Orçamento criado: #${novoOrcamento.id.slice(0,8)} — ${novoOrcamento.cliente} (${formatMoney(orcamentoTotal(novoOrcamento))})`, 'executado', 'Manual');
+      closeOrcamentoModal();
+    } catch(error) {
+      showToast(error.message, 'error');
+    } finally {
+      submitButton.disabled = false;
+    }
   });
 
   // ---- Exportação de relatórios ----
@@ -1584,6 +1638,7 @@ import { showToast } from "../views/toast.js";
       await loadProducts();
       await loadClientes();
       await loadOrders();
+      await loadQuotes();
     } catch(error) {
       if(getAccessToken()) showToast(error.message, 'error');
     }

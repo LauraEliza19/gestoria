@@ -9,6 +9,16 @@ from app.services.orders import (
     update_order_status,
 )
 
+from app.services.quotes import (
+    QuoteExpiredError,
+    QuoteNotConvertibleError,
+    QuoteServiceError,
+    convert_quote_to_order,
+    create_quote,
+    delete_quote_record,
+    update_quote_status,
+)
+
 __all__ = [
     "AuthenticatedUser",
     "authenticate",
@@ -19,4 +29,11 @@ __all__ = [
     "create_order",
     "update_order_status",
     "delete_order_record",
+    "QuoteServiceError",
+    "QuoteExpiredError",
+    "QuoteNotConvertibleError",
+    "create_quote",
+    "update_quote_status",
+    "convert_quote_to_order",
+    "delete_quote_record",
 ]
