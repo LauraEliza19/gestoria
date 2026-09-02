@@ -257,39 +257,10 @@ import { showToast } from "../views/toast.js";
   });
 
   // ---- Definição dos formulários por tipo (create + edit) ----
+  // Nota: "cliente" saiu daqui — cadastro/edição de cliente agora
+  // acontece numa página dedicada (/clientes/novo), com bem mais campos
+  // do que cabia nesse modal pequeno.
   const modalConfigs = {
-    cliente: {
-      title: 'Novo cliente',
-      editTitle: 'Editar cliente',
-      sub: 'Cadastre um cliente sem precisar digitar um comando no chat.',
-      editSub: 'Atualize os dados deste cliente.',
-      fields: [
-        { id:'nome', label:'Nome', type:'text', placeholder:'Ex: Maria Souza', required:true },
-        { id:'telefone', label:'Telefone', type:'text', placeholder:'(31) 99999-0000', required:true },
-      ],
-      onSave: async (data, editing) => {
-        const payload = { name: data.nome, phone: data.telefone };
-
-        if(editing){
-          const updated = await apiFetch(`/api/customers/${editing.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(payload)
-          });
-          Object.assign(editing, customerFromApi(updated));
-          showToast(`Cliente "${data.nome}" atualizado.`);
-          addLogEntry(`Cliente atualizado: ${data.nome} (${data.telefone})`, 'executado', 'Manual');
-        } else {
-          const created = await apiFetch('/api/customers', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-          clientesData.unshift(customerFromApi(created));
-          showToast(`Cliente "${data.nome}" cadastrado com sucesso.`);
-          addLogEntry(`Cliente cadastrado: ${data.nome} (${data.telefone})`, 'executado', 'Manual');
-        }
-        renderClientes();
-      }
-    },
     produto: {
       title: 'Novo produto',
       editTitle: 'Editar produto',
@@ -456,7 +427,7 @@ import { showToast } from "../views/toast.js";
     }, 50);
   }
 
-  document.getElementById('openNewClienteBtn').addEventListener('click', () => openModal('cliente'));
+  document.getElementById('openNewClienteBtn').addEventListener('click', () => { window.location.href = '/clientes/novo'; });
   document.getElementById('openNewProdutoBtn').addEventListener('click', () => openModal('produto'));
 
   // ---- Ícones reutilizados nas ações de linha ----
@@ -596,7 +567,7 @@ import { showToast } from "../views/toast.js";
     clientesEmpty.style.display = list.length === 0 ? 'block' : 'none';
   }
 
-  document.getElementById('emptyStateNewClienteBtn').addEventListener('click', () => openModal('cliente'));
+  document.getElementById('emptyStateNewClienteBtn').addEventListener('click', () => { window.location.href = '/clientes/novo'; });
 
   clientSearch.addEventListener('input', renderClientes);
   clientSort.addEventListener('change', renderClientes);
@@ -610,7 +581,7 @@ import { showToast } from "../views/toast.js";
     if(!record) return;
 
     if(btn.dataset.action === 'view-cliente') openClienteDetail(record);
-    if(btn.dataset.action === 'edit') openModal('cliente', record);
+    if(btn.dataset.action === 'edit') { window.location.href = `/clientes/novo?id=${record.id}`; }
 
     if(btn.dataset.action === 'delete'){
       openConfirmDelete(`Excluir o cliente "${record.nome}"? Essa ação não pode ser desfeita.`, async () => {
