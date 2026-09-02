@@ -51,11 +51,28 @@ class Organization(Base):
     __tablename__ = "organizations"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    name: Mapped[str]  = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    # ---- Identificação fiscal ----
+    document: Mapped[str | None] = mapped_column(String(18))  # CNPJ
+    state_registration: Mapped[str | None] = mapped_column(String(30))  # Inscrição Estadual
+    municipal_registration: Mapped[str | None] = mapped_column(String(30))  # Código Municipal
+
+    # ---- Contato ----
+    phone: Mapped[str | None] = mapped_column(String(30))
+
+    # ---- Endereço estruturado ----
+    postal_code: Mapped[str | None] = mapped_column(String(9))   # CEP
+    street: Mapped[str | None] = mapped_column(String(160))
+    number: Mapped[str | None] = mapped_column(String(20))
+    complement: Mapped[str | None] = mapped_column(String(80))
+    neighborhood: Mapped[str | None] = mapped_column(String(80))
+    city: Mapped[str | None] = mapped_column(String(80))
+    state: Mapped[str | None] = mapped_column(String(2))
 
 
 class User(Base, TimestampMixin):
