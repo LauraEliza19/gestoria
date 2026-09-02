@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import and_, case, func, select
@@ -18,6 +18,28 @@ class CustomerSummary:
     is_active: bool
     total_spent: Decimal
     orders_count: int
+
+    person_type: str
+    document: str | None
+    trade_name: str | None
+    state_registration: str | None
+
+    whatsapp: str | None
+    email: str | None
+
+    birth_date: date | None
+    category: str
+    default_discount_percent: Decimal | None
+    notes: str | None
+
+    postal_code: str | None
+    street: str | None
+    number: str | None
+    complement: str | None
+    neighborhood: str | None
+    city: str | None
+    state: str | None
+
     created_at: datetime
     updated_at: datetime
 
@@ -58,6 +80,23 @@ class CustomerRepository:
                 is_active=customer.is_active,
                 total_spent=total_spent,
                 orders_count=orders_count,
+                person_type=customer.person_type,
+                document=customer.document,
+                trade_name=customer.trade_name,
+                state_registration=customer.state_registration,
+                whatsapp=customer.whatsapp,
+                email=customer.email,
+                birth_date=customer.birth_date,
+                category=customer.category,
+                default_discount_percent=customer.default_discount_percent,
+                notes=customer.notes,
+                postal_code=customer.postal_code,
+                street=customer.street,
+                number=customer.number,
+                complement=customer.complement,
+                neighborhood=customer.neighborhood,
+                city=customer.city,
+                state=customer.state,
                 created_at=customer.created_at,
                 updated_at=customer.updated_at,
             )

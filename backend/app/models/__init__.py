@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
@@ -132,17 +132,61 @@ class Customer(Base, TimestampMixin):
         UniqueConstraint("organization_id", "phone", name="uq_customer_org_phone"),
         Index("ix_customers_org_created_at", "organization_id", "created_at"),
         Index("ix_customers_org_name", "organization_id", "name"),
+        CheckConstraint(
+            "person_type IN ('individual', 'company')",
+            name="ck_customer_person_type"
+        ),
+        CheckConstraint(
+            "category IN ('final_consumer', 'reseller', 'event')",
+            name="ck_customer_category",
+        ),
+        CheckConstraint(
+            "default_discount_percent >= 0 AND default_discount_percent <= 100",
+            name="ck_customer_discount_range",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=False
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    phone: Mapped[str] = mapped_column(String(30), nullable=False)
+    phone: Mapped[int] = mapped_column(String(30), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    
+    person_type: Mapped[str] = mapped_column(
+        String(10), default="individual", nullable=False
+    )
+
+    document: Mapped[str | None] = mapped_column(String(18)) #cpf or cnpj
+    trade_name: Mapped[str| None] = mapped_column(String(120)) #nome fantasia
+    state_registration: Mapped[str | None] = mapped_column(String(30)) #inscrição estadual
+
+    #contato
+    whatsapp: Mapped[str| None] = mapped_column(String(30))
+    email: Mapped[str| None] = mapped_column(String(255))
+
+    #relacionamento comercial 
+
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    category: Mapped[str] = mapped_column(
+        String(20), default="final_consumer", nullable=False
+    )
+    default_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    notes: Mapped[str| None] = mapped_column(String(1000))
+
+    #endereço estruturado
+
+    postal_code: Mapped[str| None] = mapped_column(String(9)) #cep
+    street: Mapped[str | None] = mapped_column(String(160)) #rua
+    number: Mapped[str | None] = mapped_column(String(20))
+    complement: Mapped[str | None] = mapped_column(String(80))
+    neighborhood: Mapped[str | None] = mapped_column(String(80))
+    city: Mapped[str| None] = mapped_column(String(80))
+    state: Mapped[str | None] = mapped_column(String(2))
+
     orders: Mapped[list[Order]] = relationship(back_populates="customer")
     quotes: Mapped[list[Quote]] = relationship(back_populates="customer")
 

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestorIA — Cliente</title>
+<script>
+  (function(){
+    try {
+      if(localStorage.getItem('gestoria_theme') === 'dark'){
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch(e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- LEFT: navigation rail + chat sidebar (igual ao dashboard, pra manter acesso ao resto do sistema e à IA) -->
+  <div class="chat-sidebar">
+
+    <div class="nav-rail">
+      <div class="nav-rail-logo">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 4C11.16 4 4 11.16 4 20C4 28.84 11.16 36 20 36" stroke="#8FB4FF" stroke-width="6" stroke-linecap="round"/>
+          <rect x="21" y="19" width="15" height="15" rx="3" fill="#3D63F5"/>
+        </svg>
+      </div>
+
+      <div class="nav-rail-items">
+        <a class="nav-item" href="/dashboard" title="Visão geral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span class="nav-label">Visão geral</span>
+        </a>
+        <a class="nav-item active" href="/dashboard" title="Clientes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.5 14.2c2.6.3 4.5 2.6 4.5 5.8"/></svg>
+          <span class="nav-label">Clientes</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Produtos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+          <span class="nav-label">Produtos</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Pedidos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l1 5H5l1-5z"/><path d="M5 8h14l-1.2 11a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 8z"/><path d="M9.5 12h5"/></svg>
+          <span class="nav-label">Pedidos</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Orçamentos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+          <span class="nav-label">Orçamentos</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Relatórios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>
+          <span class="nav-label">Relatórios</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Atividade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>
+          <span class="nav-label">Atividade</span>
+        </a>
+      </div>
+
+      <div class="nav-rail-bottom">
+        <a class="nav-item" href="/dashboard" title="Meu perfil">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-sidebar-header">
+        <div class="brand-mark">
+          <div class="wordmark">Gestor<span>IA</span></div>
+        </div>
+        <button class="new-chat-btn" id="newChatBtn">+ nova conversa</button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-bubble ai">
+          Olá! Você está na página de cadastro de cliente. Pode preencher o formulário manualmente, ou me dizer algo como
+          <em>"cadastre a Maria como cliente, telefone 99999-9999"</em> que eu já preencho pra você.
+          <span class="meta">agora</span>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Digite um comando ou pergunta..." autocomplete="off">
+          <button class="chat-send-btn" id="sendBtn" aria-label="Enviar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 20L20 12L4 4V10L14 12L4 14V20Z" fill="white"/>
+            </svg>
+          </button>
+        </div>
+        <div class="chat-hint">Este é um protótipo — as respostas abaixo são simuladas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: formulário de cliente -->
+  <div class="main-area">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <a href="/dashboard" class="icon-btn" title="Voltar para Clientes" style="width:34px;height:34px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="page-title" id="pageTitle">Novo cliente</div>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Alternar modo escuro" aria-label="Alternar modo escuro"></button>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" id="avatarBtn">AD</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div style="max-width:640px;">
+
+        <div class="greeting-header" style="padding-top:0;">
+          <h2 id="formTitle" style="font-size:26px;">Novo cliente</h2>
+          <p id="formSub">Preencha os dados abaixo. Só Nome e Telefone são obrigatórios — o resto você pode completar depois.</p>
+        </div>
+
+        <form id="customerForm">
+
+          <div class="section-label">Identificação</div>
+
+          <div class="field" data-field="person_type">
+            <label for="cf-person-type">Tipo de cadastro</label>
+            <select id="cf-person-type">
+              <option value="individual">Pessoa física</option>
+              <option value="company">Pessoa jurídica</option>
+            </select>
+          </div>
+
+          <div class="field" data-field="name">
+            <label for="cf-name">Nome <span id="cf-name-label-suffix"></span></label>
+            <div class="input-wrap">
+              <input type="text" id="cf-name" placeholder="Ex: Maria Souza">
+            </div>
+            <div class="error-msg">Informe o nome.</div>
+          </div>
+
+          <div class="field" id="cf-trade-name-field" data-field="trade_name" style="display:none;">
+            <label for="cf-trade-name">Nome fantasia</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-trade-name" placeholder="Ex: Padaria Bom Pão">
+            </div>
+          </div>
+
+          <div class="field" data-field="document">
+            <label for="cf-document" id="cf-document-label">CPF</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-document" placeholder="Ex: 000.000.000-00">
+            </div>
+          </div>
+
+          <div class="field" id="cf-state-registration-field" data-field="state_registration" style="display:none;">
+            <label for="cf-state-registration">Inscrição Estadual</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-state-registration" placeholder="Ex: 000.000.000.000">
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top:28px;">Contato</div>
+
+          <div class="field" data-field="phone">
+            <label for="cf-phone">Telefone</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-phone" placeholder="Ex: (31) 99999-0000">
+            </div>
+            <div class="error-msg">Informe o telefone.</div>
+          </div>
+
+          <div class="field" data-field="whatsapp">
+            <label for="cf-whatsapp">WhatsApp (se for diferente do telefone)</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-whatsapp" placeholder="Ex: (31) 99999-0000">
+            </div>
+          </div>
+
+          <div class="field" data-field="email">
+            <label for="cf-email">E-mail</label>
+            <div class="input-wrap">
+              <input type="email" id="cf-email" placeholder="Ex: cliente@email.com">
+            </div>
+            <div class="error-msg">Informe um e-mail válido.</div>
+          </div>
+
+          <div class="section-label" style="margin-top:28px;">Relacionamento comercial</div>
+
+          <div class="field" data-field="category">
+            <label for="cf-category">Categoria</label>
+            <select id="cf-category">
+              <option value="final_consumer">Consumidor final</option>
+              <option value="reseller">Revenda</option>
+              <option value="event">Evento</option>
+            </select>
+          </div>
+
+          <div class="field" data-field="birth_date">
+            <label for="cf-birth-date">Aniversário</label>
+            <div class="input-wrap">
+              <input type="date" id="cf-birth-date">
+            </div>
+          </div>
+
+          <div class="field" data-field="default_discount_percent">
+            <label for="cf-discount">Desconto padrão (%)</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-discount" placeholder="Ex: 10">
+            </div>
+            <div class="error-msg">Informe um número entre 0 e 100.</div>
+          </div>
+
+          <div class="field" data-field="notes">
+            <label for="cf-notes">Observações</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-notes" placeholder="Ex: prefere retirar pela manhã">
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top:28px;">Endereço</div>
+
+          <div class="field" data-field="postal_code">
+            <label for="cf-postal-code">CEP</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-postal-code" placeholder="Ex: 37700-000">
+            </div>
+          </div>
+
+          <div class="field" data-field="street">
+            <label for="cf-street">Rua</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-street" placeholder="Ex: Rua das Flores">
+            </div>
+          </div>
+
+          <div class="field" data-field="number">
+            <label for="cf-number">Número</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-number" placeholder="Ex: 123">
+            </div>
+          </div>
+
+          <div class="field" data-field="complement">
+            <label for="cf-complement">Complemento</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-complement" placeholder="Ex: apto 202">
+            </div>
+          </div>
+
+          <div class="field" data-field="neighborhood">
+            <label for="cf-neighborhood">Bairro</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-neighborhood" placeholder="Ex: Centro">
+            </div>
+          </div>
+
+          <div class="field" data-field="city">
+            <label for="cf-city">Cidade</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-city" placeholder="Ex: Barbacena">
+            </div>
+          </div>
+
+          <div class="field" data-field="state">
+            <label for="cf-state">UF</label>
+            <div class="input-wrap">
+              <input type="text" id="cf-state" placeholder="Ex: MG" maxlength="2" style="text-transform:uppercase;">
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top:8px;">
+            <a href="/dashboard" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;">Cancelar</a>
+            <button type="submit" class="btn-primary btn-inline" id="customerFormSubmitBtn">Salvar cliente</button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="module" src="/static/js/controllers/customer-form.controller.js"></script>
+
+</body>
+</html>
