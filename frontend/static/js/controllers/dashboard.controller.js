@@ -88,39 +88,65 @@ import { showToast } from "../views/toast.js";
   const profileNameEl = document.querySelector('#section-config .profile-name');
   const profileEmailEl = document.querySelector('#section-config .profile-email');
 
-  // ---- Dados da empresa ----
+  // ---- Dados da empresa (API real, via /api/auth/me e /api/organization) ----
   const companyData = {
-    nome: 'Padaria Bom Pão',
-    cnpj: '12.345.678/0001-90',
-    telefone: '(35) 3222-1000',
-    endereco: 'Rua das Flores, 123 - Centro, Barbacena - MG'
+    id: null,
+    nome: '',
+    document: '',
+    state_registration: '',
+    municipal_registration: '',
+    phone: '',
+    postal_code: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
   };
 
   const companyInfoGrid = document.getElementById('companyInfoGrid');
 
+  function fillEmpty(value){
+    return value && value.length > 0 ? escapeHtml(value) : '<span style="color:var(--ink-tertiary);">Não informado</span>';
+  }
+
   function renderCompanyCard(){
+    const enderecoLinha1 = [companyData.street, companyData.number].filter(Boolean).join(', ');
+    const enderecoLinha2 = [companyData.neighborhood, companyData.city, companyData.state].filter(Boolean).join(' - ');
+    const enderecoCompleto = [enderecoLinha1, companyData.complement, enderecoLinha2, companyData.postal_code]
+      .filter(Boolean).join(' — ');
+
     companyInfoGrid.innerHTML = `
-      <div class="detail-info-item">
+      <div class="detail-info-item wide">
         <div class="detail-label">Nome da empresa</div>
-        <div class="detail-value">${companyData.nome}</div>
+        <div class="detail-value">${escapeHtml(companyData.nome)}</div>
       </div>
       <div class="detail-info-item">
         <div class="detail-label">CNPJ</div>
-        <div class="detail-value">${companyData.cnpj}</div>
+        <div class="detail-value">${fillEmpty(companyData.document)}</div>
+      </div>
+      <div class="detail-info-item">
+        <div class="detail-label">Inscrição Estadual</div>
+        <div class="detail-value">${fillEmpty(companyData.state_registration)}</div>
+      </div>
+      <div class="detail-info-item">
+        <div class="detail-label">Código Municipal</div>
+        <div class="detail-value">${fillEmpty(companyData.municipal_registration)}</div>
       </div>
       <div class="detail-info-item">
         <div class="detail-label">Telefone</div>
-        <div class="detail-value">${companyData.telefone}</div>
+        <div class="detail-value">${fillEmpty(companyData.phone)}</div>
       </div>
       <div class="detail-info-item wide">
         <div class="detail-label">Endereço</div>
-        <div class="detail-value">${companyData.endereco}</div>
+        <div class="detail-value">${enderecoCompleto.length > 0 ? escapeHtml(enderecoCompleto) : fillEmpty('')}</div>
       </div>
     `;
   }
 
   renderCompanyCard();
-  document.getElementById('editEmpresaBtn').addEventListener('click', () => openModal('empresa', companyData));
+  document.getElementById('editEmpresaBtn').addEventListener('click', () => { window.location.href = '/empresa/editar'; });
 
   function staffItemHtml(s, i){
     const active = i === activeStaffIndex ? 'active' : '';
@@ -329,28 +355,9 @@ import { showToast } from "../views/toast.js";
         renderPedidos();
       }
     },
-    empresa: {
-      title: 'Dados da empresa',
-      editTitle: 'Editar dados da empresa',
-      sub: 'Atualize as informações da empresa.',
-      editSub: 'Atualize as informações da empresa.',
-      fields: [
-        { id:'nome', label:'Nome da empresa', type:'text', placeholder:'Ex: Padaria Bom Pão', required:true },
-        { id:'cnpj', label:'CNPJ', type:'text', placeholder:'00.000.000/0000-00', required:true },
-        { id:'telefone', label:'Telefone', type:'text', placeholder:'(31) 3222-1000', required:true },
-        { id:'endereco', label:'Endereço', type:'text', placeholder:'Rua, número - Bairro, Cidade - UF', required:true },
-      ],
-      onSave: (data, editing) => {
-        editing.nome = data.nome;
-        editing.cnpj = data.cnpj;
-        editing.telefone = data.telefone;
-        editing.endereco = data.endereco;
-        renderCompanyCard();
-        document.querySelector('.tenant-chip').textContent = 'Empresa: ' + editing.nome;
-        showToast('Dados da empresa atualizados.');
-        addLogEntry(`Dados da empresa atualizados: ${editing.nome}`, 'executado', 'Manual');
-      }
-    }
+    // Nota: "empresa" saiu daqui — editar dados da empresa agora acontece
+    // numa página dedicada (/empresa/editar), evitando o bug de campos
+    // vazios aparecendo como "null" e deixando mais espaço pros campos.
   };
 
   function openModal(type, editingRecord = null){
@@ -636,7 +643,21 @@ import { showToast } from "../views/toast.js";
     profileEmailEl.textContent = staff.email;
     profileRoleBadge.textContent = staff.cargo;
 
-    companyData.nome = session.organization.name;
+    Object.assign(companyData, {
+      id: session.organization.id,
+      nome: session.organization.name,
+      document: session.organization.document,
+      state_registration: session.organization.state_registration,
+      municipal_registration: session.organization.municipal_registration,
+      phone: session.organization.phone,
+      postal_code: session.organization.postal_code,
+      street: session.organization.street,
+      number: session.organization.number,
+      complement: session.organization.complement,
+      neighborhood: session.organization.neighborhood,
+      city: session.organization.city,
+      state: session.organization.state,
+    });
     document.querySelector('.tenant-chip').textContent = 'Empresa: ' + session.organization.name;
     renderCompanyCard();
     renderStaffLists();

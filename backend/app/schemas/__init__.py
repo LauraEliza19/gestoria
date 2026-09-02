@@ -3,6 +3,7 @@ from app.schemas.auth import (
     LoginRequest,
     OrganizationRead,
     TokenRead,
+    OrganizationUpdate,
 )
 from app.schemas.common import Money, normalize_phone
 from app.schemas.customer import CustomerCreate, CustomerRead, CustomerUpdate
@@ -12,6 +13,7 @@ from app.schemas.order import (
     OrderItemRead,
     OrderRead,
     OrderStatusUpdate,
+    
 )
 
 from app.schemas.quote import (
@@ -31,6 +33,7 @@ __all__ = [
     "LoginRequest",
     "TokenRead",
     "OrganizationRead",
+    "OrganizationUpdate",
     "CurrentUserRead",
     "ProductCreate",
     "ProductUpdate",
