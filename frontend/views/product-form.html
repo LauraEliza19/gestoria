@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestorIA — Produto</title>
+<script>
+  (function(){
+    try {
+      if(localStorage.getItem('gestoria_theme') === 'dark'){
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch(e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- LEFT: navigation rail + chat sidebar (igual ao dashboard, pra manter acesso ao resto do sistema e à IA) -->
+  <div class="chat-sidebar">
+
+    <div class="nav-rail">
+      <div class="nav-rail-logo">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 4C11.16 4 4 11.16 4 20C4 28.84 11.16 36 20 36" stroke="#8FB4FF" stroke-width="6" stroke-linecap="round"/>
+          <rect x="21" y="19" width="15" height="15" rx="3" fill="#3D63F5"/>
+        </svg>
+      </div>
+
+      <div class="nav-rail-items">
+        <a class="nav-item" href="/dashboard" title="Visão geral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span class="nav-label">Visão geral</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Clientes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.5 14.2c2.6.3 4.5 2.6 4.5 5.8"/></svg>
+          <span class="nav-label">Clientes</span>
+        </a>
+        <a class="nav-item active" href="/dashboard" title="Produtos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+          <span class="nav-label">Produtos</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Pedidos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l1 5H5l1-5z"/><path d="M5 8h14l-1.2 11a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 8z"/><path d="M9.5 12h5"/></svg>
+          <span class="nav-label">Pedidos</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Orçamentos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+          <span class="nav-label">Orçamentos</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Relatórios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>
+          <span class="nav-label">Relatórios</span>
+        </a>
+        <a class="nav-item" href="/dashboard" title="Atividade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>
+          <span class="nav-label">Atividade</span>
+        </a>
+      </div>
+
+      <div class="nav-rail-bottom">
+        <a class="nav-item" href="/dashboard" title="Meu perfil">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="nav-label">Perfil</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="chat-panel">
+      <div class="chat-sidebar-header">
+        <div class="brand-mark">
+          <div class="wordmark">Gestor<span>IA</span></div>
+        </div>
+        <button class="new-chat-btn" id="newChatBtn">+ nova conversa</button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-bubble ai">
+          Olá! Você está na página de cadastro de produto. Pode preencher o formulário manualmente, ou me dizer algo como
+          <em>"cadastre o produto Croissant a R$ 8,50"</em> que eu já preencho nome e preço pra você.
+          <span class="meta">agora</span>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Digite um comando ou pergunta..." autocomplete="off">
+          <button class="chat-send-btn" id="sendBtn" aria-label="Enviar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 20L20 12L4 4V10L14 12L4 14V20Z" fill="white"/>
+            </svg>
+          </button>
+        </div>
+        <div class="chat-hint">Este é um protótipo — as respostas abaixo são simuladas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: formulário de produto -->
+  <div class="main-area">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <a href="/dashboard" class="icon-btn" title="Voltar para Produtos" style="width:34px;height:34px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="page-title" id="pageTitle">Novo produto</div>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Alternar modo escuro" aria-label="Alternar modo escuro"></button>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" id="avatarBtn">AD</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div style="max-width:640px;">
+
+        <div class="greeting-header" style="padding-top:0;">
+          <h2 id="formTitle" style="font-size:26px;">Novo produto</h2>
+          <p id="formSub">Preencha os dados abaixo. Só Nome e Preço são obrigatórios — o resto você pode completar depois.</p>
+        </div>
+
+        <form id="productForm">
+
+          <div class="section-label">Identificação</div>
+
+          <div class="field" data-field="name">
+            <label for="pf-name">Nome</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-name" placeholder="Ex: Croissant">
+            </div>
+            <div class="error-msg">Informe o nome.</div>
+          </div>
+
+          <div class="field" data-field="description">
+            <label for="pf-description">Descrição</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-description" placeholder="Ex: Croissant amanteigado, feito na hora">
+            </div>
+          </div>
+
+          <div class="field" data-field="category">
+            <label for="pf-category">Categoria</label>
+            <select id="pf-category">
+              <option value="padaria">Padaria</option>
+              <option value="frios">Frios</option>
+              <option value="bebidas">Bebidas</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+
+          <div class="field" data-field="product_type">
+            <label for="pf-product-type">Origem do produto</label>
+            <select id="pf-product-type">
+              <option value="resale">Revenda (comprado pronto)</option>
+              <option value="manufactured">Fabricado (produzido por vocês)</option>
+            </select>
+          </div>
+
+          <div class="field" data-field="barcode">
+            <label for="pf-barcode">Código de barras</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-barcode" placeholder="Ex: 7891234567890">
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top:28px;">Preço e estoque</div>
+
+          <div class="field" data-field="price">
+            <label for="pf-price">Preço de venda</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-price" placeholder="Ex: 8,50">
+            </div>
+            <div class="error-msg">Informe um preço válido.</div>
+          </div>
+
+          <div class="field" data-field="cost_price">
+            <label for="pf-cost-price">Preço de custo</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-cost-price" placeholder="Ex: 4,20">
+            </div>
+          </div>
+
+          <div class="field" data-field="unit_of_measure">
+            <label for="pf-unit">Unidade de medida</label>
+            <select id="pf-unit">
+              <option value="unit">Unidade</option>
+              <option value="kg">Quilograma (kg)</option>
+              <option value="g">Grama (g)</option>
+            </select>
+          </div>
+
+          <div class="field" data-field="stock_quantity">
+            <label for="pf-stock">Estoque atual</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-stock" placeholder="Ex: 20">
+            </div>
+            <div class="error-msg">Informe uma quantidade válida.</div>
+          </div>
+
+          <div class="field" data-field="min_stock_quantity">
+            <label for="pf-min-stock">Estoque mínimo (alerta de "estoque baixo")</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-min-stock" placeholder="Ex: 5">
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top:28px;">Perecibilidade</div>
+
+          <div class="field" data-field="perishable">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="pf-perishable" style="width:16px; height:16px; accent-color:var(--signal-blue);">
+              Este produto é perecível?
+            </label>
+          </div>
+
+          <div class="field" id="pf-shelf-life-field" data-field="shelf_life_days" style="display:none;">
+            <label for="pf-shelf-life">Validade (dias)</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-shelf-life" placeholder="Ex: 2">
+            </div>
+            <div class="error-msg">Produtos perecíveis precisam de uma validade em dias.</div>
+          </div>
+
+          <div class="section-label" style="margin-top:28px;">Fiscal (opcional — preparando pra emissão de nota fiscal)</div>
+
+          <div class="field" data-field="ncm_code">
+            <label for="pf-ncm">NCM (8 dígitos)</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-ncm" placeholder="Ex: 19059090" maxlength="8">
+            </div>
+          </div>
+
+          <div class="field" data-field="cest_code">
+            <label for="pf-cest">CEST (7 dígitos)</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-cest" placeholder="Ex: 1706400" maxlength="7">
+            </div>
+          </div>
+
+          <div class="field" data-field="fiscal_origin">
+            <label for="pf-fiscal-origin">Origem fiscal (0 a 8)</label>
+            <div class="input-wrap">
+              <input type="text" id="pf-fiscal-origin" placeholder="Ex: 0" maxlength="1">
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top:8px;">
+            <a href="/dashboard" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;">Cancelar</a>
+            <button type="submit" class="btn-primary btn-inline" id="productFormSubmitBtn">Salvar produto</button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="module" src="/static/js/controllers/product-form.controller.js"></script>
+
+</body>
+</html>

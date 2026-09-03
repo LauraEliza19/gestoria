@@ -286,53 +286,10 @@ import { showToast } from "../views/toast.js";
   // Nota: "cliente" saiu daqui — cadastro/edição de cliente agora
   // acontece numa página dedicada (/clientes/novo), com bem mais campos
   // do que cabia nesse modal pequeno.
+  // Nota: "produto" também saiu daqui pelo mesmo motivo — agora tem
+  // categoria, unidade de medida, perecibilidade, campos fiscais, etc.
+  // e acontece em /produtos/novo.
   const modalConfigs = {
-    produto: {
-      title: 'Novo produto',
-      editTitle: 'Editar produto',
-      sub: 'Adicione um item ao catálogo de produtos ou serviços.',
-      editSub: 'Atualize os dados deste produto.',
-      fields: [
-        { id:'nome', label:'Nome do produto', type:'text', placeholder:'Ex: Croissant', required:true },
-        { id:'preco', label:'Preço', type:'text', placeholder:'Ex: 12,90', required:true, editValue: r => r.preco.toFixed(2).replace('.', ',') },
-        { id:'estoque', label:'Estoque (unidades)', type:'text', placeholder:'Ex: 20', required:true, editValue: r => r.stock_quantity },
-      ],
-      onSave: async (data, editing) => {
-        const precoNum = parsePriceBR(data.preco);
-        const estoqueNum = Number.parseInt(data.estoque, 10);
-        const precoValido = /^\d+([,.]\d{1,2})?$/.test(data.preco);
-        const estoqueValido = /^\d+$/.test(data.estoque);
-        if(!precoValido || !estoqueValido || precoNum < 0 || estoqueNum < 0){
-          throw new Error('Informe preço e estoque válidos.');
-        }
-
-        const payload = {
-          name: data.nome,
-          price: precoNum,
-          stock_quantity: estoqueNum,
-          is_active: editing ? editing.is_active : true
-        };
-
-        if(editing){
-          const updated = await apiFetch(`/api/products/${editing.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(payload)
-          });
-          Object.assign(editing, productFromApi(updated));
-          showToast(`Produto "${data.nome}" atualizado.`);
-          addLogEntry(`Produto atualizado: ${data.nome}`, 'executado', 'Manual');
-        } else {
-          const created = await apiFetch('/api/products', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-          produtosData.unshift(productFromApi(created));
-          showToast(`Produto "${data.nome}" adicionado ao catálogo.`);
-          addLogEntry(`Produto adicionado: ${data.nome}`, 'executado', 'Manual');
-        }
-        renderProdutos();
-      }
-    },
     // Edição de pedido = só o status (é tudo que o backend permite alterar
     // depois de criado; cliente e itens só existem no momento da criação).
     pedidoStatus: {
@@ -435,7 +392,7 @@ import { showToast } from "../views/toast.js";
   }
 
   document.getElementById('openNewClienteBtn').addEventListener('click', () => { window.location.href = '/clientes/novo'; });
-  document.getElementById('openNewProdutoBtn').addEventListener('click', () => openModal('produto'));
+  document.getElementById('openNewProdutoBtn').addEventListener('click', () => { window.location.href = '/produtos/novo'; });
 
   // ---- Ícones reutilizados nas ações de linha ----
   const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
@@ -702,7 +659,7 @@ import { showToast } from "../views/toast.js";
     `).join('');
   }
 
-  document.getElementById('emptyStateNewProdutoBtn').addEventListener('click', () => openModal('produto'));
+  document.getElementById('emptyStateNewProdutoBtn').addEventListener('click', () => { window.location.href = '/produtos/novo'; });
 
   renderProdutos();
 
@@ -713,7 +670,7 @@ import { showToast } from "../views/toast.js";
     const record = produtosData.find(p => p.id === id);
     if(!record) return;
 
-    if(btn.dataset.action === 'edit') openModal('produto', record);
+    if(btn.dataset.action === 'edit') { window.location.href = `/produtos/novo?id=${record.id}`; }
 
     if(btn.dataset.action === 'delete'){
       openConfirmDelete(`Excluir o produto "${record.nome}"? Essa ação não pode ser desfeita.`, async () => {
@@ -1008,14 +965,14 @@ import { showToast } from "../views/toast.js";
       let actions = `<button class="link-btn" data-action="ver" data-id="${o.id}">Ver itens</button>`;
 
       if(o.status === 'Pendente'){
-        actions += ` · <button class="link-btn" data-action="aprovar" data-id="${o.id}">Aprovar</button>` +
-                   ` · <button class="link-btn" data-action="recusar" data-id="${o.id}" style="color:var(--alert);">Recusar</button>`;
+        actions += `<button class="link-btn" data-action="aprovar" data-id="${o.id}">Aprovar</button>` +
+                   `<button class="link-btn" data-action="recusar" data-id="${o.id}" style="color:var(--alert);">Recusar</button>`;
       }
       if(o.status === 'Aprovado'){
-        actions += ` · <button class="link-btn" data-action="converter" data-id="${o.id}">Converter em pedido</button>`;
+        actions += `<button class="link-btn" data-action="converter" data-id="${o.id}">Converter em pedido</button>`;
       }
       if(o.status !== 'Convertido'){
-        actions += ` · <button class="link-btn" data-action="excluir" data-id="${o.id}" style="color:var(--alert);">Excluir</button>`;
+        actions += `<button class="link-btn" data-action="excluir" data-id="${o.id}" style="color:var(--alert);">Excluir</button>`;
       }
 
       return `

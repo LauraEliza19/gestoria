@@ -60,6 +60,11 @@ def company_form_page() -> FileResponse:
     return FileResponse(frontend_dir / "views" / "company-form.html")
 
 
+@app.get("/produtos/novo", include_in_schema=False)
+def product_form_page() -> FileResponse:
+    return FileResponse(frontend_dir / "views" / "product-form.html")
+
+
 app.mount(
     "/static",
     StaticFiles(directory=frontend_dir / "static"),

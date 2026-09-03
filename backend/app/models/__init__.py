@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     Date,
     ForeignKey,
+    SmallInteger,
     Index,
     Numeric,
     String,
@@ -115,22 +116,84 @@ class Product(Base, TimestampMixin):
         UniqueConstraint("organization_id", "name", name="uq_product_org_name"),
         CheckConstraint("price >= 0", name="ck_product_price_nonnegative"),
         CheckConstraint("stock_quantity >= 0", name="ck_product_stock_nonnegative"),
+        CheckConstraint(
+            "cost_price IS NULL OR cost_price >= 0",
+            name="ck_product_cost_price_nonnegative",
+        ),
+        CheckConstraint(
+            "min_stock_quantity >= 0", 
+            name="ck_product_min_stock_nonnegative",
+        ),
+        CheckConstraint(
+            "category IN ('padaria', 'frios', 'bebidas', 'outros')",
+            name="ck_product_category",
+        ),
+        CheckConstraint(
+            "product_type IN ('manufactured', 'resale')",
+            name="ck_product_type",
+        ),
+        CheckConstraint(
+            "unit_of_measure IN ('unit', 'kg', 'g')",
+            name="ck_product_unit_of_measure",
+        ),
+        CheckConstraint(
+            "shelf_life_days IS NULL OR shelf_life_days >0",
+            name="ck_product_shelf_life_positive",
+        ),
+        CheckConstraint(
+            "NOT perishable OR shelf_life_days IS NOT NULL",
+            name="ck_product_perishable_requires_shelf_life",
+        ),
+        CheckConstraint(
+            "fiscal_origin IS NULL OR (fiscal_origin >= 0 AND fiscal_origin <= 8)",
+            name="ck_product_fiscal_origin_range",
+        ),
         Index("ix_products_org_created_at", "organization_id", "created_at"),
+        Index("ix_products_org_category", "organization_id", "category"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=False
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    stock_quantity: Mapped[int] = mapped_column(default=0, nullable=False)
+    stock_quantity: Mapped[Decimal] = mapped_column(Numeric(10,3), default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    
+     #classificacao de produto 
+    category: Mapped[str] = mapped_column(String(20), default="outros", nullable=False)
+    product_type: Mapped[str] = mapped_column(
+        String(20), default="resale", nullable=False 
+    )
+    unit_of_measure: Mapped[str] = mapped_column(
+        String(10), default="unit", nullable=False
+    )
+
+    #estoque e custo
+    cost_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    min_stock_quantity: Mapped[Decimal] = mapped_column(
+        Numeric(10, 3), default="5", nullable=False
+    )
+
+    #perecibilidade
+    perishable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    shelf_life_days: Mapped[int | None] = mapped_column()
+
+    #identificação
+    barcode: Mapped[str | None] = mapped_column(String(50))
+
+    #fiscal (sem logica de calculo ainda)
+    ncm_code: Mapped[str | None] = mapped_column(String(8))
+    cest_code: Mapped[str | None] = mapped_column(String(7))
+    fiscal_origin: Mapped[int | None] = mapped_column(SmallInteger)
+
     order_items: Mapped[list[OrderItem]] = relationship(back_populates="product")
-    quote_items: Mapped[list[QuoteItem]] = relationship(back_populates="product")
+    quote_items: Mapped[list[QuoteItem]] = relationship(back_populates="product") 
 
     @property
     def status(self) -> str:
@@ -138,10 +201,12 @@ class Product(Base, TimestampMixin):
             return "Inativo"
         if self.stock_quantity == 0:
             return "Esgotado"
-        if self.stock_quantity <= 5:
-            return "Estoque baixo"
+        threshold = (
+            self.min_stock_quantity if self.min_stock_quantity is not None else 5
+        )
+        if self.stock_quantity <= threshold:
+            return "Estoque Baixo"
         return "Disponível"
-
 
 class Customer(Base, TimestampMixin):
     __tablename__ = "customers"
@@ -269,7 +334,7 @@ class OrderItem(Base, TimestampMixin):
         ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[int] = mapped_column(nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10,3 ), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     order: Mapped[Order] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="order_items")
@@ -339,7 +404,7 @@ class QuoteItem(Base, TimestampMixin):
         ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[int] = mapped_column(nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     quote: Mapped[Quote] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="quote_items")
