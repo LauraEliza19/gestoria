@@ -848,23 +848,28 @@ a:focus-visible, input:focus-visible, button:focus-visible{
    Polimento — tabelas de Clientes e Orçamentos
    ========================================================== */
 
-#section-clientes .data-table-wrap,
-#section-orcamentos .data-table-wrap{
+#section-clientes .data-table-wrap{
   box-shadow:var(--shadow-md);
   overflow:visible;
 }
 
-/* Como tiramos o overflow:hidden pra permitir o cabeçalho fixo,
-   os cantos arredondados agora são aplicados direto nas células
-   das pontas (em vez do wrapper "cortar" o excesso). */
-#section-clientes thead th:first-child,
-#section-orcamentos thead th:first-child{border-top-left-radius:16px;}
-#section-clientes thead th:last-child,
-#section-orcamentos thead th:last-child{border-top-right-radius:16px;}
-#clientesTableBody tr:last-child td:first-child,
-#orcamentosTableBody tr:last-child td:first-child{border-bottom-left-radius:16px;}
-#clientesTableBody tr:last-child td:last-child,
-#orcamentosTableBody tr:last-child td:last-child{border-bottom-right-radius:16px;}
+/* Orçamentos volta a usar overflow:hidden — com poucas linhas, o
+   cabeçalho fixo ao rolar não faz falta prática, e isso garante que
+   nada (nem por 1px de arredondamento de porcentagem) escape do
+   contorno arredondado do card. */
+#section-orcamentos .data-table-wrap{
+  box-shadow:var(--shadow-md);
+  overflow:hidden;
+}
+
+/* Como tiramos o overflow:hidden do Clientes pra permitir o cabeçalho
+   fixo, os cantos arredondados dele são aplicados direto nas células
+   das pontas (em vez do wrapper "cortar" o excesso). Orçamentos não
+   precisa disso — o wrapper já corta certinho sozinho. */
+#section-clientes thead th:first-child{border-top-left-radius:16px;}
+#section-clientes thead th:last-child{border-top-right-radius:16px;}
+#clientesTableBody tr:last-child td:first-child{border-bottom-left-radius:16px;}
+#clientesTableBody tr:last-child td:last-child{border-bottom-right-radius:16px;}
 
 /* Cabeçalho fixo: acompanha a rolagem da página, sempre visível */
 #section-clientes thead th,
@@ -897,10 +902,40 @@ a:focus-visible, input:focus-visible, button:focus-visible{
 #clientesTableBody td:last-child{text-align:right;}
 #clientesTableBody .row-actions{margin-left:auto;}
 
-/* Orçamentos: Orçamento(1) Cliente(2) Itens(3) Valor total(4) Validade(5) Status(6) Ações(7) */
-#section-orcamentos thead th{text-align:center;}
-#section-orcamentos thead th:last-child{width:1%; white-space:nowrap;}
-#orcamentosTableBody td:nth-child(3){text-align:center; color:var(--ink-secondary); white-space:nowrap;}
+/* Orçamentos: Orçamento(1) Cliente(2) Itens(3) Valor total(4) Validade(5) Status(6) Ações(7)
+   table-layout:fixed + porcentagens garante que a tabela sempre ocupe
+   exatamente 100% do card, em qualquer tamanho de tela. */
+#section-orcamentos .data-table{table-layout:fixed; width:100%;}
+#section-orcamentos thead th{text-align:center; vertical-align:middle;}
+#section-orcamentos thead th:nth-child(1){width:11%;}
+#section-orcamentos thead th:nth-child(2){width:15%;}
+#section-orcamentos thead th:nth-child(3){width:7%;}
+#section-orcamentos thead th:nth-child(4){width:10%;}
+#section-orcamentos thead th:nth-child(5){width:10%;}
+#section-orcamentos thead th:nth-child(6){width:12%;}
+#section-orcamentos thead th:last-child{width:35%;}
+
+/* Toda linha tem a MESMA altura, mesmo quando uma linha tem mais botões
+   de ação que outra (Pendente tem 4 ações, Convertido só 1). */
+#orcamentosTableBody td{
+  height:90px;
+  vertical-align:middle;
+  box-sizing:border-box;
+}
+
+#orcamentosTableBody td:nth-child(1){
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#orcamentosTableBody td:nth-child(2){
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#orcamentosTableBody td:nth-child(3){
+  text-align:center;
+  color:var(--ink-secondary);
+  white-space:nowrap;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
 #orcamentosTableBody td:nth-child(4){
   text-align:right;
   font-weight:600;
@@ -908,75 +943,44 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   white-space:nowrap;
 }
 #orcamentosTableBody td:nth-child(5){color:var(--ink-secondary); white-space:nowrap;}
+#orcamentosTableBody td:nth-child(6){text-align:center;}
+
+/* Badges de status: altura, padding e centralização fixos. */
+#orcamentosTableBody .badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:24px;
+  padding:0 11px 0 9px;
+  font-size:11.5px;
+}
+
+/* Coluna de Ações: botões com altura/padding/fonte idênticos, agrupados
+   e centralizados — só a largura varia com o texto de cada um. */
 #orcamentosTableBody td:last-child{
   display:flex;
   align-items:center;
-  flex-wrap:nowrap;
+  justify-content:center;
+  flex-wrap:wrap;
+  row-gap:6px;
+  column-gap:6px;
+}
+#orcamentosTableBody td:last-child .link-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:26px;
+  line-height:1;
+  background:none;
+  border:1px solid transparent;
+  border-radius:7px;
+  font-size:12px;
+  font-weight:600;
+  padding:0 8px;
   white-space:nowrap;
-  gap:6px 8px;
 }
-#orcamentosTableBody td:last-child .badge{
-  font-size:11.5px;
-  padding:2px 10px 2px 8px;
-}
-
-/* ==========================================================
-   Charme visual — só na tela de Orçamentos
-   ========================================================== */
-
-/* Faixa de assinatura no topo do card */
-#section-orcamentos .data-table-wrap{
-  position:relative;
-}
-#section-orcamentos .data-table-wrap::before{
-  content:'';
-  position:absolute;
-  top:0; left:0; right:0;
-  height:3px;
-  background:linear-gradient(90deg, var(--signal-blue), var(--sky-tint));
-  z-index:3;
-}
-
-/* Itens e Valor total ficam com o mesmo fundo do resto da tabela —
-   sem tingimento de coluna, mantendo negrito/alinhamento como destaque. */
-#orcamentosTableBody td:nth-child(3){
-  font-weight:700;
-  font-variant-numeric:tabular-nums;
-}
-
-/* Badge "Pendente" pulsa suavemente — sinaliza que precisa de uma ação */
-@keyframes pendingPulse{
-  0%, 100%{box-shadow:0 0 0 0 rgba(199,138,17,0.28);}
-  50%{box-shadow:0 0 0 4px rgba(199,138,17,0);}
-}
-#orcamentosTableBody .badge-amber{
-  animation:pendingPulse 2.2s ease-in-out infinite;
-}
-
-/* Linhas entram com uma animação leve sempre que a tabela é redesenhada */
-#orcamentosTableBody tr{
-  animation:riseIn 0.35s ease forwards;
-}
-#orcamentosTableBody tr:nth-child(1){animation-delay:0.02s;}
-#orcamentosTableBody tr:nth-child(2){animation-delay:0.06s;}
-#orcamentosTableBody tr:nth-child(3){animation-delay:0.10s;}
-#orcamentosTableBody tr:nth-child(4){animation-delay:0.14s;}
-#orcamentosTableBody tr:nth-child(n+5){animation-delay:0.18s;}
-
-/* Linha "levanta" sutilmente ao passar o mouse, como um cartão */
-#orcamentosTableBody tr{
-  transition:transform 0.15s ease, box-shadow 0.15s ease;
-}
-#orcamentosTableBody tr:hover{
-  transform:translateY(-1px);
-  box-shadow:0 4px 10px rgba(11,19,48,0.06);
-  position:relative;
-  z-index:1;
-}
-
-@media (prefers-reduced-motion: reduce){
-  #orcamentosTableBody tr{animation:none;}
-  #orcamentosTableBody .badge-amber{animation:none;}
+#orcamentosTableBody td:last-child .link-btn:hover{
+  background:color-mix(in srgb, currentColor 8%, transparent);
 }
 
 .result-block{

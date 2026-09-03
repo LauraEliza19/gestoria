@@ -9,6 +9,13 @@ from app.services.orders import (
     update_order_status,
 )
 
+from app.services.products import (
+    InvalidPerishabilityDataError,
+    ProductServiceError,
+    create_product,
+    update_product,
+)
+
 from app.services.quotes import (
     QuoteExpiredError,
     QuoteNotConvertibleError,
@@ -29,6 +36,10 @@ __all__ = [
     "create_order",
     "update_order_status",
     "delete_order_record",
+    "ProductServiceError",
+    "InvalidPerishabilityDataError",
+    "create_product",
+    "update_product",
     "QuoteServiceError",
     "QuoteExpiredError",
     "QuoteNotConvertibleError",
