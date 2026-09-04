@@ -1,5 +1,6 @@
 import uuid
 
+from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -69,7 +70,7 @@ class OrderItemRepository:
         db: Session,
         order_id: uuid.UUID,
         product_id: uuid.UUID,
-        quantity: int,
+        quantity: Decimal,
         unit_price,
     ) -> OrderItem:
         item = OrderItem(
