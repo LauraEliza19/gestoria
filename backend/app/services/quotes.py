@@ -1,21 +1,26 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import Quote
 from app.repositories import (
     CustomerRepository,
     ProductRepository,
-    QuoteRepository,
     QuoteItemRepository,
+    QuoteRepository,
 )
-
 from app.services.orders import (
     CustomerNotFoundError,
     ProductNotFoundError,
     create_order,
 )
+
+
+def business_today() -> date:
+    return datetime.now(ZoneInfo(settings.business_timezone)).date()
 
 class QuoteServiceError(Exception):
     """Erro de regra de negócio ao criar/atualizar um orçamento."""
@@ -72,7 +77,7 @@ def create_quote(
         raise
 
 def update_quote_status(db: Session, quote: Quote, status: str) -> Quote:
-    if status == "approved" and quote.valid_until < date.today():
+    if status == "approved" and quote.valid_until < business_today():
         raise QuoteExpiredError()
 
     return QuoteRepository.update_status(db, quote, status)
@@ -80,36 +85,48 @@ def update_quote_status(db: Session, quote: Quote, status: str) -> Quote:
 
 def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
     """
-    Converte um orçamento aprovado em um Pedido de verdade — reaproveitando
-    a mesma função create_order que já valida estoque e desconta tudo
-    corretamente. Só a partir daqui o compromisso de venda vira real.
+    Converte um orçamento aprovado em um pedido usando uma única transação.
     """
     if quote.status != "approved":
         raise QuoteNotConvertibleError(quote.status)
 
-    if quote.valid_until < date.today():
+    if quote.valid_until < business_today():
         raise QuoteExpiredError()
 
     order_items = [
-    _QuoteItemAsOrderItem(item.product_id, item.quantity)
-    for item in quote.items
+        _QuoteItemAsOrderItem(item.product_id, item.quantity)
+        for item in quote.items
     ]
 
     unit_prices = {
-    item.product_id: item.unit_price
-    for item in quote.items
+        item.product_id: item.unit_price
+        for item in quote.items
     }
 
-    order = create_order(
-    db,
-    quote.organization_id,
-    quote.customer_id,
-    order_items,
-    unit_prices=unit_prices,
-    )
+    try:
+        order = create_order(
+            db,
+            quote.organization_id,
+            quote.customer_id,
+            order_items,
+            unit_prices=unit_prices,
+            commit=False,
+        )
 
-    return QuoteRepository.mark_converted(db, quote, order.id)
+        QuoteRepository.mark_converted(
+            db,
+            quote,
+            order.id,
+            commit=False,
+        )
 
+        db.commit()
+        db.refresh(quote)
+        return quote
+
+    except Exception:
+        db.rollback()
+        raise
 
 class _QuoteItemAsOrderItem:
     """
