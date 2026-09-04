@@ -59,6 +59,10 @@ def customer_form_page() -> FileResponse:
 def company_form_page() -> FileResponse:
     return FileResponse(frontend_dir / "views" / "company-form.html")
 
+@app.get("/modo-fabrica", include_in_schema=False)
+def factory_mode_page() -> FileResponse:
+    return FileResponse(frontend_dir / "views" / "factory-mode.html")
+
 
 @app.get("/produtos/novo", include_in_schema=False)
 def product_form_page() -> FileResponse:
