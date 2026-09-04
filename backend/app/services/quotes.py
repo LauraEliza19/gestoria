@@ -27,9 +27,11 @@ class QuoteExpiredError(QuoteServiceError):
         )
 
 class QuoteNotConvertibleError(QuoteServiceError):
-    def __init__(self):
+    def __init__(self, current_status: str):
+        self.current_status = current_status
         super().__init__(
-            f"Só é possível converter orçamentos aprovados (status atual: '{status}')."
+            "Só é possível converter orçamentos aprovados "
+            f"(status atual: '{current_status}')"
         )
 
 def create_quote(
@@ -89,9 +91,22 @@ def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
         raise QuoteExpiredError()
 
     order_items = [
-        _QuoteItemAsOrderItem(item.product_id, item.quantity) for item in quote.items
+    _QuoteItemAsOrderItem(item.product_id, item.quantity)
+    for item in quote.items
     ]
-    order = create_order(db, quote.organization_id, quote.customer_id, order_items)
+
+    unit_prices = {
+    item.product_id: item.unit_price
+    for item in quote.items
+    }
+
+    order = create_order(
+    db,
+    quote.organization_id,
+    quote.customer_id,
+    order_items,
+    unit_prices=unit_prices,
+    )
 
     return QuoteRepository.mark_converted(db, quote, order.id)
 

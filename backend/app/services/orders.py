@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 from sqlalchemy.orm import Session
 
@@ -37,7 +38,14 @@ class InsufficientStockError(OrderServiceError):
         )
 
 
-def create_order(db: Session, organization_id, customer_id, items: list) -> Order:
+def create_order(
+    db: Session,
+    organization_id,
+    customer_id,
+    items: list,
+    *,
+    unit_prices: dict[uuid.UUID, Decimal] | None = None,
+) -> Order:
     """
     Cria um pedido com múltiplos itens, descontando o estoque de cada
     produto. Tudo acontece numa única transação: se qualquer item falhar
@@ -76,16 +84,25 @@ def create_order(db: Session, organization_id, customer_id, items: list) -> Orde
 
         order = OrderRepository.create(db, organization_id, customer_id)
         total = Decimal(0)
+
         for product, quantity in products:
             product.stock_quantity -= quantity
+
+            unit_price = (
+                unit_prices[product.id]
+                if unit_prices is not None
+                else product.price
+            )
+
             OrderItemRepository.create(
                 db,
                 order.id,
                 product.id,
                 quantity,
-                product.price,
+                unit_price,
             )
-            total += product.price * quantity
+
+            total += unit_price * quantity
 
         order.total_amount = total
         db.commit()
