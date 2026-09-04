@@ -165,10 +165,10 @@ def test_order_flow_updates_stock_status_and_customer_total(
     order = created.json()
     assert order["total_amount"] == "37.50"
     assert len(order["items"]) == 1
-    assert order["items"][0]["quantity"] == 3
+    assert Decimal(order["items"][0]["quantity"]) == Decimal("3")
 
     products = client.get("/api/products", headers=headers).json()
-    assert products[0]["stock_quantity"] == 2
+    assert Decimal(products[0]["stock_quantity"]) == Decimal("2")
 
     completed = client.patch(
         f"/api/orders/{order['id']}",
@@ -192,7 +192,9 @@ def test_order_flow_updates_stock_status_and_customer_total(
         json={"status": "cancelled"},
     )
     assert cancelled.status_code == 200
-    assert client.get("/api/products", headers=headers).json()[0]["stock_quantity"] == 5
+    assert Decimal(
+    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+    ) == Decimal("5")
     assert Decimal(
         client.get("/api/customers", headers=headers).json()[0]["total_spent"]
     ) == Decimal(0)
@@ -203,7 +205,9 @@ def test_order_flow_updates_stock_status_and_customer_total(
         json={"status": "completed"},
     )
     assert reactivated.status_code == 200
-    assert client.get("/api/products", headers=headers).json()[0]["stock_quantity"] == 2
+    assert Decimal(
+    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+    ) == Decimal("2")
 
     assert (
         client.delete(f"/api/customers/{customer['id']}", headers=headers).status_code
@@ -217,7 +221,9 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert (
         client.delete(f"/api/orders/{order['id']}", headers=headers).status_code == 204
     )
-    assert client.get("/api/products", headers=headers).json()[0]["stock_quantity"] == 5
+    assert Decimal(
+    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+    ) == Decimal("5")
     assert (
         client.delete(f"/api/customers/{customer['id']}", headers=headers).status_code
         == 204
@@ -253,7 +259,9 @@ def test_order_with_insufficient_stock_rolls_back_everything(
     )
     assert response.status_code == 409
     assert client.get("/api/orders", headers=headers).json() == []
-    assert client.get("/api/products", headers=headers).json()[0]["stock_quantity"] == 1
+    assert Decimal(
+    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+    ) == Decimal("1")
 
 
 def test_customer_and_product_are_isolated_between_organizations(

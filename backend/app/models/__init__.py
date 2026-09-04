@@ -205,7 +205,7 @@ class Product(Base, TimestampMixin):
             self.min_stock_quantity if self.min_stock_quantity is not None else 5
         )
         if self.stock_quantity <= threshold:
-            return "Estoque Baixo"
+            return "Estoque baixo"
         return "Disponível"
 
 class Customer(Base, TimestampMixin):
