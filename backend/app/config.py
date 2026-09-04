@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     )
     jwt_secret: str = "change-this-development-secret-before-deployment"
     jwt_expire_minutes: int = 480
+    business_timezone: str = "America/Sao_Paulo"
     frontend_dir: str | None = None
 
     demo_organization: str = "Empresa Demo GestorIA"

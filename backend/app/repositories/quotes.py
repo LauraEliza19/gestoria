@@ -1,10 +1,11 @@
 import uuid
-
 from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import Quote, QuoteItem
+
 
 class QuoteRepository: 
     @staticmethod
@@ -61,10 +62,21 @@ class QuoteRepository:
         return quote
 
     @staticmethod
-    def mark_converted(db: Session, quote: Quote, order_id: uuid.UUID) -> Quote:
+    def mark_converted(
+         db: Session,
+         quote: Quote,
+         order_id: uuid.UUID,
+         *,
+         commit: bool = True,
+    ) -> Quote:
         quote.status = "converted"
         quote.converted_order_id = order_id
-        db.commit()
+
+        if commit:
+            db.commit()
+        else:
+            db.flush()
+
         db.refresh(quote)
         return quote
 

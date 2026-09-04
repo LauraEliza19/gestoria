@@ -1,5 +1,5 @@
-from decimal import Decimal
 import uuid
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -45,44 +45,59 @@ def create_order(
     items: list,
     *,
     unit_prices: dict[uuid.UUID, Decimal] | None = None,
+    commit: bool = True,
 ) -> Order:
     """
     Cria um pedido com múltiplos itens, descontando o estoque de cada
-    produto. Tudo acontece numa única transação: se qualquer item falhar
-    (produto não existe ou estoque insuficiente), NADA é salvo — nem o
-    pedido, nem os itens já processados antes do erro.
+    produto. Tudo acontece numa única transação: se qualquer item falhar,
+    nada é salvo.
     """
     try:
         customer = CustomerRepository.get_for_organization(
-            db, customer_id, organization_id
+            db,
+            customer_id,
+            organization_id,
         )
+
         if not customer or not customer.is_active:
             raise CustomerNotFoundError()
 
         quantities = {}
+
         for item in items:
             quantities[item.product_id] = (
                 quantities.get(item.product_id, 0) + item.quantity
             )
 
         products: list[tuple[Product, int]] = []
+
         for product_id in sorted(quantities, key=str):
             quantity = quantities[product_id]
+
             product = ProductRepository.get_for_organization(
                 db,
                 product_id,
                 organization_id,
                 for_update=True,
             )
+
             if not product or not product.is_active:
                 raise ProductNotFoundError(product_id)
+
             if product.stock_quantity < quantity:
                 raise InsufficientStockError(
-                    product.name, product.stock_quantity, quantity
+                    product.name,
+                    product.stock_quantity,
+                    quantity,
                 )
+
             products.append((product, quantity))
 
-        order = OrderRepository.create(db, organization_id, customer_id)
+        order = OrderRepository.create(
+            db,
+            organization_id,
+            customer_id,
+        )
         total = Decimal(0)
 
         for product, quantity in products:
@@ -105,9 +120,15 @@ def create_order(
             total += unit_price * quantity
 
         order.total_amount = total
-        db.commit()
+
+        if commit:
+            db.commit()
+        else:
+            db.flush()
+
         db.refresh(order)
         return order
+
     except Exception:
         db.rollback()
         raise
