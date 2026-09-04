@@ -148,6 +148,7 @@ import { showToast } from "../views/toast.js";
   renderCompanyCard();
   document.getElementById('editEmpresaBtn').addEventListener('click', () => { window.location.href = '/empresa/editar'; });
 
+  document.getElementById('modoFabricaBtn').addEventListener('click', () => { window.location.href = '/modo-fabrica'; });
   function staffItemHtml(s, i){
     const active = i === activeStaffIndex ? 'active' : '';
     return `
