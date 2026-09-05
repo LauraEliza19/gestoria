@@ -1,6 +1,10 @@
+from datetime import timedelta
 from decimal import Decimal
 
+import pytest
 from fastapi.testclient import TestClient
+
+from app.services.quotes import business_today
 
 
 def login(
@@ -193,7 +197,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     )
     assert cancelled.status_code == 200
     assert Decimal(
-    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
     ) == Decimal("5")
     assert Decimal(
         client.get("/api/customers", headers=headers).json()[0]["total_spent"]
@@ -206,7 +210,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     )
     assert reactivated.status_code == 200
     assert Decimal(
-    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
     ) == Decimal("2")
 
     assert (
@@ -222,7 +226,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
         client.delete(f"/api/orders/{order['id']}", headers=headers).status_code == 204
     )
     assert Decimal(
-    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
     ) == Decimal("5")
     assert (
         client.delete(f"/api/customers/{customer['id']}", headers=headers).status_code
@@ -260,7 +264,7 @@ def test_order_with_insufficient_stock_rolls_back_everything(
     assert response.status_code == 409
     assert client.get("/api/orders", headers=headers).json() == []
     assert Decimal(
-    client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
     ) == Decimal("1")
 
 
@@ -292,3 +296,408 @@ def test_customer_and_product_are_isolated_between_organizations(
         ).status_code
         == 404
     )
+
+
+def test_quote_api_flow_converts_only_once(client: TestClient) -> None:
+    headers = login(client)
+
+    customer_response = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Orçamento API",
+            "phone": "35922221111",
+        },
+    )
+    assert customer_response.status_code == 201
+    customer = customer_response.json()
+
+    product_response = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Orçamento API",
+            "price": "10.00",
+            "stock_quantity": 5,
+        },
+    )
+    assert product_response.status_code == 201
+    product = product_response.json()
+
+    created_response = client.post(
+        "/api/quotes",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "valid_until": (business_today() + timedelta(days=7)).isoformat(),
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    )
+    assert created_response.status_code == 201
+
+    quote = created_response.json()
+    assert quote["status"] == "pending"
+    assert quote["total_amount"] == "20.00"
+    assert quote["converted_order_id"] is None
+    assert len(quote["items"]) == 1
+    assert quote["items"][0]["unit_price"] == "10.00"
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
+
+    price_change_response = client.patch(
+        f"/api/products/{product['id']}",
+        headers=headers,
+        json={"price": "25.00"},
+    )
+    assert price_change_response.status_code == 200
+    assert price_change_response.json()["price"] == "25.00"
+
+    approved_response = client.patch(
+        f"/api/quotes/{quote['id']}",
+        headers=headers,
+        json={"status": "approved"},
+    )
+    assert approved_response.status_code == 200
+    assert approved_response.json()["status"] == "approved"
+
+    converted_response = client.post(
+        f"/api/quotes/{quote['id']}/convert",
+        headers=headers,
+    )
+    assert converted_response.status_code == 200
+
+    converted_quote = converted_response.json()
+    assert converted_quote["status"] == "converted"
+    assert converted_quote["converted_order_id"] is not None
+
+    second_conversion = client.post(
+        f"/api/quotes/{quote['id']}/convert",
+        headers=headers,
+    )
+    assert second_conversion.status_code == 409
+    assert "status atual: 'converted'" in second_conversion.json()["detail"]
+
+    orders = client.get("/api/orders", headers=headers).json()
+    assert len(orders) == 1
+    assert orders[0]["id"] == converted_quote["converted_order_id"]
+    assert orders[0]["total_amount"] == "20.00"
+    assert len(orders[0]["items"]) == 1
+    assert orders[0]["items"][0]["unit_price"] == "10.00"
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
+
+
+def test_expired_quote_cannot_be_approved_or_converted(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    headers = login(client)
+    today = business_today()
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Orçamento Vencido",
+            "phone": "35911112222",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Orçamento Vencido",
+            "price": "15.00",
+            "stock_quantity": 5,
+        },
+    ).json()
+
+    expired_quote = client.post(
+        "/api/quotes",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "valid_until": (today - timedelta(days=1)).isoformat(),
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    ).json()
+
+    approval = client.patch(
+        f"/api/quotes/{expired_quote['id']}",
+        headers=headers,
+        json={"status": "approved"},
+    )
+    assert approval.status_code == 409
+    assert "vencido" in approval.json()["detail"]
+
+    valid_quote = client.post(
+        "/api/quotes",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "valid_until": (today + timedelta(days=1)).isoformat(),
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    ).json()
+
+    approval = client.patch(
+        f"/api/quotes/{valid_quote['id']}",
+        headers=headers,
+        json={"status": "approved"},
+    )
+    assert approval.status_code == 200
+
+    monkeypatch.setattr(
+        "app.services.quotes.business_today",
+        lambda: today + timedelta(days=2),
+    )
+
+    conversion = client.post(
+        f"/api/quotes/{valid_quote['id']}/convert",
+        headers=headers,
+    )
+    assert conversion.status_code == 409
+    assert "vencido" in conversion.json()["detail"]
+
+    assert client.get("/api/orders", headers=headers).json() == []
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
+
+
+def test_quote_api_is_isolated_between_organizations(
+    client: TestClient,
+) -> None:
+    company_a_headers = login(client)
+    company_b_headers = login(client, "empresa-b@gestoria.dev")
+
+    company_b_customer = client.get(
+        "/api/customers",
+        headers=company_b_headers,
+    ).json()[0]
+
+    company_b_product = client.get(
+        "/api/products",
+        headers=company_b_headers,
+    ).json()[0]
+
+    created_response = client.post(
+        "/api/quotes",
+        headers=company_b_headers,
+        json={
+            "customer_id": company_b_customer["id"],
+            "valid_until": (business_today() + timedelta(days=7)).isoformat(),
+            "items": [
+                {
+                    "product_id": company_b_product["id"],
+                    "quantity": 1,
+                }
+            ],
+        },
+    )
+    assert created_response.status_code == 201
+    company_b_quote = created_response.json()
+
+    approved_response = client.patch(
+        f"/api/quotes/{company_b_quote['id']}",
+        headers=company_b_headers,
+        json={"status": "approved"},
+    )
+    assert approved_response.status_code == 200
+
+    assert (
+        client.get(
+            "/api/quotes",
+            headers=company_a_headers,
+        ).json()
+        == []
+    )
+
+    unauthorized_update = client.patch(
+        f"/api/quotes/{company_b_quote['id']}",
+        headers=company_a_headers,
+        json={"status": "rejected"},
+    )
+    assert unauthorized_update.status_code == 404
+
+    unauthorized_conversion = client.post(
+        f"/api/quotes/{company_b_quote['id']}/convert",
+        headers=company_a_headers,
+    )
+    assert unauthorized_conversion.status_code == 404
+
+    unauthorized_deletion = client.delete(
+        f"/api/quotes/{company_b_quote['id']}",
+        headers=company_a_headers,
+    )
+    assert unauthorized_deletion.status_code == 404
+
+    company_b_quotes = client.get(
+        "/api/quotes",
+        headers=company_b_headers,
+    ).json()
+    assert len(company_b_quotes) == 1
+    assert company_b_quotes[0]["id"] == company_b_quote["id"]
+    assert company_b_quotes[0]["status"] == "approved"
+
+    assert (
+        client.get(
+            "/api/orders",
+            headers=company_b_headers,
+        ).json()
+        == []
+    )
+
+
+def test_only_owner_or_admin_can_delete_quote(
+    client: TestClient,
+) -> None:
+    owner_headers = login(client)
+    member_headers = login(client, "membro@gestoria.dev")
+
+    customer = client.post(
+        "/api/customers",
+        headers=owner_headers,
+        json={
+            "name": "Cliente Permissão Orçamento",
+            "phone": "35900001111",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=owner_headers,
+        json={
+            "name": "Produto Permissão Orçamento",
+            "price": "8.00",
+            "stock_quantity": 4,
+        },
+    ).json()
+
+    quote_response = client.post(
+        "/api/quotes",
+        headers=owner_headers,
+        json={
+            "customer_id": customer["id"],
+            "valid_until": (business_today() + timedelta(days=7)).isoformat(),
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                }
+            ],
+        },
+    )
+    assert quote_response.status_code == 201
+    quote = quote_response.json()
+
+    forbidden = client.delete(
+        f"/api/quotes/{quote['id']}",
+        headers=member_headers,
+    )
+    assert forbidden.status_code == 403
+
+    quotes_after_forbidden_attempt = client.get(
+        "/api/quotes",
+        headers=owner_headers,
+    ).json()
+    assert len(quotes_after_forbidden_attempt) == 1
+    assert quotes_after_forbidden_attempt[0]["id"] == quote["id"]
+
+    deleted = client.delete(
+        f"/api/quotes/{quote['id']}",
+        headers=owner_headers,
+    )
+    assert deleted.status_code == 204
+
+    assert (
+        client.get(
+            "/api/quotes",
+            headers=owner_headers,
+        ).json()
+        == []
+    )
+
+
+def test_quote_conversion_with_insufficient_stock_returns_conflict(
+    client: TestClient,
+) -> None:
+    headers = login(client)
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Orçamento sem Estoque",
+            "phone": "35900002222",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Orçado sem Estoque",
+            "price": "12.00",
+            "stock_quantity": 1,
+        },
+    ).json()
+
+    quote_response = client.post(
+        "/api/quotes",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "valid_until": (business_today() + timedelta(days=7)).isoformat(),
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    )
+    assert quote_response.status_code == 201
+    quote = quote_response.json()
+
+    approved_response = client.patch(
+        f"/api/quotes/{quote['id']}",
+        headers=headers,
+        json={"status": "approved"},
+    )
+    assert approved_response.status_code == 200
+
+    conversion = client.post(
+        f"/api/quotes/{quote['id']}/convert",
+        headers=headers,
+    )
+    assert conversion.status_code == 409
+    assert "Estoque insuficiente" in conversion.json()["detail"]
+
+    assert client.get("/api/orders", headers=headers).json() == []
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(1)
+
+    quotes = client.get("/api/quotes", headers=headers).json()
+    assert len(quotes) == 1
+    assert quotes[0]["status"] == "approved"
+    assert quotes[0]["converted_order_id"] is None
