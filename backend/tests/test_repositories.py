@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import Organization
 from app.repositories import (
     CustomerRepository,
+    OrderRepository,
     OrganizationRepository,
     ProductRepository,
     QuoteRepository,
@@ -108,3 +109,18 @@ def test_quote_repository_can_lock_quote_for_conversion() -> None:
     sql = str(query.compile(dialect=postgresql.dialect()))
 
     assert "FOR UPDATE OF quotes" in sql
+
+def test_order_repository_can_lock_order_for_status_update() -> None:
+    db = Mock(spec=Session)
+
+    OrderRepository.get_for_organization(
+        db,
+        uuid.uuid4(),
+        uuid.uuid4(),
+        for_update=True,
+    )
+
+    query = db.scalar.call_args.args[0]
+    sql = str(query.compile(dialect=postgresql.dialect()))
+
+    assert "FOR UPDATE OF orders" in sql

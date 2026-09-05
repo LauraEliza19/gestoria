@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
+from app.repositories import OrderRepository
 from app.services.quotes import business_today
 
 
@@ -206,9 +207,10 @@ def test_order_flow_updates_stock_status_and_customer_total(
     reactivated = client.patch(
         f"/api/orders/{order['id']}",
         headers=headers,
-        json={"status": "completed"},
+        json={"status": "in_preparation"},
     )
     assert reactivated.status_code == 200
+    assert reactivated.json()["status"] == "in_preparation"
     assert Decimal(
         client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
     ) == Decimal("2")
@@ -709,3 +711,292 @@ def test_quote_conversion_with_insufficient_stock_returns_conflict(
     assert len(quotes) == 1
     assert quotes[0]["status"] == "approved"
     assert quotes[0]["converted_order_id"] is None
+
+def test_cancelling_order_twice_restores_stock_only_once(
+    client: TestClient,
+) -> None:
+    headers = login(client)
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Cancelamento Único",
+            "phone": "35933334444",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Cancelamento Único",
+            "price": "10.00",
+            "stock_quantity": 5,
+        },
+    ).json()
+
+    order_response = client.post(
+        "/api/orders",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    )
+    assert order_response.status_code == 201
+    order = order_response.json()
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
+
+    first_cancellation = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "cancelled"},
+    )
+    assert first_cancellation.status_code == 200
+    assert first_cancellation.json()["status"] == "cancelled"
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
+
+    second_cancellation = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "cancelled"},
+    )
+    assert second_cancellation.status_code == 200
+    assert second_cancellation.json()["status"] == "cancelled"
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
+
+    orders = client.get("/api/orders", headers=headers).json()
+    assert len(orders) == 1
+    assert orders[0]["status"] == "cancelled"
+
+def test_deleting_order_twice_restores_stock_only_once(
+    client: TestClient,
+) -> None:
+    headers = login(client)
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Exclusão Única",
+            "phone": "35944445555",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Exclusão Única",
+            "price": "10.00",
+            "stock_quantity": 5,
+        },
+    ).json()
+
+    order_response = client.post(
+        "/api/orders",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    )
+    assert order_response.status_code == 201
+    order = order_response.json()
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
+
+    first_deletion = client.delete(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+    )
+    assert first_deletion.status_code == 204
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
+
+    second_deletion = client.delete(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+    )
+    assert second_deletion.status_code == 404
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
+
+    assert client.get("/api/orders", headers=headers).json() == []
+
+def test_order_update_and_delete_request_row_lock(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    headers = login(client)
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Bloqueio Pedido",
+            "phone": "35977778888",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Bloqueio Pedido",
+            "price": "10.00",
+            "stock_quantity": 5,
+        },
+    ).json()
+
+    order = client.post(
+        "/api/orders",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                }
+            ],
+        },
+    ).json()
+
+    original_get = OrderRepository.get_for_organization
+    requested_locks: list[bool] = []
+
+    def track_lock_request(
+        db,
+        order_id,
+        organization_id,
+        *,
+        for_update: bool = False,
+    ):
+        requested_locks.append(for_update)
+        return original_get(
+            db,
+            order_id,
+            organization_id,
+            for_update=for_update,
+        )
+
+    monkeypatch.setattr(
+        OrderRepository,
+        "get_for_organization",
+        staticmethod(track_lock_request),
+    )
+
+    cancellation = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "cancelled"},
+    )
+    assert cancellation.status_code == 200
+    assert requested_locks == [True]
+
+    requested_locks.clear()
+
+    deletion = client.delete(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+    )
+    assert deletion.status_code == 204
+    assert requested_locks == [True]
+
+def test_order_api_rejects_invalid_status_transitions(
+    client: TestClient,
+) -> None:
+    headers = login(client)
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Transição Pedido",
+            "phone": "35988889999",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Transição Pedido",
+            "price": "10.00",
+            "stock_quantity": 5,
+        },
+    ).json()
+
+    order = client.post(
+        "/api/orders",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    ).json()
+
+    completed = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "completed"},
+    )
+    assert completed.status_code == 200
+
+    completed_to_preparation = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "in_preparation"},
+    )
+    assert completed_to_preparation.status_code == 409
+
+    cancelled = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "cancelled"},
+    )
+    assert cancelled.status_code == 200
+
+    cancelled_to_completed = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "completed"},
+    )
+    assert cancelled_to_completed.status_code == 409
+
+    reactivated = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=headers,
+        json={"status": "in_preparation"},
+    )
+    assert reactivated.status_code == 200
+    assert reactivated.json()["status"] == "in_preparation"
+
+    products = client.get("/api/products", headers=headers).json()
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(3)

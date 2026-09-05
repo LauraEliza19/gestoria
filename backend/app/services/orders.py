@@ -37,6 +37,20 @@ class InsufficientStockError(OrderServiceError):
             f"disponível {available}, solicitado {requested}."
         )
 
+class OrderStatusTransitionError(OrderServiceError):
+    def __init__(self, current_status: str, requested_status: str):
+        self.current_status = current_status
+        self.requested_status = requested_status
+        super().__init__(
+            "Não é possível alterar o status do pedido "
+            f"de '{current_status}' para '{requested_status}'."
+        )
+
+_ALLOWED_ORDER_STATUS_TRANSITIONS = {
+    "in_preparation": {"completed", "cancelled"},
+    "completed": {"cancelled"},
+    "cancelled": {"in_preparation"},
+}
 
 def create_order(
     db: Session,
@@ -137,6 +151,13 @@ def create_order(
 def update_order_status(db: Session, order: Order, status: str) -> Order:
     if order.status == status:
         return order
+
+    allowed_statuses = _ALLOWED_ORDER_STATUS_TRANSITIONS.get(
+        order.status,
+        set(),
+    )
+    if status not in allowed_statuses:
+        raise OrderStatusTransitionError(order.status, status)
 
     try:
         if status == "cancelled":

@@ -8,6 +8,7 @@ from app.schemas import OrderCreate, OrderItemRead, OrderRead, OrderStatusUpdate
 from app.services import (
     CustomerNotFoundError,
     InsufficientStockError,
+    OrderStatusTransitionError,
     ProductNotFoundError,
     create_order,
     delete_order_record,
@@ -77,7 +78,12 @@ def update_status_route(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> OrderRead:
-    order = OrderRepository.get_for_organization(db, order_id, current.organization.id)
+    order = OrderRepository.get_for_organization(
+        db,
+        order_id,
+        current.organization.id,
+        for_update=True,
+    )
     if not order:
         raise order_not_found()
 
@@ -85,8 +91,12 @@ def update_status_route(
         order = update_order_status(db, order, payload.status)
     except ProductNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    except InsufficientStockError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except (InsufficientStockError, OrderStatusTransitionError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
+
     return _build_order_read(order)
 
 
@@ -96,7 +106,12 @@ def delete_order_route(
 ) -> Response:
     require_role(current, {"owner", "admin"})
 
-    order = OrderRepository.get_for_organization(db, order_id, current.organization.id)
+    order = OrderRepository.get_for_organization(
+        db,
+        order_id,
+        current.organization.id,
+        for_update=True,
+    )
     if not order:
         raise order_not_found()
 

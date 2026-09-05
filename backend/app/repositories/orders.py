@@ -1,6 +1,6 @@
 import uuid
-
 from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -23,9 +23,13 @@ class OrderRepository:
 
     @staticmethod
     def get_for_organization(
-        db: Session, order_id: uuid.UUID, organization_id: uuid.UUID
+        db: Session,
+        order_id: uuid.UUID,
+        organization_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Order | None:
-        return db.scalar(
+        query = (
             select(Order)
             .options(
                 joinedload(Order.customer),
@@ -36,6 +40,12 @@ class OrderRepository:
                 Order.organization_id == organization_id,
             )
         )
+
+        if for_update:
+            query = query.with_for_update(of=Order)
+
+        return db.scalar(query)
+
 
     @staticmethod
     def create(

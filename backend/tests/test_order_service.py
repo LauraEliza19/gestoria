@@ -153,7 +153,20 @@ def test_update_order_status_restores_and_revalidates_stock(db: Session) -> None
     assert cancelled.status == "cancelled"
     assert product.stock_quantity == 3
 
-    completed = update_order_status(db, cancelled, "completed")
+    reactivated = update_order_status(
+        db,
+        cancelled,
+        "in_preparation",
+    )
+    db.refresh(product)
+    assert reactivated.status == "in_preparation"
+    assert product.stock_quantity == 1
+
+    completed = update_order_status(
+        db,
+        reactivated,
+        "completed",
+    )
     db.refresh(product)
     assert completed.status == "completed"
     assert product.stock_quantity == 1
@@ -218,3 +231,120 @@ def test_delete_order_restores_stock_unless_already_cancelled(db: Session) -> No
     delete_order_record(db, order)
     db.refresh(product)
     assert product.stock_quantity == 4
+
+def test_cancelling_order_rolls_back_stock_if_status_update_fails(
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    organization = _organization_a(db)
+    customer = _customer(
+        db,
+        organization.id,
+        phone="35955556666",
+    )
+    product = _product(
+        db,
+        organization.id,
+        name="Produto Rollback Cancelamento",
+        stock=5,
+    )
+
+    order = create_order(
+        db,
+        organization.id,
+        customer.id,
+        [
+            OrderItemCreate(
+                product_id=product.id,
+                quantity=2,
+            )
+        ],
+    )
+
+    db.refresh(product)
+    assert product.stock_quantity == Decimal(3)
+    assert order.status == "in_preparation"
+
+    def fail_when_updating_status(
+        _db: Session,
+        _order,
+        status: str,
+    ) -> None:
+        assert status == "cancelled"
+        raise RuntimeError("Falha simulada ao atualizar o pedido")
+
+    monkeypatch.setattr(
+        OrderRepository,
+        "update_status",
+        fail_when_updating_status,
+    )
+
+    with pytest.raises(RuntimeError, match="Falha simulada"):
+        update_order_status(db, order, "cancelled")
+
+    db.expire_all()
+    db.refresh(product)
+    db.refresh(order)
+
+    assert product.stock_quantity == Decimal(3)
+    assert order.status == "in_preparation"
+
+def test_deleting_order_rolls_back_stock_if_deletion_fails(
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    organization = _organization_a(db)
+    customer = _customer(
+        db,
+        organization.id,
+        phone="35966667777",
+    )
+    product = _product(
+        db,
+        organization.id,
+        name="Produto Rollback Exclusão",
+        stock=5,
+    )
+
+    order = create_order(
+        db,
+        organization.id,
+        customer.id,
+        [
+            OrderItemCreate(
+                product_id=product.id,
+                quantity=2,
+            )
+        ],
+    )
+    order_id = order.id
+
+    db.refresh(product)
+    assert product.stock_quantity == Decimal(3)
+
+    def fail_when_deleting_order(
+        _db: Session,
+        _order,
+    ) -> None:
+        raise RuntimeError("Falha simulada ao excluir o pedido")
+
+    monkeypatch.setattr(
+        OrderRepository,
+        "delete",
+        fail_when_deleting_order,
+    )
+
+    with pytest.raises(RuntimeError, match="Falha simulada"):
+        delete_order_record(db, order)
+
+    db.expire_all()
+    db.refresh(product)
+
+    assert product.stock_quantity == Decimal(3)
+
+    orders = OrderRepository.list_for_organization(
+        db,
+        organization.id,
+    )
+    assert len(orders) == 1
+    assert orders[0].id == order_id
