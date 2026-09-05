@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models import Quote, QuoteItem
 
 
-class QuoteRepository: 
+class QuoteRepository:
     @staticmethod
     def list_for_organization(db: Session, organization_id: uuid.UUID) -> list[Quote]:
         query = (
@@ -23,26 +23,37 @@ class QuoteRepository:
 
     @staticmethod
     def get_for_organization(
-        db: Session, quote_id: uuid.UUID, organization_id: uuid.UUID
+        db: Session,
+        quote_id: uuid.UUID,
+        organization_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Quote | None:
-            return db.scalar(
-                 select(Quote)
-                 .options(
-                      joinedload(Quote.customer),
-                      selectinload(Quote.items).joinedload(QuoteItem.product),
-                 )
-                 .where(
-                      Quote.id == quote_id,
-                      Quote.organization_id == organization_id,
-                 )
+        query = (
+            select(Quote)
+            .options(
+                joinedload(Quote.customer),
+                selectinload(Quote.items).joinedload(QuoteItem.product),
             )
+            .where(
+                Quote.id == quote_id,
+                Quote.organization_id == organization_id,
+            )
+        )
+
+        if for_update:
+            query = query.with_for_update(of=Quote)
+
+        return db.scalar(query)
+
+
     @staticmethod
     def create(
          db: Session,
          organization_id: uuid.UUID,
          customer_id: uuid.UUID,
          valid_until,
-    ) -> Quote: 
+    ) -> Quote:
          quote = Quote(
               organization_id=organization_id,
               customer_id=customer_id,
