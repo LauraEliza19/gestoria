@@ -39,6 +39,14 @@ class QuoteNotConvertibleError(QuoteServiceError):
             f"(status atual: '{current_status}')"
         )
 
+class QuoteStatusTransitionError(QuoteServiceError):
+    def __init__(self, current_status: str, requested_status: str):
+        self.current_status = current_status
+        self.requested_status = requested_status
+        super().__init__(
+            "Não é possível alterar o status de um orçamento convertido."
+        )
+
 def create_quote(
         db: Session, organization_id, customer_id, valid_until: date, items: list
 ) -> Quote: 
@@ -77,11 +85,13 @@ def create_quote(
         raise
 
 def update_quote_status(db: Session, quote: Quote, status: str) -> Quote:
+    if quote.status == "converted":
+        raise QuoteStatusTransitionError(quote.status, status)
+
     if status == "approved" and quote.valid_until < business_today():
         raise QuoteExpiredError()
 
     return QuoteRepository.update_status(db, quote, status)
-
 
 def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
     """
