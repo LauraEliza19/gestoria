@@ -1,7 +1,9 @@
 import uuid
 from decimal import Decimal
+from unittest.mock import Mock
 
 from sqlalchemy import select
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from app.models import Organization
@@ -9,6 +11,7 @@ from app.repositories import (
     CustomerRepository,
     OrganizationRepository,
     ProductRepository,
+    QuoteRepository,
     UserRepository,
 )
 
@@ -90,3 +93,18 @@ def test_customer_repository_aggregates_completed_orders_only(db: Session) -> No
     assert summaries[0].name == "Ana"
     assert summaries[0].total_spent == Decimal("40.00")
     assert summaries[0].orders_count == 2
+
+def test_quote_repository_can_lock_quote_for_conversion() -> None:
+    db = Mock(spec=Session)
+
+    QuoteRepository.get_for_organization(
+        db,
+        uuid.uuid4(),
+        uuid.uuid4(),
+        for_update=True,
+    )
+
+    query = db.scalar.call_args.args[0]
+    sql = str(query.compile(dialect=postgresql.dialect()))
+
+    assert "FOR UPDATE OF quotes" in sql

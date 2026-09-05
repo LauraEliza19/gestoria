@@ -84,7 +84,11 @@ def update_status_route(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> QuoteRead:
-    quote = QuoteRepository.get_for_organization(db, quote_id, current.organization.id)
+    quote = QuoteRepository.get_for_organization(
+        db,
+        quote_id,
+        current.organization.id,
+    )
     if not quote:
         raise quote_not_found()
 
@@ -100,7 +104,12 @@ def update_status_route(
 def convert_quote_route(
     quote_id: uuid.UUID, db: DatabaseSession, current: CurrentUser
 ) -> QuoteRead:
-    quote = QuoteRepository.get_for_organization(db, quote_id, current.organization.id)
+    quote = QuoteRepository.get_for_organization(
+        db,
+        quote_id,
+        current.organization.id,
+        for_update=True,
+    )
     if not quote:
         raise quote_not_found()
 

@@ -268,3 +268,67 @@ def test_quote_conversion_rolls_back_if_marking_fails(
     db.refresh(quote)
     assert quote.status == "approved"
     assert quote.converted_order_id is None
+
+
+def test_quote_cannot_be_converted_twice(db: Session) -> None:
+    organization = db.scalar(
+        select(Organization).where(Organization.slug == "empresa-a")
+    )
+    assert organization is not None
+
+    customer = CustomerRepository.create(
+        db,
+        organization.id,
+        {
+            "name": "Cliente Conversão única",
+            "phone": "35933331111",
+        },
+    )
+
+    product = ProductRepository.create(
+        db,
+        organization.id,
+        {
+            "name": "Produto Conversão Única",
+            "price": Decimal("10.00"),
+            "stock_quantity": Decimal(5),
+            "is_active": True,
+        },
+    )
+
+    quote = create_quote(
+        db,
+        organization.id,
+        customer.id,
+        business_today() + timedelta(days=7),
+        [
+            QuoteItemCreate(
+                product_id=product.id,
+                quantity=Decimal(2),
+            )
+        ],
+    )
+    update_quote_status(db, quote, "approved")
+
+    converted_quote = convert_quote_to_order(db, quote)
+    first_order_id = converted_quote.converted_order_id
+
+    assert first_order_id is not None
+
+    with pytest.raises(QuoteNotConvertibleError) as captured:
+        convert_quote_to_order(db, quote)
+
+    assert captured.value.current_status == "converted"
+
+    db.expire_all()
+
+    orders = OrderRepository.list_for_organization(db, organization.id)
+    assert len(orders) == 1
+    assert orders[0].id == first_order_id
+
+    db.refresh(product)
+    assert product.stock_quantity == Decimal(3)
+
+    db.refresh(quote)
+    assert quote.status == "converted"
+    assert quote.converted_order_id == first_order_id
