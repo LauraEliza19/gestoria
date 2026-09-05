@@ -11,6 +11,7 @@ from app.services import (
     ProductNotFoundError,
     QuoteExpiredError,
     QuoteNotConvertibleError,
+    QuoteStatusTransitionError,
     convert_quote_to_order,
     create_quote,
     delete_quote_record,
@@ -94,8 +95,11 @@ def update_status_route(
 
     try:
         quote = update_quote_status(db, quote, payload.status)
-    except QuoteExpiredError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except (QuoteExpiredError, QuoteStatusTransitionError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
 
     return _build_quote_read(quote)
 

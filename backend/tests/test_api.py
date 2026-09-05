@@ -376,6 +376,14 @@ def test_quote_api_flow_converts_only_once(client: TestClient) -> None:
     assert converted_quote["status"] == "converted"
     assert converted_quote["converted_order_id"] is not None
 
+    reopening = client.patch(
+        f"/api/quotes/{quote['id']}",
+        headers=headers,
+        json={"status": "approved"},
+    )
+    assert reopening.status_code == 409
+    assert "convertido" in reopening.json()["detail"]
+
     second_conversion = client.post(
         f"/api/quotes/{quote['id']}/convert",
         headers=headers,
