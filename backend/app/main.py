@@ -49,6 +49,10 @@ def login_page() -> FileResponse:
 def dashboard_page() -> FileResponse:
     return FileResponse(frontend_dir / "views" / "dashboard.html")
 
+@app.get("/copiloto", include_in_schema=False)
+def copilot_page() -> FileResponse:
+    return FileResponse(frontend_dir / "views" / "copilot.html")
+
 
 @app.get("/clientes/novo", include_in_schema=False)
 def customer_form_page() -> FileResponse:
