@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Copiloto GestorIA</title>
+
+  <script>
+  (function () {
+    try {
+      if (localStorage.getItem("gestoria_theme") === "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    } catch (error) {
+      // Mantém o tema claro caso o armazenamento não esteja disponível.
+    }
+  })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/copilot.css">
+</head>
+
+<body>
+  <div class="copilot-app">
+    <aside class="copilot-sidebar">
+      <div class="copilot-brand">
+        <div class="copilot-logo">
+            <svg
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+            >
+                <path
+                d="M20 4C11.16 4 4 11.16 4 20C4 28.84 11.16 36 20 36"
+                stroke="currentColor"
+                stroke-width="6"
+                stroke-linecap="round"
+                />
+                <rect
+                x="21"
+                y="19"
+                width="15"
+                height="15"
+                rx="3"
+                fill="#ffffff"
+                />
+            </svg>
+        </div>
+        <span>Gestor<strong>IA</strong></span>
+      </div>
+
+      <a class="back-dashboard" href="/dashboard" aria-label="Voltar ao dashboard">
+        <span class="back-dashboard-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5" />
+            <path d="M11 18L5 12L11 6" />
+          </svg>
+        </span>
+
+        <span>Voltar ao dashboard</span>
+      </a>
+
+      <button class="new-conversation-button" id="newConversationBtn" type="button">
+        + Nova conversa
+      </button>
+
+      <div class="conversation-history">
+        <div class="conversation-history-label">Conversas recentes</div>
+
+        <div class="conversation-history-empty" id="conversationHistoryEmpty">
+          Suas conversas aparecerão aqui.
+        </div>
+
+        <div id="conversationHistoryList"></div>
+      </div>
+
+      <div class="copilot-company">
+        <span class="company-avatar" id="copilotCompanyAvatar">G</span>
+        <div>
+          <strong id="copilotCompanyName">Sua empresa</strong>
+          <span>Contexto protegido</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="copilot-workspace">
+      <header class="copilot-header">
+        <div>
+          <span class="copilot-eyebrow">Assistente empresarial</span>
+          <h1>Copiloto GestorIA</h1>
+        </div>
+
+        <div class="copilot-context-status">
+          <span></span>
+          Contexto da empresa ativo
+        </div>
+      </header>
+
+      <section class="copilot-conversation" id="copilotConversation">
+        <div class="copilot-welcome" id="copilotWelcome">
+          <div class="copilot-welcome-mark">
+            <svg
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+            >
+
+                <path
+                    d="M20 4C11.16 4 4 11.16 4 20C4 28.84 11.16 36 20 36"
+                    stroke="currentColor"
+                    stroke-width="6"
+                    stroke-linecap="round"
+                />
+
+                 <rect
+                    x="21"
+                    y="19"
+                    width="15"
+                    height="15"
+                    rx="3"
+                    fill="#ffffff"
+                />
+            </svg>
+        </div>
+
+          <h2>Como posso ajudar sua operação hoje?</h2>
+
+          <p>
+            Consulte informações, encontre prioridades e execute ações
+            com confirmação e segurança.
+          </p>
+
+ 
+          <div class="copilot-suggestions">
+            <button type="button" data-prompt="O que precisa da minha atenção hoje?">
+                <span class="suggestion-icon priority-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3L21 19H3L12 3Z" />
+                        <path d="M12 9V13" />
+                        <path d="M12 17H12.01" />
+                    </svg>
+                </span>
+
+            <strong>Prioridades do dia</strong>
+            <small>Veja pedidos, estoque e orçamentos importantes.</small>
+            </button>
+
+            <button type="button" data-prompt="Quais produtos estão com estoque crítico?">
+                <span class="suggestion-icon stock-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M4 7L12 3L20 7L12 11L4 7Z" />
+                        <path d="M4 7V17L12 21L20 17V7" />
+                        <path d="M12 11V21" />
+                    </svg>
+                </span>
+
+                <strong>Estoque crítico</strong>
+                <small>Identifique produtos que precisam de reposição.</small>
+            </button>
+
+            <button type="button" data-prompt="Quais pedidos estão em produção?">
+                <span class="suggestion-icon production-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M4 19V10L9 14V10L14 14V5H20V19H4Z" />
+                        <path d="M8 19V16" />
+                        <path d="M12 19V16" />
+                        <path d="M16 19V16" />
+                    </svg>
+                </span>
+
+                <strong>Pedidos em produção</strong>
+                <small>Acompanhe o andamento da operação.</small>
+            </button>
+
+            <button type="button" data-prompt="Quais orçamentos precisam de acompanhamento?">
+                <span class="suggestion-icon quote-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M6 3H14L19 8V21H6V3Z" />
+                            <path d="M14 3V8H19" />
+                            <path d="M9 13H16" />
+                            <path d="M9 17H14" />
+                    </svg>
+                </span>
+
+                <strong>Orçamentos</strong>
+                <small>Encontre propostas próximas do vencimento.</small>
+            </button>
+        </div>
+
+        <div class="copilot-messages" id="copilotMessages"></div>
+      </section>
+
+      <footer class="copilot-composer-area">
+        <form class="copilot-composer" id="copilotForm">
+          <textarea
+            id="copilotInput"
+            rows="1"
+            placeholder="Pergunte algo sobre sua empresa..."
+          ></textarea>
+
+          <button type="submit" aria-label="Enviar mensagem">
+            Enviar
+          </button>
+        </form>
+
+        <p>
+          O Copiloto solicita confirmação antes de realizar alterações.
+        </p>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
