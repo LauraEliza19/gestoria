@@ -5,6 +5,7 @@ import pytest
 from app import main
 from app.config import settings
 from app.main import resolve_frontend_dir
+from fastapi.testclient import TestClient
 
 
 def test_resolve_frontend_dir_finds_project_frontend() -> None:
@@ -34,3 +35,10 @@ def test_resolve_frontend_dir_raises_when_missing(
 
     with pytest.raises(RuntimeError, match="frontend"):
         resolve_frontend_dir()
+
+
+def test_copilot_page_is_served(client: TestClient) -> None:
+    response = client.get("/copiloto")
+
+    assert response.status_code == 200
+    assert "Copiloto GestorIA" in response.text
