@@ -38,6 +38,23 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
           <span class="nav-label">Visão geral</span>
         </button>
+
+        <a class="nav-item" href="/copiloto" title="Copiloto">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3L13.6 8.4L19 10L13.6 11.6L12 17L10.4 11.6L5 10L10.4 8.4L12 3Z" />
+            <path d="M19 15L19.7 17.3L22 18L19.7 18.7L19 21L18.3 18.7L16 18L18.3 17.3L19 15Z" />
+          </svg>
+
+          <span class="nav-label">Copiloto</span>
+        </a>
+
         <button class="nav-item" data-section="clientes" title="Clientes">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="8.5" r="2.4"/><path d="M15.5 14.2c2.6.3 4.5 2.6 4.5 5.8"/></svg>
           <span class="nav-label">Clientes</span>
@@ -157,27 +174,88 @@
       <div class="content-section active" id="section-overview">
         <div class="greeting-header">
           <h2 id="greetingText">Olá!</h2>
-          <p>Bem vindo ao GestorIA. Como podemos ajudar sua empresa?</p>
+          <p>Seja bem-vindo ao GestorIA! Aqui está o que merece sua atenção hoje.</p>
           <button class="toggle-values-btn" id="toggleValuesBtn"></button>
         </div>
 
-        <div class="section-label">Resumo do mês</div>
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="label">Faturamento</div>
-            <div class="value">R$ 48.200</div>
-            <div class="trend">↑ 12% vs. mês anterior</div>
-          </div>
-          <div class="kpi-card">
-            <div class="label">Clientes ativos</div>
-            <div class="value">312</div>
-            <div class="trend">↑ 8 novos esta semana</div>
-          </div>
-          <div class="kpi-card">
-            <div class="label">Pedidos hoje</div>
-            <div class="value">24</div>
-            <div class="trend down">↓ 3% vs. ontem</div>
-          </div>
+        <div class="section-label">Hoje no seu negócio</div>
+
+        <div class="kpi-grid overview-kpi-grid">
+          <div class="kpi-card operational-kpi">
+          <div class="label">Vendas concluídas hoje</div>
+          <div class="value" id="salesTodayValue">—</div>
+          <div class="trend" id="salesTodayHint">Carregando dados...</div>
+        </div>
+
+        <div class="kpi-card operational-kpi">
+          <div class="label">Pedidos em produção</div>
+          <div class="value" id="ordersInProductionValue">—</div>
+          <div class="trend" id="ordersInProductionHint">Carregando dados...</div>
+        </div>
+
+        <div class="kpi-card operational-kpi">
+          <div class="label">Estoques críticos</div>
+          <div class="value" id="criticalStockValue">—</div>
+          <div class="trend" id="criticalStockHint">Carregando dados...</div>
+        </div>
+
+        <div class="kpi-card operational-kpi">
+          <div class="label">Orçamentos vencendo</div>
+          <div class="value" id="expiringQuotesValue">—</div>
+          <div class="trend" id="expiringQuotesHint">Carregando dados...</div>
+        </div>
+      </div>
+
+        <div class="overview-workspace">
+           <section class="radar-card" aria-labelledby="radarTitle">
+              <div class="radar-card-header">
+                <div>
+                  <div class="radar-eyebrow">
+                    <span class="radar-live-dot"></span>
+                    Radar GestorIA
+                  </div>
+                  <h3 id="radarTitle">O que precisa da sua atenção</h3>
+                  <p>Prioridades calculadas com os dados atuais da operação.</p>
+                </div>
+
+                <span class="radar-count" id="radarCount">Analisando...</span>
+              </div>
+
+              <div class="radar-list" id="radarList">
+                <div class="radar-loading">
+                    Analisando pedidos, estoques e orçamentos...
+                </div>
+              </div>
+            </section>
+
+            <aside class="quick-actions-card" aria-labelledby="quickActionsTitle">
+              <div class="quick-actions-heading">
+                <span>Ações rápidas</span>
+                <h3 id="quickActionsTitle">Resolva sem perder tempo</h3>
+              </div>
+
+              <div class="quick-actions-list">
+                <button type="button" id="radarNewOrderBtn">
+                  <strong>Novo pedido</strong>
+                  <span>Registrar uma nova venda</span>
+                </button>
+
+                <button type="button" id="radarNewQuoteBtn">
+                  <strong>Novo orçamento</strong>
+                  <span>Criar uma proposta para cliente</span>
+                </button>
+
+                <button type="button" id="radarProductsBtn">
+                  <strong>Ver estoque</strong>
+                  <span>Consultar produtos e insumos</span>
+                </button>
+
+                <button type="button" id="radarFactoryBtn">
+                  <strong>Modo Fábrica</strong>
+                  <span>Acompanhar a produção</span>
+                </button>
+              </div>
+            </aside>
         </div>
 
         <div class="activity-widget-header">

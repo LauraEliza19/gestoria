@@ -463,7 +463,7 @@ import { showToast } from "../views/toast.js";
   const resultsArea = document.getElementById('resultsArea');
   const newChatBtn = document.getElementById('newChatBtn');
   const pageTitle = document.getElementById('pageTitle');
-  const navItems = document.querySelectorAll('.nav-item');
+  const navItems = document.querySelectorAll('.nav-item[data-section]');
 
   const sectionTitles = {
     overview: 'Visão geral',
