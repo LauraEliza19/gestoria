@@ -2150,3 +2150,114 @@ a:focus-visible, input:focus-visible, button:focus-visible{
     padding: 18px;
   }
 }
+
+/* Itens funcionais do Radar */
+
+.radar-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 15px 4px;
+  color: var(--ink-primary);
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  transition:
+    background-color 0.18s ease,
+    padding 0.18s ease;
+}
+
+.radar-item:last-child {
+  border-bottom: 0;
+}
+
+.radar-item:hover {
+  padding-right: 10px;
+  padding-left: 10px;
+  background: rgba(61, 99, 245, 0.045);
+}
+
+.radar-item:focus-visible {
+  outline: 3px solid rgba(61, 99, 245, 0.16);
+  outline-offset: -3px;
+  border-radius: 10px;
+}
+
+.radar-item-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.radar-item-indicator.critical {
+  background: #e2574c;
+  box-shadow: 0 0 0 5px rgba(226, 87, 76, 0.11);
+}
+
+.radar-item-indicator.warning {
+  background: #e29a2d;
+  box-shadow: 0 0 0 5px rgba(226, 154, 45, 0.12);
+}
+
+.radar-item-indicator.info {
+  background: #3d63f5;
+  box-shadow: 0 0 0 5px rgba(61, 99, 245, 0.11);
+}
+
+.radar-item-content {
+  min-width: 0;
+}
+
+.radar-item-content strong,
+.radar-item-content small {
+  display: block;
+}
+
+.radar-item-content strong {
+  overflow: hidden;
+  color: var(--ink-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-item-content small {
+  margin-top: 4px;
+  color: var(--ink-tertiary);
+  font-size: 11.5px;
+}
+
+.radar-item-action {
+  color: var(--signal-blue);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.radar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 24px;
+  text-align: center;
+}
+
+.radar-empty strong {
+  color: var(--ink-primary);
+  font-size: 14px;
+}
+
+.radar-empty span {
+  max-width: 360px;
+  margin-top: 6px;
+  color: var(--ink-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+}

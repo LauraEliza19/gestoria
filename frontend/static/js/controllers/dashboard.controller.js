@@ -465,6 +465,31 @@ import { showToast } from "../views/toast.js";
   const pageTitle = document.getElementById('pageTitle');
   const navItems = document.querySelectorAll('.nav-item[data-section]');
 
+  // ---- Radar GestorIA ----
+const salesTodayValue = document.getElementById('salesTodayValue');
+const salesTodayHint = document.getElementById('salesTodayHint');
+
+const ordersInProductionValue = document.getElementById(
+  'ordersInProductionValue'
+);
+const ordersInProductionHint = document.getElementById(
+  'ordersInProductionHint'
+);
+
+const criticalStockValue = document.getElementById('criticalStockValue');
+const criticalStockHint = document.getElementById('criticalStockHint');
+
+const expiringQuotesValue = document.getElementById('expiringQuotesValue');
+const expiringQuotesHint = document.getElementById('expiringQuotesHint');
+
+const radarCount = document.getElementById('radarCount');
+const radarList = document.getElementById('radarList');
+
+const radarNewOrderBtn = document.getElementById('radarNewOrderBtn');
+const radarNewQuoteBtn = document.getElementById('radarNewQuoteBtn');
+const radarProductsBtn = document.getElementById('radarProductsBtn');
+const radarFactoryBtn = document.getElementById('radarFactoryBtn');
+
   const sectionTitles = {
     overview: 'Visão geral',
     clientes: 'Clientes',
@@ -647,7 +672,8 @@ import { showToast } from "../views/toast.js";
       id: product.id,
       nome: product.name,
       preco: Number(product.price),
-      stock_quantity: product.stock_quantity,
+      stock_quantity: Number(product.stock_quantity),
+      min_stock_quantity: Number(product.min_stock_quantity),
       is_active: product.is_active,
       status: product.status
     };
@@ -736,6 +762,8 @@ import { showToast } from "../views/toast.js";
       cliente: order.customer_name,
       valor: Number(order.total_amount),
       status: STATUS_FROM_API[order.status] || order.status,
+      created_at: order.created_at,
+      updated_at: order.updated_at,
       itens: order.items.map(it => ({
         produto: it.product_name,
         qtd: it.quantity,
@@ -956,6 +984,7 @@ import { showToast } from "../views/toast.js";
       customer_id: quote.customer_id,
       cliente: quote.customer_name,
       validade: formatDateBR(quote.valid_until),
+      valid_until: quote.valid_until,
       status: QUOTE_STATUS_FROM_API[quote.status] || quote.status,
       total: Number(quote.total_amount),
       convertedOrderId: quote.converted_order_id,
@@ -963,7 +992,7 @@ import { showToast } from "../views/toast.js";
         produto: it.product_name,
         qtd: it.quantity,
         preco: Number(it.unit_price)
-      }))
+     }))
     };
   }
 
@@ -976,6 +1005,176 @@ import { showToast } from "../views/toast.js";
     orcamentosData.splice(0, orcamentosData.length, ...quotes.map(quoteFromApi));
     renderOrcamentos();
   }
+
+  function parseLocalDate(dateValue){
+  const [year, month, day] = dateValue.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function isSameLocalDay(dateValue, referenceDate){
+  const date = new Date(dateValue);
+
+  return (
+    date.getFullYear() === referenceDate.getFullYear()
+    && date.getMonth() === referenceDate.getMonth()
+    && date.getDate() === referenceDate.getDate()
+  );
+}
+
+function renderRadar(){
+  const today = new Date();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  const quoteDeadline = new Date(todayStart);
+  quoteDeadline.setDate(quoteDeadline.getDate() + 7);
+
+  const completedToday = pedidosData.filter(order => (
+    order.status === 'Concluído'
+    && isSameLocalDay(order.updated_at, today)
+  ));
+
+  const salesToday = completedToday.reduce(
+    (total, order) => total + order.valor,
+    0
+  );
+
+  const ordersInProduction = pedidosData.filter(
+    order => order.status === 'Em preparo'
+  );
+
+  const criticalProducts = produtosData.filter(product => (
+    product.is_active
+    && product.stock_quantity <= product.min_stock_quantity
+  ));
+
+  const expiringQuotes = orcamentosData.filter(quote => {
+    if(!['Pendente', 'Aprovado'].includes(quote.status)){
+      return false;
+    }
+
+    const validUntil = parseLocalDate(quote.valid_until);
+
+    return validUntil >= todayStart && validUntil <= quoteDeadline;
+  });
+
+  salesTodayValue.textContent = formatMoney(salesToday);
+  salesTodayHint.textContent = completedToday.length === 1
+    ? '1 pedido concluído hoje'
+    : `${completedToday.length} pedidos concluídos hoje`;
+
+  ordersInProductionValue.textContent = ordersInProduction.length;
+  ordersInProductionHint.textContent = ordersInProduction.length === 1
+    ? '1 pedido aguardando conclusão'
+    : `${ordersInProduction.length} pedidos aguardando conclusão`;
+
+  criticalStockValue.textContent = criticalProducts.length;
+  criticalStockHint.textContent = criticalProducts.length === 1
+    ? '1 produto no limite mínimo'
+    : `${criticalProducts.length} produtos no limite mínimo`;
+
+  expiringQuotesValue.textContent = expiringQuotes.length;
+  expiringQuotesHint.textContent = expiringQuotes.length === 1
+    ? '1 orçamento vence em até 7 dias'
+    : `${expiringQuotes.length} orçamentos vencem em até 7 dias`;
+
+    const priorities = [];
+
+  criticalProducts.forEach(product => {
+    const withoutStock = product.stock_quantity <= 0;
+
+    priorities.push({
+      weight: withoutStock ? 100 : 80,
+      level: withoutStock ? 'critical' : 'warning',
+      title: withoutStock
+        ? `Produto sem estoque: ${product.nome}`
+        : `Estoque crítico: ${product.nome}`,
+      description:
+        `${product.stock_quantity} disponível · mínimo ${product.min_stock_quantity}`,
+      section: 'produtos'
+    });
+  });
+
+  const overdueQuotes = orcamentosData.filter(quote => (
+    ['Pendente', 'Aprovado'].includes(quote.status)
+    && parseLocalDate(quote.valid_until) < todayStart
+  ));
+
+  overdueQuotes.forEach(quote => {
+    priorities.push({
+      weight: 95,
+      level: 'critical',
+      title: `Orçamento vencido: #${quote.id.slice(0, 8)}`,
+      description: `${quote.cliente} · ${formatMoney(quote.total)}`,
+      section: 'orcamentos'
+    });
+  });
+
+  expiringQuotes.forEach(quote => {
+    const validUntil = parseLocalDate(quote.valid_until);
+    const daysUntilExpiration = Math.round(
+      (validUntil - todayStart) / 86400000
+    );
+
+    priorities.push({
+      weight: 70 - daysUntilExpiration,
+      level: 'warning',
+      title: daysUntilExpiration === 0
+        ? `Orçamento vence hoje: #${quote.id.slice(0, 8)}`
+        : `Orçamento vence em ${daysUntilExpiration} dias: #${quote.id.slice(0, 8)}`,
+      description: `${quote.cliente} · ${formatMoney(quote.total)}`,
+      section: 'orcamentos'
+    });
+  });
+
+  ordersInProduction.forEach(order => {
+    priorities.push({
+      weight: 40,
+      level: 'info',
+      title: `Pedido em produção: #${order.id.slice(0, 8)}`,
+      description: `${order.cliente} · ${formatMoney(order.valor)}`,
+      section: 'pedidos'
+    });
+  });
+
+  priorities.sort((first, second) => second.weight - first.weight);
+
+  if(priorities.length === 0){
+    radarCount.textContent = 'Tudo em dia';
+    radarList.innerHTML = `
+      <div class="radar-empty">
+        <strong>Nenhuma prioridade crítica agora</strong>
+        <span>Sua operação está em dia. O Radar continuará acompanhando.</span>
+      </div>
+    `;
+    return;
+  }
+
+  radarCount.textContent = priorities.length === 1
+    ? '1 prioridade'
+    : `${priorities.length} prioridades`;
+
+  radarList.innerHTML = priorities.slice(0, 6).map(priority => `
+    <button
+      type="button"
+      class="radar-item"
+      data-radar-section="${priority.section}"
+    >
+      <span class="radar-item-indicator ${priority.level}"></span>
+
+      <span class="radar-item-content">
+        <strong>${escapeHtml(priority.title)}</strong>
+        <small>${escapeHtml(priority.description)}</small>
+      </span>
+
+      <span class="radar-item-action">Ver →</span>
+    </button>
+  `).join('');
+}
+
 
   function renderOrcamentos(){
     if(orcamentosData.length === 0){
@@ -1607,6 +1806,36 @@ import { showToast } from "../views/toast.js";
     resultsArea.innerHTML = '<div class="result-block"><div class="result-answer">Peça algo no chat ao lado — os resultados vão aparecer aqui.</div></div>';
   });
 
+
+// ---- Interações do Radar ----
+
+radarList.addEventListener('click', event => {
+  const radarItem = event.target.closest('[data-radar-section]');
+
+  if(!radarItem){
+    return;
+  }
+
+  switchSection(radarItem.dataset.radarSection);
+});
+
+radarNewOrderBtn.addEventListener('click', () => {
+  openPedidoModal();
+});
+
+radarNewQuoteBtn.addEventListener('click', () => {
+  openOrcamentoModal();
+});
+
+radarProductsBtn.addEventListener('click', () => {
+  switchSection('produtos');
+});
+
+radarFactoryBtn.addEventListener('click', () => {
+  window.location.href = '/modo-fabrica';
+});
+
+
   async function initializeApp(){
     try {
       const session = await apiFetch('/api/auth/me');
@@ -1615,6 +1844,7 @@ import { showToast } from "../views/toast.js";
       await loadClientes();
       await loadOrders();
       await loadQuotes();
+      renderRadar();
     } catch(error) {
       if(getAccessToken()) showToast(error.message, 'error');
     }
