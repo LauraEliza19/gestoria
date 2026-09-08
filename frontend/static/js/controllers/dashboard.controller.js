@@ -299,7 +299,12 @@ import { showToast } from "../views/toast.js";
       sub: 'Selecione o novo status.',
       editSub: 'Selecione o novo status.',
       fields: [
-        { id:'status', label:'Status', type:'select', options:['Em preparo','Concluído','Cancelado'], editValue: r => r.status },
+        {
+          id: 'status',
+          label: 'Novo status',
+          type: 'select',
+          options: record => ORDER_STATUS_TRANSITIONS[record.status] || [],
+        },
       ],
       onSave: async (data, editing) => {
         const updated = await apiFetch(`/api/orders/${editing.id}`, {
@@ -307,7 +312,10 @@ import { showToast } from "../views/toast.js";
           body: JSON.stringify({ status: STATUS_TO_API[data.status] })
         });
         Object.assign(editing, orderFromApi(updated));
-        await loadClientes();
+        await Promise.all([
+          loadClientes(),
+          loadProducts(),
+        ]);
         showToast(`Pedido atualizado para "${data.status}".`);
         addLogEntry(`Pedido #${editing.id.slice(0,8)} atualizado: ${data.status}`, 'executado', 'Manual');
         renderPedidos();
@@ -324,13 +332,20 @@ import { showToast } from "../views/toast.js";
     modalSub.textContent = editingRecord ? config.editSub : config.sub;
 
     modalForm.innerHTML = config.fields.map(f => {
-      const prefill = editingRecord ? (f.editValue ? f.editValue(editingRecord) : (editingRecord[f.id] ?? '')) : '';
+      const prefill = editingRecord
+      ? (f.editValue ? f.editValue(editingRecord) : (editingRecord[f.id] ?? ''))
+      : '';
+
       if(f.type === 'select'){
+        const options = typeof f.options === 'function'
+        ? f.options(editingRecord)
+        : f.options;
+
         return `
           <div class="field" data-field="${f.id}">
             <label for="modal-${f.id}">${f.label}</label>
             <select id="modal-${f.id}">
-              ${f.options.map(o => `<option value="${o}" ${o === prefill ? 'selected' : ''}>${o}</option>`).join('')}
+            ${options.map(o => `<option value="${o}" ${o === prefill ? 'selected' : ''}>${o}</option>`).join('')}
             </select>
           </div>
         `;
@@ -344,7 +359,8 @@ import { showToast } from "../views/toast.js";
           <div class="error-msg">Este campo é obrigatório.</div>
         </div>
       `;
-    }).join('') + `
+    }
+      ).join('') + `
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="modalCancelBtn">Cancelar</button>
         <button type="submit" class="btn-primary btn-inline">${editingRecord ? 'Salvar alterações' : 'Salvar'}</button>
@@ -379,6 +395,10 @@ import { showToast } from "../views/toast.js";
         await config.onSave(data, editingRecord);
         closeModal();
       } catch(error) {
+        if(error.status === 409 && type === 'pedidoStatus'){
+          await loadOrders().catch(() => {});
+        }
+
         showToast(error.message, 'error');
       } finally {
         submitButton.disabled = false;
@@ -696,6 +716,12 @@ import { showToast } from "../views/toast.js";
   // Tradução de status: o backend guarda em inglês, a tela mostra em português.
   const STATUS_FROM_API = { in_preparation:'Em preparo', completed:'Concluído', cancelled:'Cancelado' };
   const STATUS_TO_API = { 'Em preparo':'in_preparation', 'Concluído':'completed', 'Cancelado':'cancelled' };
+
+  const ORDER_STATUS_TRANSITIONS = {
+  'Em preparo': ['Concluído', 'Cancelado'],
+  'Concluído': ['Cancelado'],
+  'Cancelado': ['Em preparo'],
+};
 
   function pedidoBadgeClass(status){
     if(status === 'Concluído') return 'badge-green';
