@@ -25,7 +25,11 @@ export async function apiFetch(path, options = {}) {
   const body = response.status === 204 ? null : await response.json();
   const detail = Array.isArray(body?.detail) ? body.detail[0]?.msg : body?.detail;
   if (!response.ok) {
-    throw new Error(detail || "Não foi possível concluir a operação.");
+    const error = new Error(
+      detail || "Não foi possível concluir a operação."
+    );
+    error.status = response.status;
+    throw error;
   }
   return body;
 }
