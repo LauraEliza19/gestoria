@@ -1,0 +1,20 @@
+{
+  "python": "3.12.14",
+  "platform": "Linux",
+  "iterations": 50,
+  "method": "ASGI TestClient, SQLite in-memory, one item/order, 5 warmups; includes API/auth/DB/audit, excludes network and human review; not a baseline comparison.",
+  "results": {
+    "prepare_ms": {
+      "p50_ms": 4.587,
+      "p95_ms": 6.64
+    },
+    "confirm_ms": {
+      "p50_ms": 6.933,
+      "p95_ms": 9.028
+    },
+    "replay_ms": {
+      "p50_ms": 3.136,
+      "p95_ms": 3.943
+    }
+  }
+}

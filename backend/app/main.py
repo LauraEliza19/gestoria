@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.api import auth, customers, organization, orders, products, quotes
+from app.api import order_operations
 
 from app.config import settings
 
@@ -26,8 +27,9 @@ def resolve_frontend_dir() -> Path:
 
 frontend_dir = resolve_frontend_dir()
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(title=settings.app_name, version="0.2.0-security.1")
 app.include_router(auth.router)
+app.include_router(order_operations.router)
 app.include_router(products.router)
 app.include_router(customers.router)
 app.include_router(orders.router)

@@ -7,13 +7,15 @@ from app.schemas.common import Money, ItemQuantity
 
 
 class OrderItemCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     product_id: uuid.UUID
     quantity: ItemQuantity
 
 
 class OrderCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     customer_id: uuid.UUID
-    items: list[OrderItemCreate] = Field(min_length=1)
+    items: list[OrderItemCreate] = Field(min_length=1, max_length=100)
 
 
 class OrderStatusUpdate(BaseModel):

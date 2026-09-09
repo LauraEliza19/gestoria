@@ -2261,3 +2261,19 @@ a:focus-visible, input:focus-visible, button:focus-visible{
   font-size: 12px;
   line-height: 1.5;
 }
+
+.protected-order-dialog {
+  width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
+  padding: 28px; border: 1px solid var(--border, #dfe4ea); border-radius: 18px;
+  background: var(--surface, #fff); color: var(--ink, #182230);
+  box-shadow: 0 24px 80px #0004;
+}
+.protected-order-dialog::backdrop { background: #10182899; }
+.protected-order-dialog h2 { margin: 0 0 12px; font-size: 22px; }
+.protected-order-dialog p { margin: 14px 0; line-height: 1.5; }
+.protected-order-note { color: var(--ink-secondary, #526174); }
+.protected-order-table-wrap { overflow-x: auto; }
+.protected-order-dialog table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.protected-order-dialog th, .protected-order-dialog td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #dfe4ea; }
+.protected-order-total { display: flex; justify-content: space-between; gap: 16px; }
+.protected-order-error { color: #b42318; background: #fff0ee; padding: 12px; border-radius: 8px; }

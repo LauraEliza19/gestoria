@@ -1,3 +1,4 @@
+from order_helpers import secure_order
 from datetime import timedelta
 from decimal import Decimal
 
@@ -155,8 +156,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
         json={"name": "Café", "price": "12.50", "stock_quantity": 5},
     ).json()
 
-    created = client.post(
-        "/api/orders",
+    created = secure_order(client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -255,8 +255,7 @@ def test_order_with_insufficient_stock_rolls_back_everything(
         json={"name": "Última unidade", "price": "9.90", "stock_quantity": 1},
     ).json()
 
-    response = client.post(
-        "/api/orders",
+    response = secure_order(client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -736,8 +735,7 @@ def test_cancelling_order_twice_restores_stock_only_once(
         },
     ).json()
 
-    order_response = client.post(
-        "/api/orders",
+    order_response = secure_order(client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -805,8 +803,7 @@ def test_deleting_order_twice_restores_stock_only_once(
         },
     ).json()
 
-    order_response = client.post(
-        "/api/orders",
+    order_response = secure_order(client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -869,8 +866,7 @@ def test_order_update_and_delete_request_row_lock(
         },
     ).json()
 
-    order = client.post(
-        "/api/orders",
+    order = secure_order(client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -948,8 +944,7 @@ def test_order_api_rejects_invalid_status_transitions(
         },
     ).json()
 
-    order = client.post(
-        "/api/orders",
+    order = secure_order(client,
         headers=headers,
         json={
             "customer_id": customer["id"],

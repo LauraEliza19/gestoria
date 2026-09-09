@@ -21,8 +21,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.order_operation import OrderAuditEvent, OrderOperation
 
 __all__ = [
+    "OrderAuditEvent",
+    "OrderOperation",
     "TimestampMixin",
     "Organization",
     "User",
