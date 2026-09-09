@@ -71,6 +71,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
           <span class="nav-label">Orçamentos</span>
         </button>
+        <button class="nav-item" data-section="notas" title="Notas Fiscais">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+          <span class="nav-label">Notas Fiscais</span>
+        </button>
         <button class="nav-item" data-section="relatorios" title="Relatórios">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>
           <span class="nav-label">Relatórios</span>
@@ -341,7 +345,6 @@
           <div class="section-label" style="margin-bottom:0;">Todos os pedidos</div>
           <button class="btn-primary btn-inline" id="openNewPedidoBtn">+ Novo pedido</button>
         </div>
-        <button type="button" class="btn-secondary" id="downloadOrderReceiptBtn">Baixar último comprovante de pedido</button>
         <div class="data-table-wrap">
           <table class="data-table">
             <thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
@@ -384,55 +387,90 @@
         </div>
       </div>
 
+      <!-- Notas Fiscais -->
+      <div class="content-section" id="section-notas">
+        <div class="report-page-header">
+          <div><div class="section-label">Fiscal</div><h2 class="report-title">Notas Fiscais</h2><p class="report-subtitle">Centralize documentos fiscais, acompanhe a situação das notas e consulte todas as informações necessárias de cada operação.</p></div>
+          <div class="report-actions"><button class="btn-secondary" id="fiscalImportXmlBtn">Importar XML</button><button class="btn-primary btn-inline" id="fiscalNewBtn">Nova nota</button></div>
+        </div>
+        <div class="fiscal-summary-grid">
+          <div class="kpi-card"><div class="label">Notas emitidas</div><div class="value" id="fiscalIssuedKpi">—</div><div class="trend">No período selecionado</div></div>
+          <div class="kpi-card"><div class="label">Notas recebidas</div><div class="value" id="fiscalReceivedKpi">—</div><div class="trend">Documentos de entrada</div></div>
+          <div class="kpi-card"><div class="label">Autorizadas</div><div class="value" id="fiscalAuthorizedKpi">—</div><div class="trend">Prontas para escrituração</div></div>
+          <div class="kpi-card"><div class="label">Pendências</div><div class="value" id="fiscalPendingKpi">—</div><div class="trend">Requerem tratamento</div></div>
+        </div>
+        <section class="report-panel fiscal-report-panel">
+          <div class="fiscal-module-tabs" role="tablist">
+            <button class="fiscal-module-tab active" data-fiscal-view="documentos">Documentos</button>
+            <button class="fiscal-module-tab" data-fiscal-view="emissao">Emissão</button>
+            <button class="fiscal-module-tab" data-fiscal-view="entrada">Entradas</button>
+            <button class="fiscal-module-tab" data-fiscal-view="eventos">Eventos</button>
+          </div>
+          <div class="fiscal-view active" id="fiscal-view-documentos">
+            <div class="report-panel-header fiscal-report-header"><div><div class="report-eyebrow">Consulta fiscal</div><h3>Documentos fiscais</h3><p>Pesquise NF-e, NFC-e e NFS-e por identificadores, participantes e situação.</p></div><div class="fiscal-tabs"><button type="button" class="fiscal-tab active" data-fiscal-type="saida">Saídas</button><button type="button" class="fiscal-tab" data-fiscal-type="entrada">Entradas</button></div></div>
+            <div class="fiscal-simple-search">
+              <div class="field compact-field fiscal-field-wide"><label for="fiscalSearch">Nome / Razão social</label><input id="fiscalSearch" placeholder="Cliente ou fornecedor"></div>
+              <div class="field compact-field"><label for="fiscalNumber">Número</label><input id="fiscalNumber" placeholder="000000"></div>
+            </div>
+            <button type="button" class="fiscal-advanced-toggle" id="fiscalAdvancedToggle" aria-expanded="false">
+              <span>Pesquisa avançada</span><span class="fiscal-advanced-icon">⌄</span>
+            </button>
+            <div class="fiscal-advanced-panel" id="fiscalAdvancedPanel" hidden>
+              <div class="fiscal-filter-grid">
+                <div class="field compact-field fiscal-field-wide"><label for="fiscalAccessKey">Chave de acesso</label><input id="fiscalAccessKey" placeholder="44 dígitos"></div>
+                <div class="field compact-field"><label for="fiscalModel">Modelo</label><select id="fiscalModel"><option value="">Todos</option><option value="55">55 — NF-e</option><option value="65">65 — NFC-e</option><option value="NFS-e">NFS-e</option></select></div>
+                <div class="field compact-field"><label for="fiscalSeries">Série</label><input id="fiscalSeries" placeholder="Série"></div>
+                <div class="field compact-field"><label for="fiscalCnpj">CNPJ</label><input id="fiscalCnpj" placeholder="00.000.000/0000-00"></div>
+                <div class="field compact-field"><label for="fiscalStatus">Status</label><select id="fiscalStatus"><option value="">Todos</option><option>Autorizada</option><option>Em processamento</option><option>Cancelada</option><option>Rejeitada</option><option>Inutilizada</option><option>Denegada</option></select></div>
+                <div class="field compact-field"><label for="fiscalCfop">CFOP</label><input id="fiscalCfop" placeholder="5102"></div>
+                <div class="field compact-field fiscal-field-wide"><label for="fiscalNature">Natureza da operação</label><input id="fiscalNature" placeholder="Venda, compra, devolução..."></div>
+                <div class="field compact-field"><label for="fiscalDateStart">Emitida de</label><input type="date" id="fiscalDateStart"></div>
+                <div class="field compact-field"><label for="fiscalDateEnd">Emitida até</label><input type="date" id="fiscalDateEnd"></div>
+                <div class="field compact-field"><label for="fiscalFile">Arquivos</label><select id="fiscalFile"><option value="">Todos</option><option value="xml">XML disponível</option><option value="pdf">DANFE/PDF disponível</option></select></div>
+              </div>
+            </div>
+            <div class="fiscal-filter-actions"><span id="fiscalResultHint">— documentos encontrados</span><div><button class="btn-secondary" id="clearFiscalFiltersBtn">Limpar</button><button class="btn-primary btn-inline" id="searchFiscalBtn">Pesquisar</button></div></div>
+            <div class="data-table-wrap fiscal-table-wrap"><table class="data-table"><thead><tr><th>Nota</th><th>Participante</th><th>Modelo</th><th>Emissão</th><th>CFOP</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody id="fiscalTableBody"></tbody></table><div class="table-empty" id="fiscalEmpty" style="display:none">Nenhum documento encontrado.</div></div>
+          </div>
+          <div class="fiscal-view" id="fiscal-view-emissao">
+            <div class="fiscal-workflow-grid"><div class="fiscal-workflow-card"><span>1</span><strong>Identificação</strong><small>Modelo, série, número e natureza da operação.</small></div><div class="fiscal-workflow-card"><span>2</span><strong>Destinatário</strong><small>Cliente, CNPJ/CPF e endereço fiscal.</small></div><div class="fiscal-workflow-card"><span>3</span><strong>Produtos e tributos</strong><small>Itens, NCM, CFOP, CST/CSOSN, impostos e valores.</small></div><div class="fiscal-workflow-card"><span>4</span><strong>Transmissão</strong><small>Assinatura, autorização e armazenamento do XML/DANFE.</small></div></div>
+            <div class="result-block"><div class="result-answer">A emissão efetiva depende da integração fiscal do backend com os serviços autorizadores. Esta tela organiza os dados necessários e será o ponto de entrada da futura emissão.</div></div>
+          </div>
+          <div class="fiscal-view" id="fiscal-view-entrada">
+            <div class="fiscal-two-column"><section><div class="report-eyebrow">Conferência</div><h3>Entrada de documentos</h3><p class="report-subtitle">Conferência de fornecedor, itens, valores e informações tributárias antes da escrituração.</p></section><section class="fiscal-checklist"><strong>Checklist</strong><label><input type="checkbox"> XML recebido</label><label><input type="checkbox"> Fornecedor conferido</label><label><input type="checkbox"> Produtos conferidos</label><label><input type="checkbox"> CFOP/tributação conferidos</label></section></div>
+          </div>
+          <div class="fiscal-view" id="fiscal-view-eventos">
+            <div class="report-panel-header"><div><div class="report-eyebrow">Eventos</div><h3>Histórico fiscal</h3><p>Área preparada para autorização, cancelamento, carta de correção, inutilização e outros eventos.</p></div></div>
+            <div class="fiscal-events-empty">Nenhum evento selecionado. Abra uma nota na aba Documentos para consultar o histórico.</div>
+          </div>
+        </section>
+        <div class="report-two-column"><section class="report-panel"><div class="report-panel-header"><div><div class="report-eyebrow">Dados fiscais</div><h3>O que cada nota deve armazenar</h3></div></div><div class="fiscal-requirements"><span>Identificação</span><span>Emitente e destinatário</span><span>Itens e produtos</span><span>Tributação</span><span>CFOP / natureza</span><span>Transporte</span><span>Pagamento</span><span>Eventos</span><span>XML / DANFE</span></div></section><section class="report-panel"><div class="report-panel-header"><div><div class="report-eyebrow">Segurança</div><h3>Proteção dos dados</h3></div></div><p class="report-subtitle">O acesso deve respeitar a organização do usuário. Dados pessoais devem ser exibidos somente quando necessários, e XML/PDF precisam de autorização no backend.</p></section></div>
+      </div>
+
       <!-- Relatórios -->
       <div class="content-section" id="section-relatorios">
-        <div class="section-label">Relatórios</div>
-        <div class="result-block">
-          <div class="result-answer">Os números aqui vêm sempre calculados pelo backend — a IA nunca estima valores, apenas explica o que já foi calculado.</div>
-        </div>
-
-        <div class="report-actions">
-          <button class="btn-secondary" id="exportCsvBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
-            Exportar CSV
-          </button>
-          <button class="btn-secondary" id="exportPdfBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg>
-            Exportar PDF
-          </button>
-        </div>
-
-        <div class="section-label">Resumo do mês</div>
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="label">Faturamento</div>
-            <div class="value">R$ 48.200</div>
-            <div class="trend">↑ 12% vs. mês anterior</div>
+        <div class="report-page-header"><div><div class="section-label">Análises</div><h2 class="report-title">Relatórios</h2><p class="report-subtitle">Monte análises da operação, escolha como visualizar os dados e personalize o resultado antes de exportar.</p></div><div class="report-actions"><button class="btn-secondary" id="exportCsvBtn">Exportar CSV</button><button class="btn-secondary" id="exportPdfBtn">Imprimir / PDF</button></div></div>
+        <section class="report-filter-card">
+          <div class="report-filter-head"><div><div class="report-eyebrow">Montar relatório</div><h3>Filtros e manipulações</h3></div><button class="link-btn" id="clearReportFiltersBtn">Restaurar</button></div>
+          <div class="report-filter-grid report-builder-grid">
+            <div class="field compact-field"><label for="reportPeriod">Período</label><select id="reportPeriod"><option value="month">Este mês</option><option value="previous">Mês anterior</option><option value="quarter">Últimos 3 meses</option><option value="year">Este ano</option><option value="custom">Personalizado</option></select></div>
+            <div class="field compact-field report-custom-date"><label for="reportStartDate">De</label><input type="date" id="reportStartDate"></div>
+            <div class="field compact-field report-custom-date"><label for="reportEndDate">Até</label><input type="date" id="reportEndDate"></div>
+            <div class="field compact-field"><label for="reportDataSource">Indicador</label><select id="reportDataSource"><option value="revenue">Faturamento</option><option value="orders">Pedidos</option><option value="customers">Clientes</option><option value="products">Produtos vendidos</option><option value="fiscal">Documentos fiscais</option></select></div>
+            <div class="field compact-field"><label for="reportChartType">Tipo de gráfico</label><select id="reportChartType"><option value="bar">Barras</option><option value="pie">Pizza</option></select></div>
+            <div class="field compact-field"><label for="reportGroupBy">Agrupar por</label><select id="reportGroupBy"><option value="period">Período</option><option value="customer">Cliente</option><option value="product">Produto</option><option value="status">Status</option></select></div>
+            <div class="field compact-field"><label for="reportSort">Ordenação</label><select id="reportSort"><option value="desc">Maior → menor</option><option value="asc">Menor → maior</option></select></div>
+            <div class="field compact-field"><label for="reportLimit">Quantidade exibida</label><select id="reportLimit"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select></div>
           </div>
-          <div class="kpi-card">
-            <div class="label">Clientes ativos</div>
-            <div class="value">312</div>
-            <div class="trend">↑ 8 novos esta semana</div>
-          </div>
-          <div class="kpi-card">
-            <div class="label">Pedidos hoje</div>
-            <div class="value">24</div>
-            <div class="trend down">↓ 3% vs. ontem</div>
-          </div>
-        </div>
-
-        <div class="section-label">Maiores clientes do mês</div>
-        <div class="data-table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Posição</th><th>Cliente</th><th>Total gasto</th></tr></thead>
-            <tbody>
-              <tr><td>1º</td><td>João Pereira</td><td>R$ 15.400</td></tr>
-              <tr><td>2º</td><td>Maria Souza</td><td>R$ 12.100</td></tr>
-              <tr><td>3º</td><td>Carlos Lima</td><td>R$ 9.800</td></tr>
-            </tbody>
-          </table>
-        </div>
+          <div class="report-manipulation-row"><label><input type="checkbox" id="reportCompare"> Comparar com período anterior</label><label><input type="checkbox" id="reportCumulative"> Acumular valores</label><label><input type="checkbox" id="reportLabels" checked> Mostrar valores</label><button class="btn-primary btn-inline" id="applyReportBtn">Aplicar relatório</button></div>
+        </section>
+        <div class="kpi-grid report-kpi-grid"><div class="kpi-card"><div class="label">Faturamento</div><div class="value" id="reportRevenueValue">—</div><div class="trend" id="reportRevenueHint">Dados do período</div></div><div class="kpi-card"><div class="label">Pedidos</div><div class="value" id="reportIssuedValue">—</div><div class="trend">Operações no período</div></div><div class="kpi-card"><div class="label">Clientes</div><div class="value" id="reportReceivedValue">—</div><div class="trend">Clientes relacionados</div></div><div class="kpi-card"><div class="label">Documentos fiscais</div><div class="value" id="reportPendingValue">—</div><div class="trend">Visão fiscal agregada</div></div></div>
+        <section class="report-panel report-main-chart-panel"><div class="report-panel-header"><div><div class="report-eyebrow">Resultado</div><h3 id="reportChartTitle">Faturamento por período</h3></div><span class="report-period-label" id="reportChartPeriod">Este mês</span></div><div class="report-chart-toolbar"><span id="reportResultSummary">10 itens</span><button class="link-btn" id="reportResetViewBtn">Redefinir visualização</button></div><div class="report-chart report-chart-flex" id="reportRevenueChart"></div></section>
+        <div class="report-two-column report-ranking-grid"><section class="report-panel"><div class="report-panel-header"><div><div class="report-eyebrow">Ranking</div><h3>Clientes</h3></div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Posição</th><th>Cliente</th><th>Total</th></tr></thead><tbody id="reportCustomersBody"></tbody></table></div></section><section class="report-panel"><div class="report-panel-header"><div><div class="report-eyebrow">Ranking</div><h3>Produtos</h3></div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Posição</th><th>Produto</th><th>Quantidade</th></tr></thead><tbody id="reportProductsBody"></tbody></table></div></section></div>
       </div>
+
+      <!-- Modal: detalhes do documento fiscal -->
+      <div class="modal-overlay" id="fiscalDetailOverlay"><div class="modal-card fiscal-detail-modal"><div class="modal-header"><div><h3 id="fiscalDetailTitle">Detalhes da nota fiscal</h3><div class="fiscal-detail-sub" id="fiscalDetailSub"></div></div><button class="modal-close" id="fiscalDetailCloseBtn" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button></div><div id="fiscalDetailContent"></div><div class="modal-actions"><button type="button" class="btn-secondary" id="fiscalDetailCloseBtn2">Fechar</button></div></div></div>
 
       <!-- Configurações -->
       <div class="content-section" id="section-config">
@@ -514,7 +552,7 @@
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="pedidoCancelBtn">Cancelar</button>
-        <button type="submit" class="btn-primary btn-inline">Revisar pedido</button>
+        <button type="submit" class="btn-primary btn-inline">Salvar pedido</button>
       </div>
     </form>
   </div>
