@@ -12,8 +12,15 @@ Plataforma de gestão empresarial com uma experiência orientada por inteligênc
 - Total gasto do cliente calculado a partir dos pedidos concluídos.
 - Isolamento multi-tenant em todas as consultas de negócio.
 - Migrations versionadas com Alembic e testes automatizados da API.
+- Radar operacional com indicadores e ações rápidas; página do Copiloto preservada da versão atualizada.
 
-Orçamentos, relatórios, atividade, dados cadastrais da empresa e a integração completa da IA ainda permanecem como protótipos locais.
+Orçamentos e dados cadastrais da empresa já usam a API. Relatórios e interpretação por IA ainda têm partes simuladas. O histórico visual antigo permanece local; os eventos de segurança de pedidos agora são persistidos e consultáveis pela API.
+
+A criação direta de pedidos exige proposta assinada e confirmação. Consulte [atualizações e teste/uso](docs/SEGURANCA_PEDIDOS.md) para o contrato, limites e resultados de validação.
+
+- HMAC-SHA256 com chave exclusiva do servidor, proposta com validade e idempotência.
+- Pedido, estoque, comprovante e auditoria confirmados na mesma transação.
+- Rota antiga de criação responde HTTP 428; conversão de orçamento mantém seu fluxo existente e está fora deste primeiro escopo criptográfico.
 
 ## Tecnologias
 
@@ -34,15 +41,17 @@ Requisito: Docker Desktop aberto.
 No PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
-docker compose up --build
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+docker compose run --rm security-init
+docker compose up -d --build
 ```
 
 No Linux ou macOS:
 
 ```bash
-cp .env.example .env
-docker compose up --build
+test -f .env || cp .env.example .env
+docker compose run --rm security-init
+docker compose up -d --build
 ```
 
 Na inicialização, o projeto aplica automaticamente todas as migrations e prepara o usuário de demonstração. Acesse:
@@ -67,6 +76,8 @@ As credenciais são exclusivas do ambiente de desenvolvimento e podem ser altera
 | `customers` | Clientes isolados por empresa |
 | `orders` | Cabeçalho, cliente, status e total do pedido |
 | `order_items` | Produtos, quantidades e preços históricos do pedido |
+| `order_operations` | Propostas assinadas, idempotência e comprovantes históricos |
+| `order_audit_events` | Eventos autenticados de preparação, execução, rejeição e cancelamento |
 
 O `organization_id` delimita os dados de cada empresa. Pedidos são gravados em uma única transação: se qualquer produto não existir ou não tiver estoque suficiente, nenhuma alteração é persistida.
 
@@ -104,7 +115,12 @@ Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não exi
 | `PATCH` | `/api/customers/{id}` | Editar cliente |
 | `DELETE` | `/api/customers/{id}` | Excluir cliente sem pedidos |
 | `GET` | `/api/orders` | Listar pedidos com seus itens |
-| `POST` | `/api/orders` | Criar pedido e baixar estoque |
+| `POST` | `/api/orders` | Criação antiga bloqueada com HTTP 428 |
+| `POST` | `/api/orders/proposals` | Preparar proposta assinada, sem alterar estoque |
+| `POST` | `/api/orders/proposals/{id}/confirm` | Confirmar proposta e registrar pedido uma única vez |
+| `POST` | `/api/orders/proposals/{id}/cancel` | Descartar proposta pendente |
+| `GET` | `/api/orders/proposals/{id}/receipt` | Consultar comprovante verificado |
+| `GET` | `/api/orders/security/events` | Consultar eventos autorizados e sua integridade |
 | `PATCH` | `/api/orders/{id}` | Atualizar o status do pedido |
 | `DELETE` | `/api/orders/{id}` | Excluir pedido e recompor estoque como owner/admin |
 | `GET` | `/api/health` | Verificar a disponibilidade da API |

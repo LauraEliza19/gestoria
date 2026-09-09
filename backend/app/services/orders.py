@@ -1,5 +1,5 @@
 import uuid
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy.orm import Session
 
@@ -133,7 +133,7 @@ def create_order(
 
             total += unit_price * quantity
 
-        order.total_amount = total
+        order.total_amount = total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         if commit:
             db.commit()

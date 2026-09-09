@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0-security.1",
+  "base": "Updated user attachment gestoria-main.zip, containing Radar and Copiloto",
+  "input_zip_sha256": "61c1a2a94f74d486f60cd641ad9953d5c32d1fa88517929a84c91c1de140283e",
+  "python": "3.12.14",
+  "platform": "Linux",
+  "suite": {
+    "command": "python -m pytest -q",
+    "tests": 119,
+    "passed": 115,
+    "skipped": 4,
+    "failures": 0,
+    "errors": 0,
+    "duration_seconds": 21.871,
+    "timestamp": "2026-09-08T23:00:17.214715+02:00",
+    "warnings": 2
+  },
+  "pending_tests": [
+    "test_simultaneous_confirmations_create_only_one_order[postgres]",
+    "test_concurrent_preparation_reuses_same_operation[postgres]",
+    "test_different_orders_cannot_oversell_last_item[postgres]",
+    "test_full_migration_on_postgres"
+  ],
+  "checks": {
+    "http_smoke": "passed: real authentication, local HTTP server, temporary SQLite database, cleanup",
+    "key_generator": "passed: 32-byte random key, existing fields preserved, no key replacement on second run",
+    "selected_python_lint": "passed",
+    "javascript_syntax": "passed",
+    "postgresql_migration_sql_generation": "passed; offline only",
+    "docker_execution": "not executed: Docker unavailable",
+    "browser_visual_interaction": "not executed: remote browser blocked local server"
+  },
+  "preserved_updated_features": [
+    "Radar dashboard and stock thresholds",
+    "Copiloto page and route",
+    "Order status transition options and conflict refresh"
+  ],
+  "limits": [
+    "HMAC protects direct order creation; quote conversion and other operations are outside this scope.",
+    "Audit event signatures do not detect deletion of entire records and provide no public-key proof.",
+    "Benchmark is not a production latency promise or isolated HMAC overhead measurement."
+  ]
+}

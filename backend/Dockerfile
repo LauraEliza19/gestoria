@@ -13,8 +13,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt backend/constraints-tested.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -c constraints-tested.txt
 
 COPY backend/ .
 COPY --from=frontend /frontend/views /frontend/views

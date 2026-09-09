@@ -1,4 +1,5 @@
 import { apiFetch } from "../models/api.js";
+import { createProtectedOrder, downloadLastOrderReceipt } from "../models/protected-orders.js";
 import { clearSession, getAccessToken } from "../models/session.js";
 import {
   escapeHtml,
@@ -853,7 +854,7 @@ const radarFactoryBtn = document.getElementById('radarFactoryBtn');
       <select class="item-produto-select">
         ${produtosData.map(p => `<option value="${p.id}">${escapeHtml(p.nome)} (R$ ${p.preco.toFixed(2).replace('.', ',')})</option>`).join('')}
       </select>
-      <input type="number" class="item-qtd" placeholder="Qtd" min="1" value="1">
+      <input type="number" class="item-qtd" placeholder="Qtd" min="0.001" step="0.001" value="1">
       <span class="item-subtotal">R$ 0,00</span>
       <button type="button" class="remove-item-btn" title="Remover item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
@@ -924,8 +925,8 @@ const radarFactoryBtn = document.getElementById('radarFactoryBtn');
     const items = [];
     pedidoItemsList.querySelectorAll('.pedido-item-row').forEach(row => {
       const productId = row.querySelector('.item-produto-select').value;
-      const quantity = parseInt(row.querySelector('.item-qtd').value, 10) || 0;
-      if(productId && quantity > 0){
+      const quantity = row.querySelector('.item-qtd').value;
+      if(productId && Number(quantity) > 0){
         items.push({ product_id: productId, quantity });
       }
     });
@@ -942,22 +943,33 @@ const radarFactoryBtn = document.getElementById('radarFactoryBtn');
     const submitButton = pedidoForm.querySelector('[type="submit"]');
     submitButton.disabled = true;
     try {
-      const created = await apiFetch('/api/orders', {
-        method: 'POST',
-        body: JSON.stringify({ customer_id: pedidoClienteSelect.value, items })
-      });
+      const created = await createProtectedOrder({ customer_id: pedidoClienteSelect.value, items });
+      if (!created) return;
       const novoPedido = orderFromApi(created);
+      const previousIndex = pedidosData.findIndex(p => p.id === novoPedido.id);
+      if (previousIndex >= 0) pedidosData.splice(previousIndex, 1);
       pedidosData.unshift(novoPedido);
       renderPedidos();
-      await loadClientes();
-      showToast(`Pedido criado para "${novoPedido.cliente}".`);
-      addLogEntry(`Pedido criado: #${novoPedido.id.slice(0,8)} — ${novoPedido.cliente} (${formatMoney(novoPedido.valor)})`, 'executado', 'Manual');
+      showToast(`Pedido registrado para "${novoPedido.cliente}".`);
+      addLogEntry(`Pedido confirmado/recuperado: #${novoPedido.id.slice(0,8)} — ${novoPedido.cliente} (${formatMoney(novoPedido.valor)})`, 'executado', 'Manual');
       closePedidoModal();
+      try {
+        // Reload current state: a recovered receipt contains the original order snapshot.
+        await Promise.all([loadClientes(), loadProducts(), loadOrders()]);
+        renderRadar();
+      } catch (error) {
+        showToast('Pedido já confirmado. Recarregue a página para atualizar os indicadores.', 'error');
+      }
     } catch(error) {
       showToast(error.message, 'error');
     } finally {
       submitButton.disabled = false;
     }
+  });
+
+  document.getElementById('downloadOrderReceiptBtn').addEventListener('click', async () => {
+    try { await downloadLastOrderReceipt(); }
+    catch (error) { showToast(error.message, 'error'); }
   });
 
   // ---- Orçamentos: dados (API real), criação com itens dinâmicos ----
