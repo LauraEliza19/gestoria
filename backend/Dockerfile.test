@@ -1,0 +1,9 @@
+FROM python:3.12-slim
+WORKDIR /app
+COPY backend/requirements*.txt ./
+COPY backend/constraints-tested.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt -c constraints-tested.txt
+COPY backend/ .
+COPY frontend/ /frontend/
+ENV FRONTEND_DIR=/frontend
+CMD ["python", "-m", "pytest", "-q"]

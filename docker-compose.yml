@@ -1,4 +1,11 @@
 services:
+  security-init:
+    image: python:3.12-slim
+    profiles: ["tools"]
+    working_dir: /project
+    volumes:
+      - .:/project
+    command: python scripts/configure_security.py
   db:
     image: postgres:17-alpine
     environment:
@@ -6,7 +13,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gestoria}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gestoria_dev}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - gestoria_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,11 +33,14 @@ services:
       DEMO_EMAIL: ${DEMO_EMAIL:-admin@gestoria.dev}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-GestorIA@123}
       FRONTEND_DIR: /workspace/frontend
+      OPERATION_SIGNING_KEYS: ${OPERATION_SIGNING_KEYS:-}
+      OPERATION_ACTIVE_KEY_ID: ${OPERATION_ACTIVE_KEY_ID:-v1}
+      OPERATION_TTL_SECONDS: ${OPERATION_TTL_SECONDS:-300}
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
       - ./frontend:/workspace/frontend:ro
