@@ -14,7 +14,6 @@ export async function apiFetch(path, options = {}) {
       Authorization: `Bearer ${token}`,
       ...(options.headers || {}),
     },
-    cache: "no-store",
   });
 
   if (response.status === 401) {
@@ -30,7 +29,6 @@ export async function apiFetch(path, options = {}) {
       detail || "Não foi possível concluir a operação."
     );
     error.status = response.status;
-    error.code = response.headers.get("X-Error-Code");
     throw error;
   }
   return body;

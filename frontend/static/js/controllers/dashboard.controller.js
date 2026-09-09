@@ -1,5 +1,4 @@
 import { apiFetch } from "../models/api.js";
-import { createProtectedOrder, downloadLastOrderReceipt } from "../models/protected-orders.js";
 import { clearSession, getAccessToken } from "../models/session.js";
 import {
   escapeHtml,
@@ -854,7 +853,7 @@ const radarFactoryBtn = document.getElementById('radarFactoryBtn');
       <select class="item-produto-select">
         ${produtosData.map(p => `<option value="${p.id}">${escapeHtml(p.nome)} (R$ ${p.preco.toFixed(2).replace('.', ',')})</option>`).join('')}
       </select>
-      <input type="number" class="item-qtd" placeholder="Qtd" min="0.001" step="0.001" value="1">
+      <input type="number" class="item-qtd" placeholder="Qtd" min="1" value="1">
       <span class="item-subtotal">R$ 0,00</span>
       <button type="button" class="remove-item-btn" title="Remover item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
@@ -925,8 +924,8 @@ const radarFactoryBtn = document.getElementById('radarFactoryBtn');
     const items = [];
     pedidoItemsList.querySelectorAll('.pedido-item-row').forEach(row => {
       const productId = row.querySelector('.item-produto-select').value;
-      const quantity = row.querySelector('.item-qtd').value;
-      if(productId && Number(quantity) > 0){
+      const quantity = parseInt(row.querySelector('.item-qtd').value, 10) || 0;
+      if(productId && quantity > 0){
         items.push({ product_id: productId, quantity });
       }
     });
@@ -943,33 +942,22 @@ const radarFactoryBtn = document.getElementById('radarFactoryBtn');
     const submitButton = pedidoForm.querySelector('[type="submit"]');
     submitButton.disabled = true;
     try {
-      const created = await createProtectedOrder({ customer_id: pedidoClienteSelect.value, items });
-      if (!created) return;
+      const created = await apiFetch('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify({ customer_id: pedidoClienteSelect.value, items })
+      });
       const novoPedido = orderFromApi(created);
-      const previousIndex = pedidosData.findIndex(p => p.id === novoPedido.id);
-      if (previousIndex >= 0) pedidosData.splice(previousIndex, 1);
       pedidosData.unshift(novoPedido);
       renderPedidos();
-      showToast(`Pedido registrado para "${novoPedido.cliente}".`);
-      addLogEntry(`Pedido confirmado/recuperado: #${novoPedido.id.slice(0,8)} — ${novoPedido.cliente} (${formatMoney(novoPedido.valor)})`, 'executado', 'Manual');
+      await loadClientes();
+      showToast(`Pedido criado para "${novoPedido.cliente}".`);
+      addLogEntry(`Pedido criado: #${novoPedido.id.slice(0,8)} — ${novoPedido.cliente} (${formatMoney(novoPedido.valor)})`, 'executado', 'Manual');
       closePedidoModal();
-      try {
-        // Reload current state: a recovered receipt contains the original order snapshot.
-        await Promise.all([loadClientes(), loadProducts(), loadOrders()]);
-        renderRadar();
-      } catch (error) {
-        showToast('Pedido já confirmado. Recarregue a página para atualizar os indicadores.', 'error');
-      }
     } catch(error) {
       showToast(error.message, 'error');
     } finally {
       submitButton.disabled = false;
     }
-  });
-
-  document.getElementById('downloadOrderReceiptBtn').addEventListener('click', async () => {
-    try { await downloadLastOrderReceipt(); }
-    catch (error) { showToast(error.message, 'error'); }
   });
 
   // ---- Orçamentos: dados (API real), criação com itens dinâmicos ----
@@ -1541,34 +1529,298 @@ function renderRadar(){
     }
   });
 
+  // ================================================================
+  // ---- Relatórios: visão comercial + fiscal (frontend only) ----
+  // Os dados abaixo são demonstração local. O backend deverá substituir
+  // estas fontes sem alterar a estrutura da interface.
+  // ================================================================
+  const reportDemoData = {
+    revenue: 48200,
+    issued: 7,
+    received: 3,
+    pending: 1,
+    authorized: 6,
+    processing: 1,
+    cancelled: 1,
+    invalid: 0,
+    chart: [3200, 4100, 2800, 5600, 6200, 5100, 7400, 6800, 7100],
+    customers: [
+      { name:'Cliente cadastrado', total:15400 },
+      { name:'Cliente cadastrado', total:12100 },
+      { name:'Cliente cadastrado', total:9800 },
+    ],
+    products: [
+      { name:'Produto cadastrado', qty:148 },
+      { name:'Produto cadastrado', qty:121 },
+      { name:'Produto cadastrado', qty:96 },
+    ]
+  };
+
+  const fiscalDemoData = [
+    { id:'nf-001', type:'saida', number:'000482', series:'1', model:'55', person:'Cliente cadastrado', cnpj:'00.000.000/0000-00', date:'2026-09-02', cfop:'5102', nature:'Venda de mercadoria', value:1240, status:'Autorizada', key:'00000000000000000000000000000000000000000000', xml:true, pdf:true, order:'Pedido #0001', product:'Produto cadastrado' },
+    { id:'nf-002', type:'saida', number:'000481', series:'1', model:'55', person:'Cliente cadastrado', cnpj:'00.000.000/0000-00', date:'2026-09-02', cfop:'5102', nature:'Venda de mercadoria', value:389.90, status:'Em processamento', key:'00000000000000000000000000000000000000000001', xml:false, pdf:false, order:'Pedido #0002', product:'Produto cadastrado' },
+    { id:'nf-003', type:'saida', number:'000480', series:'1', model:'65', person:'Cliente cadastrado', cnpj:'00.000.000/0000-00', date:'2026-09-01', cfop:'5102', nature:'Venda de mercadoria', value:856.50, status:'Cancelada', key:'00000000000000000000000000000000000000000002', xml:true, pdf:true, order:'Pedido #0003', product:'Produto cadastrado' },
+    { id:'nf-004', type:'entrada', number:'000479', series:'3', model:'55', person:'Fornecedor cadastrado', cnpj:'00.000.000/0000-00', date:'2026-08-31', cfop:'1102', nature:'Compra para comercialização', value:2100, status:'Autorizada', key:'00000000000000000000000000000000000000000003', xml:true, pdf:true, order:'—', product:'Produto cadastrado' },
+    { id:'nf-005', type:'entrada', number:'000478', series:'3', model:'55', person:'Fornecedor cadastrado', cnpj:'00.000.000/0000-00', date:'2026-08-30', cfop:'1556', nature:'Compra de material', value:715.30, status:'Rejeitada', key:'00000000000000000000000000000000000000000004', xml:true, pdf:false, order:'—', product:'Produto cadastrado' },
+  ];
+
+  const reportPeriod = document.getElementById('reportPeriod');
+  const reportStartDate = document.getElementById('reportStartDate');
+  const reportEndDate = document.getElementById('reportEndDate');
+  const reportDataSource = document.getElementById('reportDataSource');
+  const reportChartType = document.getElementById('reportChartType');
+  const reportGroupBy = document.getElementById('reportGroupBy');
+  const reportSort = document.getElementById('reportSort');
+  const reportLimit = document.getElementById('reportLimit');
+  const reportCompare = document.getElementById('reportCompare');
+  const reportCumulative = document.getElementById('reportCumulative');
+  const reportLabels = document.getElementById('reportLabels');
+  const reportRevenueValue = document.getElementById('reportRevenueValue');
+  const reportIssuedValue = document.getElementById('reportIssuedValue');
+  const reportReceivedValue = document.getElementById('reportReceivedValue');
+  const reportPendingValue = document.getElementById('reportPendingValue');
+  const reportRevenueHint = document.getElementById('reportRevenueHint');
+  const reportChart = document.getElementById('reportRevenueChart');
+  const reportChartPeriod = document.getElementById('reportChartPeriod');
+  const reportChartTitle = document.getElementById('reportChartTitle');
+  const reportResultSummary = document.getElementById('reportResultSummary');
+  const reportCustomersBody = document.getElementById('reportCustomersBody');
+  const reportProductsBody = document.getElementById('reportProductsBody');
+  const fiscalIssuedKpi = document.getElementById('fiscalIssuedKpi');
+  const fiscalReceivedKpi = document.getElementById('fiscalReceivedKpi');
+  const fiscalAuthorizedKpi = document.getElementById('fiscalAuthorizedKpi');
+  const fiscalPendingKpi = document.getElementById('fiscalPendingKpi');
+
+  function reportPeriodLabel(){
+    const labels = {month:'Este mês', previous:'Mês anterior', quarter:'Últimos 3 meses', year:'Este ano', custom:'Período personalizado'};
+    return labels[reportPeriod.value] || 'Este mês';
+  }
+
+  function reportDataset(){
+    const source = reportDataSource.value;
+    if(source === 'orders') return [32,41,28,56,62,51,74,68,71,48];
+    if(source === 'customers') return [18,14,12,11,9,8,7,6,5,4];
+    if(source === 'products') return [148,121,96,84,72,68,61,55,49,43];
+    if(source === 'fiscal') return [7,5,8,6,9,7,10,8,6,11];
+    return [...reportDemoData.chart, 5900];
+  }
+
+  function reportLabelsFor(data){
+    const group = reportGroupBy.value;
+    if(group === 'customer') return ['Cliente A','Cliente B','Cliente C','Cliente D','Cliente E','Cliente F','Cliente G','Cliente H','Cliente I','Cliente J'].slice(0,data.length);
+    if(group === 'product') return ['Produto A','Produto B','Produto C','Produto D','Produto E','Produto F','Produto G','Produto H','Produto I','Produto J'].slice(0,data.length);
+    if(group === 'status') return ['Autorizada','Processando','Cancelada','Rejeitada','Inutilizada','Autorizada','Processando','Cancelada','Rejeitada','Autorizada'].slice(0,data.length);
+    return data.map((_,i)=>`Período ${i+1}`);
+  }
+
+  function renderReportChart(){
+    let data = reportDataset();
+    const labels = reportLabelsFor(data);
+    const paired = data.map((v,i)=>({value:v,label:labels[i]}));
+    paired.sort((a,b)=>reportSort.value === 'asc' ? a.value-b.value : b.value-a.value);
+    const limit = Number(reportLimit.value);
+    let visible = paired.slice(0,limit);
+    if(reportCumulative.checked){ let total=0; visible=visible.map(x=>{total+=x.value; return {...x,value:total};}); }
+    if(reportCompare.checked) visible = visible.map(x=>({...x,value:Math.round(x.value*0.82)}));
+    const max = Math.max(...visible.map(x=>x.value),1);
+    reportResultSummary.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'itens'} · ${reportChartType.value === 'pie' ? 'pizza' : 'barras'}`;
+    reportChart.classList.toggle('is-pie', reportChartType.value === 'pie');
+    if(reportChartType.value === 'pie'){
+      const total = visible.reduce((sum,x)=>sum+x.value,0) || 1;
+      let cursor=0;
+      const stops=visible.map((x,i)=>{const start=cursor/total*360; cursor+=x.value; const end=cursor/total*360; return `var(--chart-${(i%6)+1}) ${start}deg ${end}deg`;}).join(',');
+      reportChart.innerHTML = `<div class="report-pie" style="background:conic-gradient(${stops})"></div><div class="report-pie-legend">${visible.map((x,i)=>`<div><i class="pie-dot pie-${(i%6)+1}"></i><span>${escapeHtml(x.label)}</span><strong>${reportLabels.checked ? (reportDataSource.value === 'revenue' ? formatMoney(x.value) : x.value) : ''}</strong></div>`).join('')}</div>`;
+    } else {
+      reportChart.innerHTML = visible.map((x,i)=>{const h=Math.max(10,Math.round(x.value/max*100)); const value=reportLabels.checked ? (reportDataSource.value==='revenue' ? formatMoney(x.value) : x.value) : ''; return `<div class="report-chart-bar" style="height:${h}%" title="${escapeHtml(String(value))}"><span>${escapeHtml(x.label)}</span>${reportLabels.checked?`<b>${escapeHtml(String(value))}</b>`:''}</div>`;}).join('');
+    }
+    const titles={revenue:'Faturamento',orders:'Pedidos',customers:'Clientes',products:'Produtos vendidos',fiscal:'Documentos fiscais'};
+    reportChartTitle.textContent=`${titles[reportDataSource.value]} por ${reportGroupBy.value === 'period' ? 'período' : reportGroupBy.value === 'customer' ? 'cliente' : reportGroupBy.value === 'product' ? 'produto' : 'status'}`;
+  }
+
+  function renderReportDashboard(){
+    reportRevenueValue.textContent = formatMoney(reportDemoData.revenue);
+    reportIssuedValue.textContent = 124;
+    reportReceivedValue.textContent = 86;
+    reportPendingValue.textContent = reportDemoData.issued + reportDemoData.received;
+    reportRevenueHint.textContent = reportCompare.checked ? 'Comparação com período anterior ativada' : 'Dados do período selecionado';
+    reportChartPeriod.textContent = reportPeriodLabel();
+    renderReportChart();
+    reportCustomersBody.innerHTML = reportDemoData.customers.map((c,i)=>`<tr><td>${i+1}º</td><td>${escapeHtml(c.name)}</td><td>${formatMoney(c.total)}</td></tr>`).join('');
+    reportProductsBody.innerHTML = reportDemoData.products.map((p,i)=>`<tr><td>${i+1}º</td><td>${escapeHtml(p.name)}</td><td>${p.qty}</td></tr>`).join('');
+  }
+
+  function updateCustomReportDates(){ document.querySelectorAll('.report-custom-date').forEach(el=>el.classList.toggle('visible',reportPeriod.value==='custom')); }
+  [reportPeriod,reportDataSource,reportChartType,reportGroupBy,reportSort,reportLimit,reportCompare,reportCumulative,reportLabels].forEach(el=>el.addEventListener('change',()=>{if(el===reportPeriod)updateCustomReportDates();renderReportDashboard();}));
+  document.getElementById('applyReportBtn').addEventListener('click',()=>{renderReportDashboard();showToast('Relatório atualizado.');});
+  document.getElementById('reportResetViewBtn').addEventListener('click',()=>{reportChartType.value='bar';reportGroupBy.value='period';reportSort.value='desc';reportLimit.value='10';reportCompare.checked=false;reportCumulative.checked=false;reportLabels.checked=true;renderReportDashboard();});
+  document.getElementById('clearReportFiltersBtn').addEventListener('click',()=>{reportPeriod.value='month';reportStartDate.value='';reportEndDate.value='';reportDataSource.value='revenue';reportChartType.value='bar';reportGroupBy.value='period';reportSort.value='desc';reportLimit.value='10';reportCompare.checked=false;reportCumulative.checked=false;reportLabels.checked=true;updateCustomReportDates();renderReportDashboard();});
+  updateCustomReportDates();
+
+  // ---- Consulta fiscal local, pronta para receber a API ----
+  let fiscalType = 'saida';
+  let fiscalResults = [];
+  const fiscalTableBody = document.getElementById('fiscalTableBody');
+  const fiscalEmpty = document.getElementById('fiscalEmpty');
+  const fiscalResultHint = document.getElementById('fiscalResultHint');
+  const fiscalSearch = document.getElementById('fiscalSearch');
+  const fiscalNumber = document.getElementById('fiscalNumber');
+  const fiscalAdvancedToggle = document.getElementById('fiscalAdvancedToggle');
+  const fiscalAdvancedPanel = document.getElementById('fiscalAdvancedPanel');
+  const fiscalAccessKey = document.getElementById('fiscalAccessKey');
+  const fiscalModel = document.getElementById('fiscalModel');
+  const fiscalSeries = document.getElementById('fiscalSeries');
+  const fiscalCnpj = document.getElementById('fiscalCnpj');
+  const fiscalStatus = document.getElementById('fiscalStatus');
+  const fiscalCfop = document.getElementById('fiscalCfop');
+  const fiscalNature = document.getElementById('fiscalNature');
+  const fiscalDateStart = document.getElementById('fiscalDateStart');
+  const fiscalDateEnd = document.getElementById('fiscalDateEnd');
+  const fiscalFile = document.getElementById('fiscalFile');
+  const fiscalDetailOverlay = document.getElementById('fiscalDetailOverlay');
+  const fiscalDetailContent = document.getElementById('fiscalDetailContent');
+  const fiscalDetailTitle = document.getElementById('fiscalDetailTitle');
+  const fiscalDetailSub = document.getElementById('fiscalDetailSub');
+
+  function fiscalStatusClass(status){
+    if(status === 'Autorizada') return 'badge-green';
+    if(status === 'Em processamento') return 'badge-amber';
+    if(status === 'Cancelada') return 'badge-red';
+    return 'badge-gray';
+  }
+
+  function renderFiscalRows(){
+    fiscalResultHint.textContent = `${fiscalResults.length} ${fiscalResults.length === 1 ? 'documento encontrado' : 'documentos encontrados'}`;
+    if(fiscalIssuedKpi) fiscalIssuedKpi.textContent = fiscalDemoData.filter(n=>n.type==='saida').length;
+    if(fiscalReceivedKpi) fiscalReceivedKpi.textContent = fiscalDemoData.filter(n=>n.type==='entrada').length;
+    if(fiscalAuthorizedKpi) fiscalAuthorizedKpi.textContent = fiscalDemoData.filter(n=>n.status==='Autorizada').length;
+    if(fiscalPendingKpi) fiscalPendingKpi.textContent = fiscalDemoData.filter(n=>!['Autorizada','Cancelada'].includes(n.status)).length;
+    fiscalEmpty.style.display = fiscalResults.length ? 'none' : 'block';
+    fiscalTableBody.innerHTML = fiscalResults.map(n => `
+      <tr>
+        <td><strong>${escapeHtml(n.number)}</strong><br><span class="table-muted">Série ${escapeHtml(n.series)}</span></td>
+        <td>${escapeHtml(n.person)}<br><span class="table-muted">${escapeHtml(n.cnpj)}</span></td>
+        <td>${escapeHtml(n.model)}</td>
+        <td>${formatDateBR(n.date)}</td>
+        <td>${escapeHtml(n.cfop)}</td>
+        <td>${formatMoney(n.value)}</td>
+        <td><span class="badge ${fiscalStatusClass(n.status)} fiscal-status-badge">${escapeHtml(n.status)}</span></td>
+        <td><button type="button" class="icon-btn" data-fiscal-action="detail" data-id="${n.id}" title="Ver detalhes">${ICON_EDIT}</button></td>
+      </tr>`).join('');
+  }
+
+  function applyFiscalFilters(){
+    const search = fiscalSearch.value.trim().toLowerCase();
+    const number = fiscalNumber.value.trim().toLowerCase();
+    const key = fiscalAccessKey.value.trim().toLowerCase();
+    const model = fiscalModel.value;
+    const series = fiscalSeries.value.trim().toLowerCase();
+    const cnpj = fiscalCnpj.value.replace(/\D/g,'');
+    const status = fiscalStatus.value;
+    const cfop = fiscalCfop.value.trim().toLowerCase();
+    const nature = fiscalNature.value.trim().toLowerCase();
+    const start = fiscalDateStart.value;
+    const end = fiscalDateEnd.value;
+    const file = fiscalFile.value;
+
+    fiscalResults = fiscalDemoData.filter(n => {
+      if(n.type !== fiscalType) return false;
+      if(search && !n.person.toLowerCase().includes(search)) return false;
+      if(number && !n.number.toLowerCase().includes(number)) return false;
+      if(key && !n.key.toLowerCase().includes(key)) return false;
+      if(model && n.model !== model) return false;
+      if(series && n.series.toLowerCase() !== series) return false;
+      if(cnpj && n.cnpj.replace(/\D/g,'') !== cnpj) return false;
+      if(status && n.status !== status) return false;
+      if(cfop && !n.cfop.toLowerCase().includes(cfop)) return false;
+      if(nature && !n.nature.toLowerCase().includes(nature)) return false;
+      if(start && n.date < start) return false;
+      if(end && n.date > end) return false;
+      if(file === 'xml' && !n.xml) return false;
+      if(file === 'pdf' && !n.pdf) return false;
+      return true;
+    });
+    renderFiscalRows();
+  }
+
+  fiscalAdvancedToggle.addEventListener('click', () => {
+    const expanded = fiscalAdvancedToggle.getAttribute('aria-expanded') === 'true';
+    fiscalAdvancedToggle.setAttribute('aria-expanded', String(!expanded));
+    fiscalAdvancedPanel.hidden = expanded;
+  });
+
+  function clearFiscalFilters(){
+    [fiscalSearch,fiscalNumber,fiscalAccessKey,fiscalSeries,fiscalCnpj,fiscalCfop,fiscalNature,fiscalDateStart,fiscalDateEnd].forEach(el => el.value = '');
+    [fiscalModel,fiscalStatus,fiscalFile].forEach(el => el.value = '');
+    fiscalAdvancedToggle.setAttribute('aria-expanded', 'false');
+    fiscalAdvancedPanel.hidden = true;
+    applyFiscalFilters();
+  }
+
+  document.querySelectorAll('.fiscal-module-tab').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('.fiscal-module-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.fiscal-view').forEach(v=>v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('fiscal-view-' + tab.dataset.fiscalView).classList.add('active');
+  }));
+
+  document.querySelectorAll('.fiscal-tab').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('.fiscal-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    fiscalType = tab.dataset.fiscalType;
+    applyFiscalFilters();
+  }));
+  document.getElementById('searchFiscalBtn').addEventListener('click', applyFiscalFilters);
+  document.getElementById('clearFiscalFiltersBtn').addEventListener('click', clearFiscalFilters);
+
+  fiscalTableBody.addEventListener('click', e => {
+    const button = e.target.closest('[data-fiscal-action="detail"]');
+    if(!button) return;
+    const nota = fiscalDemoData.find(n => n.id === button.dataset.id);
+    if(!nota) return;
+    fiscalDetailTitle.textContent = `NF ${nota.number}`;
+    fiscalDetailSub.textContent = `${nota.model === '55' ? 'NF-e' : nota.model === '65' ? 'NFC-e' : 'NFS-e'} · Série ${nota.series} · ${nota.status}`;
+    fiscalDetailContent.innerHTML = `
+      <div class="fiscal-detail-section"><h4>Identificação</h4><div class="fiscal-detail-grid">
+        <div class="fiscal-detail-item"><div class="label">Número</div><div class="value">${escapeHtml(nota.number)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Série</div><div class="value">${escapeHtml(nota.series)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Modelo</div><div class="value">${escapeHtml(nota.model)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Data de emissão</div><div class="value">${formatDateBR(nota.date)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Chave de acesso</div><div class="value">${escapeHtml(nota.key)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Status</div><div class="value">${escapeHtml(nota.status)}</div></div>
+      </div></div>
+      <div class="fiscal-detail-section"><h4>Participantes</h4><div class="fiscal-detail-grid">
+        <div class="fiscal-detail-item"><div class="label">${nota.type === 'saida' ? 'Destinatário' : 'Emitente'}</div><div class="value">${escapeHtml(nota.person)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">CNPJ</div><div class="value">${escapeHtml(nota.cnpj)}</div></div>
+      </div></div>
+      <div class="fiscal-detail-section"><h4>Operação e valores</h4><div class="fiscal-detail-grid">
+        <div class="fiscal-detail-item"><div class="label">CFOP</div><div class="value">${escapeHtml(nota.cfop)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Natureza</div><div class="value">${escapeHtml(nota.nature)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Pedido relacionado</div><div class="value">${escapeHtml(nota.order)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Produto principal</div><div class="value">${escapeHtml(nota.product)}</div></div>
+        <div class="fiscal-detail-item"><div class="label">Valor total</div><div class="value">${formatMoney(nota.value)}</div></div>
+      </div></div>
+      <div class="fiscal-detail-section"><h4>Documentos</h4><div class="fiscal-file-actions">
+        <button type="button" class="btn-secondary" ${nota.xml ? '' : 'disabled'}>XML ${nota.xml ? 'disponível' : 'não disponível'}</button>
+        <button type="button" class="btn-secondary" ${nota.pdf ? '' : 'disabled'}>DANFE/PDF ${nota.pdf ? 'disponível' : 'não disponível'}</button>
+      </div></div>`;
+    fiscalDetailOverlay.classList.add('open');
+  });
+  function closeFiscalDetail(){ fiscalDetailOverlay.classList.remove('open'); }
+  document.getElementById('fiscalDetailCloseBtn').addEventListener('click', closeFiscalDetail);
+  document.getElementById('fiscalDetailCloseBtn2').addEventListener('click', closeFiscalDetail);
+  fiscalDetailOverlay.addEventListener('click', e => { if(e.target === fiscalDetailOverlay) closeFiscalDetail(); });
+  applyFiscalFilters();
+
   // ---- Exportação de relatórios ----
   const exportCsvBtn = document.getElementById('exportCsvBtn');
   const exportPdfBtn = document.getElementById('exportPdfBtn');
 
   exportCsvBtn.addEventListener('click', () => {
-    const rows = [
-      ['Relatório', 'GestorIA - Padaria Bom Pão'],
-      ['Faturamento do mês', 'R$ 48.200'],
-      ['Clientes ativos', '312'],
-      ['Pedidos hoje', '24'],
-      [],
-      ['Posição', 'Cliente', 'Total gasto'],
-      ['1', 'João Pereira', 'R$ 15.400'],
-      ['2', 'Maria Souza', 'R$ 12.100'],
-      ['3', 'Carlos Lima', 'R$ 9.800'],
-    ];
-    const csvContent = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'relatorio-gestoria.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const rows = [['Relatório GestorIA'],['Período', reportPeriodLabel()],['Indicador', reportDataSource.value],['Gráfico', reportChartType.value],['Agrupamento', reportGroupBy.value],[] ,['Posição','Cliente','Total']];
+    reportDemoData.customers.forEach((c,i)=>rows.push([i+1,c.name,c.total]));
+    const csvContent = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+    const blob = new Blob([csvContent],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download='gestoria-relatorio.csv'; link.click(); URL.revokeObjectURL(url); showToast('Relatório CSV exportado.');
   });
-
   exportPdfBtn.addEventListener('click', () => {
     window.print();
   });
