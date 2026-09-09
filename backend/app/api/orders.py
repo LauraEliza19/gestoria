@@ -4,47 +4,21 @@ from fastapi import APIRouter, HTTPException, Response, status
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import OrderRepository
-from app.schemas import OrderCreate, OrderItemRead, OrderRead, OrderStatusUpdate
+from app.schemas import OrderCreate, OrderRead, OrderStatusUpdate
 from app.services import (
-    CustomerNotFoundError,
     InsufficientStockError,
     OrderStatusTransitionError,
     ProductNotFoundError,
-    create_order,
     delete_order_record,
     update_order_status,
 )
+from app.services.order_serialization import order_to_read as _build_order_read
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
 
 def order_not_found() -> HTTPException:
     return HTTPException(status_code=404, detail="Pedido não encontrado.")
-
-
-def _build_order_read(order) -> OrderRead:
-    item_reads = [
-        OrderItemRead(
-            id=item.id,
-            product_id=item.product_id,
-            product_name=item.product.name if item.product else "Produto removido",
-            quantity=item.quantity,
-            unit_price=item.unit_price,
-        )
-        for item in order.items
-    ]
-
-    return OrderRead(
-        id=order.id,
-        organization_id=order.organization_id,
-        customer_id=order.customer_id,
-        customer_name=order.customer.name if order.customer else "Cliente removido",
-        status=order.status,
-        total_amount=order.total_amount,
-        items=item_reads,
-        created_at=order.created_at,
-        updated_at=order.updated_at,
-    )
 
 
 @router.get("", response_model=list[OrderRead])
@@ -57,18 +31,11 @@ def list_orders(db: DatabaseSession, current: CurrentUser) -> list[OrderRead]:
 def create_order_route(
     payload: OrderCreate, db: DatabaseSession, current: CurrentUser
 ) -> OrderRead:
-    try:
-        order = create_order(
-            db, current.organization.id, payload.customer_id, payload.items
-        )
-    except CustomerNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except ProductNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except InsufficientStockError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-
-    return _build_order_read(order)
+    raise HTTPException(
+        status_code=428,
+        detail="Crie uma proposta em /api/orders/proposals e confirme os dados para registrar o pedido.",
+        headers={"X-Error-Code": "confirmation_required"},
+    )
 
 
 @router.patch("/{order_id}", response_model=OrderRead)
