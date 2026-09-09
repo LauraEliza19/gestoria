@@ -12,16 +12,16 @@ def test_resolve_frontend_dir_finds_project_frontend() -> None:
     frontend = resolve_frontend_dir()
 
     assert frontend.name == "frontend"
-    assert (frontend / "views" / "login.html").is_file()
-    assert (frontend / "static" / "css" / "app.css").is_file()
+    assert (frontend / "dist" / "index.html").is_file()
+    assert (frontend / "dist" / "assets").is_dir()
 
 
 def test_resolve_frontend_dir_accepts_parent_of_frontend(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     nested = tmp_path / "frontend"
-    (nested / "views").mkdir(parents=True)
-    (nested / "static").mkdir()
+    (nested / "dist").mkdir(parents=True)
+    (nested / "dist" / "index.html").write_text("<div id='root'></div>")
     monkeypatch.setattr(settings, "frontend_dir", str(tmp_path))
 
     assert resolve_frontend_dir() == nested
@@ -41,4 +41,5 @@ def test_copilot_page_is_served(client: TestClient) -> None:
     response = client.get("/copiloto")
 
     assert response.status_code == 200
-    assert "Copiloto GestorIA" in response.text
+    assert response.status_code == 200
+    assert '<div id="root"></div>' in response.text

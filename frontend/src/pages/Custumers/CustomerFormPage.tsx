@@ -1,0 +1,12 @@
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { apiFetch } from '../../services/api'
+
+type Customer = { id: string; name: string; phone: string; email?: string | null; category?: string }
+export function CustomerFormPage() {
+	const [params] = useSearchParams(); const id = params.get('id'); const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [email, setEmail] = useState(''); const [category, setCategory] = useState('final_consumer'); const [status, setStatus] = useState('')
+	useEffect(() => { if (id) apiFetch<Customer[]>('/api/customers').then((list) => { const customer = list.find((item) => item.id === id); if (customer) { setName(customer.name); setPhone(customer.phone); setEmail(customer.email || ''); setCategory(customer.category || 'final_consumer') } }) }, [id])
+	async function submit(event: FormEvent) { event.preventDefault(); setStatus(''); if (!name.trim() || !phone.trim()) { setStatus('Nome e telefone são obrigatórios.'); return } try { const payload = { name, phone, email: email || null, category }; await apiFetch(id ? `/api/customers/${id}` : '/api/customers', { method: id ? 'PATCH' : 'POST', body: JSON.stringify(payload) }); setStatus('Cliente salvo com sucesso.') } catch (error) { setStatus(error instanceof Error ? error.message : 'Não foi possível salvar.') } }
+	return <div className="page-wrap"><header className="page-header"><div><p className="eyebrow">Cadastro</p><h1>{id ? 'Editar cliente' : 'Novo cliente'}</h1><p>Registre os dados essenciais para manter sua base organizada.</p></div><Link className="secondary-button" to="/dashboard">Voltar</Link></header><form className="page-card form-card" onSubmit={submit}><label>Nome<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Telefone<input value={phone} onChange={(event) => setPhone(event.target.value)} /></label><label>E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><label>Categoria<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="final_consumer">Consumidor final</option><option value="reseller">Revendedor</option><option value="event">Evento</option></select></label>{status && <p className="form-status">{status}</p>}<button className="primary-button" type="submit">Salvar cliente</button></form></div>
+}

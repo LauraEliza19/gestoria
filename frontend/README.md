@@ -1,77 +1,52 @@
-# Frontend — GestorIA
+# GestorIA Frontend — React + TypeScript + Vite
 
-Interface em HTML, JavaScript (MVC) e Tailwind CSS. Não sobe um servidor próprio: o FastAPI entrega as páginas e os arquivos estáticos na porta **8000**.
+Este frontend React substitui gradualmente as páginas HTML legadas do GestorIA.
 
-## Organização (MVC)
-
-```text
-frontend/
-  views/                         páginas (View)
-    login.html
-    dashboard.html
-  static/
-    css/
-      input.css                  tokens e diretivas do Tailwind
-      app.css                    CSS gerado (`npm run build`)
-      dashboard.css              componentes do painel
-    js/
-      models/                    dados e API (Model)
-        session.js               token JWT no storage
-        api.js                   fetch autenticado
-      views/                     apresentação (View)
-        format.js                dinheiro, datas, escape HTML
-        toast.js                 mensagens de feedback
-      controllers/               eventos e orquestração (Controller)
-        login.controller.js
-        dashboard.controller.js
-  package.json
-```
-
-- **Model** fala com `/api/*` e guarda a sessão.
-- **View** desenha HTML e formata o que aparece na tela.
-- **Controller** liga formulários, tabelas e navegação aos models.
-
-Clientes, produtos e pedidos usam a API real. Orçamentos, relatórios, atividade e o chat de IA ainda são protótipos locais.
-
-## Como executar
-
-O caminho usual é o Docker na raiz do repositório (sobe API, banco e este frontend juntos):
-
-```bash
-cd ..
-cp .env.example .env          # só na primeira vez
-docker compose up --build
-```
-
-Abra:
-
-- Aplicação: http://localhost:8000
-- Painel (após login): http://localhost:8000/dashboard
-
-E-mail: `admin@gestoria.dev`  
-Senha: `GestorIA@123`
-
-## CSS (Tailwind)
-
-Depois de mudar classes nas views ou o `static/css/input.css`:
+## Comandos
 
 ```bash
 npm install
+npm run dev
+npm run lint
 npm run build
+npm run preview
 ```
 
-Durante o desenvolvimento visual:
+Durante o desenvolvimento, `/api` é encaminhado para `http://localhost:8000`.
 
-```bash
-npm run watch
+## Rotas migradas
+
+`/login`, `/dashboard`, `/clientes`, `/produtos`, `/pedidos`, `/orcamentos`, `/copiloto`, `/modo-fabrica` e `/empresa/editar`.
+
+O build de produção fica em `dist/`. O Docker do repositório principal ainda monta `gestoria-main/frontend`, então a troca definitiva exige publicar este `dist` no mesmo domínio da API e configurar fallback para as rotas do React antes de remover o frontend legado.
+
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
 ```
 
-O painel também carrega `static/css/dashboard.css`. O login usa sobretudo o Tailwind compilado em `app.css`.
-
-## Rotas servidas pelo backend
-
-| URL | Arquivo |
-| --- | --- |
-| `/` | `views/login.html` |
-| `/dashboard` | `views/dashboard.html` |
-| `/static/...` | conteúdo de `static/` |
+See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

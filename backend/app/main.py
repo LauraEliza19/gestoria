@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.api import auth, customers, organization, orders, products, quotes
@@ -19,10 +19,10 @@ def resolve_frontend_dir() -> Path:
     candidates.append(project_root / "frontend")
 
     for candidate in candidates:
-        if (candidate / "views").is_dir() and (candidate / "static").is_dir():
+        if (candidate / "dist" / "index.html").is_file():
             return candidate
 
-    raise RuntimeError("Pasta do frontend não encontrada (views/ e static/).")
+    raise RuntimeError("Build do frontend não encontrado (dist/index.html).")
 
 
 frontend_dir = resolve_frontend_dir()
@@ -42,41 +42,20 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def react_index() -> FileResponse:
+    return FileResponse(frontend_dir / "dist" / "index.html")
+
+
 @app.get("/", include_in_schema=False)
-def login_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "login.html")
+def react_root() -> FileResponse:
+    return react_index()
 
 
-@app.get("/dashboard", include_in_schema=False)
-def dashboard_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "dashboard.html")
-
-@app.get("/copiloto", include_in_schema=False)
-def copilot_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "copilot.html")
+app.mount("/assets", StaticFiles(directory=frontend_dir / "dist" / "assets"), name="assets")
 
 
-@app.get("/clientes/novo", include_in_schema=False)
-def customer_form_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "customer-form.html")
-
-
-@app.get("/empresa/editar", include_in_schema=False)
-def company_form_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "company-form.html")
-
-@app.get("/modo-fabrica", include_in_schema=False)
-def factory_mode_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "factory-mode.html")
-
-
-@app.get("/produtos/novo", include_in_schema=False)
-def product_form_page() -> FileResponse:
-    return FileResponse(frontend_dir / "views" / "product-form.html")
-
-
-app.mount(
-    "/static",
-    StaticFiles(directory=frontend_dir / "static"),
-    name="static",
-)
+@app.get("/{path:path}", include_in_schema=False)
+def react_route(path: str) -> FileResponse:
+    if path.startswith("api/") or path.startswith("assets/"):
+        raise HTTPException(status_code=404, detail="Recurso não encontrado.")
+    return react_index()
