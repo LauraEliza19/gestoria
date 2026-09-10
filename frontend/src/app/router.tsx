@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { DashboardPage } from '../pages/Dashboard/DashboardPage'
 import { CustomerFormPage } from '../pages/Custumers/CustomerFormPage'
 import { CustomersPage } from '../pages/Custumers/CustomersPage'
@@ -24,8 +25,22 @@ function LogoutPage() {
 	return <Navigate to="/login" replace />
 }
 
+function PageTitle() {
+	const location = useLocation()
+	useEffect(() => {
+		const titles: Record<string, string> = {
+			'/login': 'GestorIA — Entrar', '/dashboard': 'GestorIA — Visão geral', '/clientes': 'GestorIA — Clientes',
+			'/produtos': 'GestorIA — Produtos', '/pedidos': 'GestorIA — Pedidos', '/orcamentos': 'GestorIA — Orçamentos',
+			'/copiloto': 'GestorIA — Copiloto', '/modo-fabrica': 'GestorIA — Modo fábrica', '/notas-fiscais': 'GestorIA — Notas fiscais',
+			'/empresa/editar': 'GestorIA — Empresa',
+		}
+		document.title = titles[location.pathname] || 'GestorIA'
+	}, [location.pathname])
+	return null
+}
+
 export function AppRouter() {
-	return <BrowserRouter><Routes>
+	return <BrowserRouter><PageTitle /><Routes>
 		<Route path="/login" element={<LoginPage />} />
 		<Route path="/logout" element={<LogoutPage />} />
 		<Route element={<ProtectedLayout />}>

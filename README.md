@@ -12,7 +12,7 @@ Plataforma de gestão empresarial com uma experiência orientada por inteligênc
 - Total gasto do cliente calculado a partir dos pedidos concluídos.
 - Isolamento multi-tenant em todas as consultas de negócio.
 - Migrations versionadas com Alembic e testes automatizados da API.
-- Radar operacional com indicadores e ações rápidas; página do Copiloto preservada da versão atualizada.
+- Radar operacional com indicadores e ações rápidas; página do Copiloto migrada para React.
 
 Orçamentos e dados cadastrais da empresa já usam a API. Relatórios e interpretação por IA ainda têm partes simuladas. O histórico visual antigo permanece local; os eventos de segurança de pedidos agora são persistidos e consultáveis pela API.
 
@@ -26,7 +26,7 @@ A criação direta de pedidos exige proposta assinada e confirmação. Consulte 
 
 | Camada | Tecnologias |
 | --- | --- |
-| Frontend | HTML, JavaScript (MVC) e Tailwind CSS |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 e Lucide React |
 | API | Python 3.12 e FastAPI |
 | Persistência | PostgreSQL 17 e SQLAlchemy 2 |
 | Migrations | Alembic |
@@ -78,6 +78,7 @@ As credenciais são exclusivas do ambiente de desenvolvimento e podem ser altera
 | `order_items` | Produtos, quantidades e preços históricos do pedido |
 | `order_operations` | Propostas assinadas, idempotência e comprovantes históricos |
 | `order_audit_events` | Eventos autenticados de preparação, execução, rejeição e cancelamento |
+| `fiscal_documents` | Cadastro e acompanhamento de documentos fiscais |
 
 O `organization_id` delimita os dados de cada empresa. Pedidos são gravados em uma única transação: se qualquer produto não existir ou não tiver estoque suficiente, nenhuma alteração é persistida.
 
@@ -127,17 +128,17 @@ Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não exi
 
 ## Organização
 
-O backend segue arquitetura em camadas (mais adequada que MVC clássico para uma API FastAPI). O frontend segue MVC.
+O backend segue arquitetura em camadas. O frontend usa React com TypeScript, React Router e Tailwind CSS.
 
 ```text
 frontend/
-  views/                 páginas HTML
-  static/
-    css/                 Tailwind (input.css → app.css) e CSS do painel
-    js/
-      models/            sessão e cliente HTTP da API
-      views/             formatação e toasts
-      controllers/       eventos e orquestração das telas
+  src/
+    app/                  roteamento e composição da aplicação
+    layouts/              layouts autenticado e de navegação
+    pages/                telas React por domínio
+    services/             cliente HTTP e autenticação
+    styles/               entrada Tailwind e tokens visuais
+  dist/                   build de produção gerado pelo Vite
 
 backend/
   alembic/               migrations versionadas do banco
@@ -154,7 +155,7 @@ backend/
 
 As rotas não executam SQL diretamente e o frontend nunca recebe credenciais do banco.
 
-Para regenerar o CSS do Tailwind depois de alterar classes nas views:
+Para regenerar o build Tailwind/React depois de alterar componentes:
 
 ```bash
 cd frontend

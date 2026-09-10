@@ -13,11 +13,16 @@ export type Session = {
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  const response = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
+  let response: Response
+  try {
+    response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+  } catch {
+    throw new Error('Não foi possível conectar à API. Verifique se o frontend e o backend estão em execução.')
+  }
 
   const body = await response.json().catch(() => ({}))
   const detail = Array.isArray(body.detail) ? body.detail[0]?.msg : body.detail
