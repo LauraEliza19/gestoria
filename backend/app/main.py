@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.api import auth, customers, organization, orders, products, quotes
 from app.api import order_operations
+from app.api import fiscal
 
 from app.config import settings
 
@@ -35,6 +36,7 @@ app.include_router(customers.router)
 app.include_router(orders.router)
 app.include_router(quotes.router)
 app.include_router(organization.router)
+app.include_router(fiscal.router)
 
 
 @app.get("/api/health", tags=["health"])

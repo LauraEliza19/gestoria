@@ -9,6 +9,7 @@ import { OrdersPage } from '../pages/Orders/OrdersPage'
 import { QuotesPage } from '../pages/Quotes/QuotesPage'
 import { CopilotPage } from '../pages/Copilot/CopilotPage'
 import { FactoryModePage } from '../pages/FactoryMode/FactoryModePage'
+import { FiscalDocumentsPage } from '../pages/Fiscal/FiscalDocumentsPage'
 import { LoginPage } from '../pages/Login/LoginPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, getAccessToken } from '../services/session'
@@ -38,6 +39,7 @@ export function AppRouter() {
 			<Route path="/orcamentos" element={<QuotesPage />} />
 			<Route path="/copiloto" element={<CopilotPage />} />
 			<Route path="/modo-fabrica" element={<FactoryModePage />} />
+			<Route path="/notas-fiscais" element={<FiscalDocumentsPage />} />
 		</Route>
 		<Route path="*" element={<Navigate to={getAccessToken() ? '/dashboard' : '/login'} replace />} />
 	</Routes></BrowserRouter>

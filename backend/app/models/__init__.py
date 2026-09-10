@@ -35,7 +35,8 @@ __all__ = [
     "Order",
     "OrderItem",
     "Quote",
-    "QuoteItem"
+    "QuoteItem",
+    "FiscalDocument",
 ]
 
 
@@ -411,3 +412,33 @@ class QuoteItem(Base, TimestampMixin):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     quote: Mapped[Quote] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="quote_items")
+
+
+class FiscalDocument(Base, TimestampMixin):
+    __tablename__ = "fiscal_documents"
+    __table_args__ = (
+        CheckConstraint("document_type IN ('saida', 'entrada')", name="ck_fiscal_document_type"),
+        CheckConstraint("model IN ('55', '65', 'NFS-e')", name="ck_fiscal_document_model"),
+        CheckConstraint("status IN ('Autorizada', 'Em processamento', 'Cancelada', 'Rejeitada', 'Inutilizada', 'Denegada')", name="ck_fiscal_document_status"),
+        CheckConstraint("value >= 0", name="ck_fiscal_document_value_nonnegative"),
+        Index("ix_fiscal_documents_org_date", "organization_id", "issue_date"),
+        Index("ix_fiscal_documents_org_type_status", "organization_id", "document_type", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    order_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("orders.id", ondelete="SET NULL"))
+    document_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    number: Mapped[str] = mapped_column(String(30), nullable=False)
+    series: Mapped[str] = mapped_column(String(20), nullable=False, default="1")
+    model: Mapped[str] = mapped_column(String(10), nullable=False, default="55")
+    participant_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    participant_document: Mapped[str | None] = mapped_column(String(18))
+    issue_date: Mapped[date] = mapped_column(Date, nullable=False)
+    cfop: Mapped[str | None] = mapped_column(String(10))
+    operation_nature: Mapped[str | None] = mapped_column(String(160))
+    value: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="Em processamento")
+    access_key: Mapped[str | None] = mapped_column(String(44), unique=True)
+    xml_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    pdf_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
