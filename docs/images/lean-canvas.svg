@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-label="Lean Canvas do GestorIA">
+  <rect width="1600" height="980" fill="#F7F8FC"/>
+  <rect width="1600" height="88" fill="#0B1330"/>
+  <text x="40" y="38" fill="#FFFFFF" font-family="DejaVu Sans, Ubuntu, Arial, sans-serif" font-size="28" font-weight="700">GestorIA — Lean Canvas</text>
+  <text x="40" y="66" fill="#B8C6E8" font-family="DejaVu Sans, Ubuntu, Arial, sans-serif" font-size="15">Gestão empresarial com inteligência operacional, segurança transacional e visão unificada do negócio</text>
+  <g font-family="DejaVu Sans, Ubuntu, Arial, sans-serif">
+    <rect x="24" y="112" width="300" height="548" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="24" y="112" width="300" height="40" rx="10" fill="#0B1330"/>
+    <rect x="24" y="140" width="300" height="12" fill="#0B1330"/>
+    <text x="40" y="138" fill="#FFFFFF" font-size="15" font-weight="700">1. Problema</text>
+    <text x="40" y="178" fill="#162040" font-size="13">
+      <tspan x="40" dy="0">• Operação registrada em</tspan>
+      <tspan x="40" dy="16">WhatsApp, cadernos e planilhas.</tspan>
+      <tspan x="40" dy="22">• ERPs tradicionais exigem</tspan>
+      <tspan x="40" dy="16">formulários longos e a equipe</tspan>
+      <tspan x="40" dy="16">abandona.</tspan>
+      <tspan x="40" dy="22">• Sem estrutura, não há</tspan>
+      <tspan x="40" dy="16">indicadores nem prioridades.</tspan>
+      <tspan x="40" dy="22">• Estoque, produção e</tspan>
+      <tspan x="40" dy="16">orçamentos vencem sem</tspan>
+      <tspan x="40" dy="16">visibilidade.</tspan>
+    </text>
+
+    <rect x="336" y="112" width="300" height="268" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="336" y="112" width="300" height="40" rx="10" fill="#131B4A"/>
+    <rect x="336" y="140" width="300" height="12" fill="#131B4A"/>
+    <text x="352" y="138" fill="#FFFFFF" font-size="15" font-weight="700">4. Solução</text>
+    <text x="352" y="178" fill="#162040" font-size="13">
+      <tspan x="352" dy="0">• Clientes, produtos, estoque,</tspan>
+      <tspan x="352" dy="16">pedidos e orçamentos.</tspan>
+      <tspan x="352" dy="20">• Radar operacional com</tspan>
+      <tspan x="352" dy="16">prioridades reais.</tspan>
+      <tspan x="352" dy="20">• Modo Fábrica para a produção.</tspan>
+      <tspan x="352" dy="20">• Pedidos protegidos (HMAC,</tspan>
+      <tspan x="352" dy="16">confirmação, idempotência).</tspan>
+      <tspan x="352" dy="20">• Copiloto GestorIA em evolução.</tspan>
+    </text>
+
+    <rect x="336" y="392" width="300" height="268" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="336" y="392" width="300" height="40" rx="10" fill="#131B4A"/>
+    <rect x="336" y="420" width="300" height="12" fill="#131B4A"/>
+    <text x="352" y="418" fill="#FFFFFF" font-size="15" font-weight="700">8. Métricas-chave</text>
+    <text x="352" y="458" fill="#162040" font-size="13">
+      <tspan x="352" dy="0">• Pedidos confirmados sem</tspan>
+      <tspan x="352" dy="16">duplicidade.</tspan>
+      <tspan x="352" dy="20">• Tempo para registrar um pedido.</tspan>
+      <tspan x="352" dy="20">• Taxa de conversão de orçamentos.</tspan>
+      <tspan x="352" dy="20">• Itens de estoque crítico</tspan>
+      <tspan x="352" dy="16">resolvidos.</tspan>
+      <tspan x="352" dy="20">• Uso do Radar e do Modo Fábrica.</tspan>
+    </text>
+
+    <rect x="648" y="112" width="304" height="548" rx="10" fill="#FFFFFF" stroke="#3D63F5" stroke-width="2"/>
+    <rect x="648" y="112" width="304" height="40" rx="10" fill="#3D63F5"/>
+    <rect x="648" y="140" width="304" height="12" fill="#3D63F5"/>
+    <text x="664" y="138" fill="#FFFFFF" font-size="14" font-weight="700">3. Proposta única de valor</text>
+    <text x="664" y="188" fill="#162040" font-size="14">
+      <tspan x="664" dy="0">• Do bloco de notas à gestão:</tspan>
+      <tspan x="664" dy="18">a anotação do dia a dia vira</tspan>
+      <tspan x="664" dy="18">dado estruturado.</tspan>
+      <tspan x="664" dy="28">• Radar que destaca o que</tspan>
+      <tspan x="664" dy="18">precisa de atenção agora.</tspan>
+      <tspan x="664" dy="28">• Operação simples, segura</tspan>
+      <tspan x="664" dy="18">e isolada por empresa.</tspan>
+    </text>
+
+    <rect x="964" y="112" width="300" height="268" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="964" y="112" width="300" height="40" rx="10" fill="#131B4A"/>
+    <rect x="964" y="140" width="300" height="12" fill="#131B4A"/>
+    <text x="980" y="138" fill="#FFFFFF" font-size="15" font-weight="700">9. Vantagem injusta</text>
+    <text x="980" y="178" fill="#162040" font-size="13">
+      <tspan x="980" dy="0">• IA com confirmação humana:</tspan>
+      <tspan x="980" dy="16">sugere, a pessoa decide.</tspan>
+      <tspan x="980" dy="20">• Integridade transacional de</tspan>
+      <tspan x="980" dy="16">pedidos e estoque.</tspan>
+      <tspan x="980" dy="20">• Adaptação ao jeito de</tspan>
+      <tspan x="980" dy="16">trabalhar do pequeno negócio.</tspan>
+      <tspan x="980" dy="20">• Radar que transforma dado</tspan>
+      <tspan x="980" dy="16">em prioridade.</tspan>
+    </text>
+
+    <rect x="964" y="392" width="300" height="268" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="964" y="392" width="300" height="40" rx="10" fill="#131B4A"/>
+    <rect x="964" y="420" width="300" height="12" fill="#131B4A"/>
+    <text x="980" y="418" fill="#FFFFFF" font-size="15" font-weight="700">5. Canais</text>
+    <text x="980" y="458" fill="#162040" font-size="13">
+      <tspan x="980" dy="0">• Aplicação web no navegador.</tspan>
+      <tspan x="980" dy="22">• Demonstração acadêmica</tspan>
+      <tspan x="980" dy="16">e indicação.</tspan>
+      <tspan x="980" dy="22">• Futuro canal SaaS.</tspan>
+    </text>
+
+    <rect x="1276" y="112" width="300" height="548" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="1276" y="112" width="300" height="40" rx="10" fill="#0B1330"/>
+    <rect x="1276" y="140" width="300" height="12" fill="#0B1330"/>
+    <text x="1292" y="138" fill="#FFFFFF" font-size="14" font-weight="700">2. Segmentos de clientes</text>
+    <text x="1292" y="178" fill="#162040" font-size="13">
+      <tspan x="1292" dy="0">• Donos e gestores de PMEs</tspan>
+      <tspan x="1292" dy="16">(padaria, confeitaria, oficina,</tspan>
+      <tspan x="1292" dy="16">salão, assistência).</tspan>
+      <tspan x="1292" dy="22">• Equipe de produção /</tspan>
+      <tspan x="1292" dy="16">chão de fábrica.</tspan>
+      <tspan x="1292" dy="22">• Quem precisa decidir sem</tspan>
+      <tspan x="1292" dy="16">virar analista de planilha.</tspan>
+    </text>
+
+    <rect x="24" y="676" width="770" height="268" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="24" y="676" width="770" height="40" rx="10" fill="#0B1330"/>
+    <rect x="24" y="704" width="770" height="12" fill="#0B1330"/>
+    <text x="40" y="702" fill="#FFFFFF" font-size="15" font-weight="700">7. Estrutura de custos</text>
+    <text x="40" y="742" fill="#162040" font-size="13">
+      <tspan x="40" dy="0">• Infraestrutura (hospedagem e PostgreSQL).</tspan>
+      <tspan x="40" dy="20">• Desenvolvimento e manutenção.</tspan>
+      <tspan x="40" dy="20">• Uso futuro de APIs de inteligência artificial.</tspan>
+      <tspan x="40" dy="20">• Segurança, suporte e conformidade.</tspan>
+    </text>
+
+    <rect x="806" y="676" width="770" height="268" rx="10" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="806" y="676" width="770" height="40" rx="10" fill="#0B1330"/>
+    <rect x="806" y="704" width="770" height="12" fill="#0B1330"/>
+    <text x="822" y="702" fill="#FFFFFF" font-size="15" font-weight="700">6. Fontes de receita</text>
+    <text x="822" y="742" fill="#162040" font-size="13">
+      <tspan x="822" dy="0">• MVP atual: projeto acadêmico, sem cobrança.</tspan>
+      <tspan x="822" dy="20">• Modelo futuro: assinatura mensal por empresa.</tspan>
+      <tspan x="822" dy="20">• Planos por usuários ou volume de pedidos.</tspan>
+      <tspan x="822" dy="20">• Add-ons: Copiloto IA e integração fiscal.</tspan>
+    </text>
+  </g>
+</svg>
