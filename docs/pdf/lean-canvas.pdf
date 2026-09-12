@@ -1,0 +1,124 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842.00 595.00] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 7700 >>
+stream
+0.969 0.973 0.988 rg 0.00 0.00 842.00 595.00 re f
+0.043 0.075 0.188 rg 0.00 547.00 842.00 48.00 re f
+BT /F2 16.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 18.00 575.00 Tm (GestorIA  Lean Canvas) Tj ET
+BT /F1 8.50 Tf 0.722 0.776 0.910 rg 1 0 0 1 18.00 559.00 Tm (Gestao empresarial com inteligencia operacional e visao unificada do negocio) Tj ET
+1.000 1.000 1.000 rg 16.00 195.00 158.00 340.00 re f
+0.80 w 0.824 0.847 0.910 RG 16.00 195.00 158.00 340.00 re S
+0.043 0.075 0.188 rg 16.00 517.00 158.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 23.00 522.00 Tm (1. Problema) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 505.00 Tm (- Operação registrada em WhatsApp,) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 493.50 Tm (cadernos e planilhas.) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 482.00 Tm (- ERPs tradicionais exigem formulários) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 470.50 Tm (longos e a equipe abandona.) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 459.00 Tm (- Sem estrutura, não há indicadores nem) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 447.50 Tm (prioridades.) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 436.00 Tm (- Estoque, produção e orçamentos vencem) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 424.50 Tm (sem visibilidade.) Tj ET
+1.000 1.000 1.000 rg 180.00 369.00 158.00 166.00 re f
+0.80 w 0.824 0.847 0.910 RG 180.00 369.00 158.00 166.00 re S
+0.075 0.106 0.290 rg 180.00 517.00 158.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 187.00 522.00 Tm (4. Solucao) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 505.00 Tm (- Clientes, produtos, estoque, pedidos e) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 494.20 Tm (orçamentos.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 483.40 Tm (- Radar operacional com prioridades reais.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 472.60 Tm (- Modo Fábrica para acompanhar a) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 461.80 Tm (produção.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 451.00 Tm (- Pedidos protegidos \(confirmação, HMAC,) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 440.20 Tm (idempotência\).) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 429.40 Tm (- Copiloto GestorIA em evolução.) Tj ET
+1.000 1.000 1.000 rg 180.00 195.00 158.00 166.00 re f
+0.80 w 0.824 0.847 0.910 RG 180.00 195.00 158.00 166.00 re S
+0.075 0.106 0.290 rg 180.00 343.00 158.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 187.00 348.00 Tm (8. Metricas-chave) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 331.00 Tm (- Pedidos confirmados sem duplicidade.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 320.20 Tm (- Tempo para registrar um pedido.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 309.40 Tm (- Taxa de conversão de orçamentos.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 298.60 Tm (- Itens de estoque crítico resolvidos.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 187.00 287.80 Tm (- Uso do Radar e do Modo Fábrica.) Tj ET
+1.000 1.000 1.000 rg 344.00 195.00 154.00 340.00 re f
+0.80 w 0.824 0.847 0.910 RG 344.00 195.00 154.00 340.00 re S
+0.239 0.388 0.961 rg 344.00 517.00 154.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 351.00 522.00 Tm (3. Proposta unica de valor) Tj ET
+BT /F1 7.60 Tf 0.086 0.125 0.251 rg 1 0 0 1 351.00 505.00 Tm (- Do bloco de notas à gestão: a anotação) Tj ET
+BT /F1 7.60 Tf 0.086 0.125 0.251 rg 1 0 0 1 351.00 491.00 Tm (do dia a dia vira dado estruturado.) Tj ET
+BT /F1 7.60 Tf 0.086 0.125 0.251 rg 1 0 0 1 351.00 477.00 Tm (- Radar que destaca o que precisa de) Tj ET
+BT /F1 7.60 Tf 0.086 0.125 0.251 rg 1 0 0 1 351.00 463.00 Tm (atenção agora.) Tj ET
+BT /F1 7.60 Tf 0.086 0.125 0.251 rg 1 0 0 1 351.00 449.00 Tm (- Operação simples, segura e isolada por) Tj ET
+BT /F1 7.60 Tf 0.086 0.125 0.251 rg 1 0 0 1 351.00 435.00 Tm (empresa.) Tj ET
+1.000 1.000 1.000 rg 504.00 369.00 158.00 166.00 re f
+0.80 w 0.824 0.847 0.910 RG 504.00 369.00 158.00 166.00 re S
+0.075 0.106 0.290 rg 504.00 517.00 158.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 511.00 522.00 Tm (9. Vantagem injusta) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 505.00 Tm (- IA com confirmação humana: sugere, a) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 494.00 Tm (pessoa decide.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 483.00 Tm (- Integridade transacional de pedidos e) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 472.00 Tm (estoque.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 461.00 Tm (- Adaptação ao jeito de trabalhar do) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 450.00 Tm (pequeno negócio.) Tj ET
+BT /F1 7.20 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 439.00 Tm (- Radar que transforma dado em prioridade.) Tj ET
+1.000 1.000 1.000 rg 504.00 195.00 158.00 166.00 re f
+0.80 w 0.824 0.847 0.910 RG 504.00 195.00 158.00 166.00 re S
+0.075 0.106 0.290 rg 504.00 343.00 158.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 511.00 348.00 Tm (5. Canais) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 331.00 Tm (- Aplicação web no navegador.) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 319.00 Tm (- Demonstração acadêmica e indicação.) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 511.00 307.00 Tm (- Futuro canal SaaS.) Tj ET
+1.000 1.000 1.000 rg 668.00 195.00 158.00 340.00 re f
+0.80 w 0.824 0.847 0.910 RG 668.00 195.00 158.00 340.00 re S
+0.043 0.075 0.188 rg 668.00 517.00 158.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 675.00 522.00 Tm (2. Segmentos de clientes) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 675.00 505.00 Tm (- Donos e gestores de PMEs \(padaria,) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 675.00 492.00 Tm (confeitaria, oficina, salão, assistência\).) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 675.00 479.00 Tm (- Equipe de produção / chão de fábrica.) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 675.00 466.00 Tm (- Quem precisa decidir sem virar analista) Tj ET
+BT /F1 7.40 Tf 0.086 0.125 0.251 rg 1 0 0 1 675.00 453.00 Tm (de planilha.) Tj ET
+1.000 1.000 1.000 rg 16.00 17.00 400.00 170.00 re f
+0.80 w 0.824 0.847 0.910 RG 16.00 17.00 400.00 170.00 re S
+0.043 0.075 0.188 rg 16.00 169.00 400.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 23.00 174.00 Tm (7. Estrutura de custos) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 157.00 Tm (- Infraestrutura \(hospedagem e PostgreSQL\).) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 144.00 Tm (- Desenvolvimento e manutenção.) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 131.00 Tm (- Uso futuro de APIs de inteligência artificial.) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 23.00 118.00 Tm (- Segurança, suporte e conformidade.) Tj ET
+1.000 1.000 1.000 rg 424.00 17.00 402.00 170.00 re f
+0.80 w 0.824 0.847 0.910 RG 424.00 17.00 402.00 170.00 re S
+0.043 0.075 0.188 rg 424.00 169.00 402.00 18.00 re f
+BT /F2 8.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 431.00 174.00 Tm (6. Fontes de receita) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 431.00 157.00 Tm (- MVP atual: projeto acadêmico, sem cobrança.) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 431.00 144.00 Tm (- Modelo futuro: assinatura mensal por empresa.) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 431.00 131.00 Tm (- Planos por usuários ou volume de pedidos.) Tj ET
+BT /F1 8.00 Tf 0.086 0.125 0.251 rg 1 0 0 1 431.00 118.00 Tm (- Add-ons: Copiloto IA e integração fiscal.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000257 00000 n 
+0000000354 00000 n 
+0000000456 00000 n 
+trailer << /Size 7 /Root 1 0 R >>
+startxref
+8207
+%%EOF

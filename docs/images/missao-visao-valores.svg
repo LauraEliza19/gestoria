@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" role="img" aria-label="Missão, Visão e Valores do GestorIA">
+  <rect width="1600" height="920" fill="#F7F8FC"/>
+  <rect width="1600" height="88" fill="#0B1330"/>
+  <text x="40" y="38" fill="#FFFFFF" font-family="DejaVu Sans, Ubuntu, Arial, sans-serif" font-size="28" font-weight="700">GestorIA — Missão, Visão e Valores</text>
+  <text x="40" y="66" fill="#B8C6E8" font-family="DejaVu Sans, Ubuntu, Arial, sans-serif" font-size="15">O norte estratégico do produto: para quem existe, aonde quer chegar e o que não abre mão</text>
+
+  <g font-family="DejaVu Sans, Ubuntu, Arial, sans-serif">
+    <rect x="40" y="120" width="740" height="270" rx="12" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="120" width="740" height="8" rx="4" fill="#3D63F5"/>
+    <text x="68" y="168" fill="#3D63F5" font-size="13" font-weight="700">MISSÃO</text>
+    <text x="68" y="206" fill="#162040" font-size="18" font-weight="600">Para que o GestorIA existe</text>
+    <text x="68" y="236" fill="#162040" font-size="15"><tspan x="68" dy="0">Transformar a operação cotidiana de pequenos e médios negócios em gestão clara e segura: o que</tspan><tspan x="68" dy="22">hoje vive em anotações, WhatsApp e planilhas vira dado estruturado, prioridade visível e decisão com</tspan><tspan x="68" dy="22">confirmação.</tspan></text>
+
+    <rect x="820" y="120" width="740" height="270" rx="12" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="820" y="120" width="740" height="8" rx="4" fill="#C49A4A"/>
+    <text x="848" y="168" fill="#C49A4A" font-size="13" font-weight="700">VISÃO</text>
+    <text x="848" y="206" fill="#162040" font-size="18" font-weight="600">Aonde queremos chegar</text>
+    <text x="848" y="236" fill="#162040" font-size="15"><tspan x="848" dy="0">Ser a plataforma de gestão inteligente que compreende o negócio, antecipa riscos e ajuda o gestor a</tspan><tspan x="848" dy="22">crescer — unindo operação, automação e inteligência artificial em uma experiência acessível para</tspan><tspan x="848" dy="22">PMEs.</tspan></text>
+
+    <text x="40" y="430" fill="#0B1330" font-size="18" font-weight="700">Valores</text>
+    
+    <rect x="40" y="448" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="448" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="471" fill="#0B1330" font-size="16" font-weight="700">Simplicidade</text>
+    <text x="68" y="492" fill="#5A6682" font-size="14">A ferramenta se adapta à forma de trabalhar, não o contrário.</text>
+
+    <rect x="40" y="510" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="510" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="533" fill="#0B1330" font-size="16" font-weight="700">Segurança</text>
+    <text x="68" y="554" fill="#5A6682" font-size="14">Pedidos, estoque e auditoria na mesma transação.</text>
+
+    <rect x="40" y="572" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="572" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="595" fill="#0B1330" font-size="16" font-weight="700">Confirmação humana</text>
+    <text x="68" y="616" fill="#5A6682" font-size="14">A inteligência sugere; a pessoa decide.</text>
+
+    <rect x="40" y="634" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="634" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="657" fill="#0B1330" font-size="16" font-weight="700">Isolamento</text>
+    <text x="68" y="678" fill="#5A6682" font-size="14">Cada empresa vê somente os seus dados.</text>
+
+    <rect x="40" y="696" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="696" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="719" fill="#0B1330" font-size="16" font-weight="700">Transparência</text>
+    <text x="68" y="740" fill="#5A6682" font-size="14">Prioridades, comprovantes e histórico auditável.</text>
+
+    <rect x="40" y="758" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="758" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="781" fill="#0B1330" font-size="16" font-weight="700">Evolução contínua</text>
+    <text x="68" y="802" fill="#5A6682" font-size="14">MVP acadêmico com disciplina de produto real.</text>
+
+    <rect x="40" y="820" width="1520" height="56" rx="8" fill="#FFFFFF" stroke="#D2D8E8"/>
+    <rect x="40" y="820" width="8" height="56" rx="2" fill="#3D63F5"/>
+    <text x="68" y="843" fill="#0B1330" font-size="16" font-weight="700">Foco na PME</text>
+    <text x="68" y="864" fill="#5A6682" font-size="14">Linguagem e fluxos pensados para o pequeno negócio.</text>
+
+  </g>
+</svg>
