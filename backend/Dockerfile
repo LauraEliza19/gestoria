@@ -17,8 +17,7 @@ COPY backend/requirements.txt backend/constraints-tested.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -c constraints-tested.txt
 
 COPY backend/ .
-COPY --from=frontend /frontend/views /frontend/views
-COPY --from=frontend /frontend/static /frontend/static
+COPY --from=frontend /frontend/dist /frontend/dist
 
 ENV FRONTEND_DIR=/frontend
 
