@@ -32,7 +32,7 @@ services:
       DEMO_ORGANIZATION: ${DEMO_ORGANIZATION:-Empresa Demo GestorIA}
       DEMO_EMAIL: ${DEMO_EMAIL:-admin@gestoria.dev}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-GestorIA@123}
-      FRONTEND_DIR: /workspace/frontend
+      FRONTEND_DIR: /frontend
       OPERATION_SIGNING_KEYS: ${OPERATION_SIGNING_KEYS:-}
       OPERATION_ACTIVE_KEY_ID: ${OPERATION_ACTIVE_KEY_ID:-v1}
       OPERATION_TTL_SECONDS: ${OPERATION_TTL_SECONDS:-300}
@@ -43,7 +43,6 @@ services:
       - "${API_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
-      - ./frontend:/workspace/frontend:ro
     command: >-
       sh -c "alembic upgrade head && python -m app.seed &&
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
