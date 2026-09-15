@@ -25,9 +25,11 @@ def login(
 def test_health_and_frontend_are_available(client: TestClient) -> None:
     assert client.get("/api/health").json() == {"status": "ok"}
     assert "GestorIA" in client.get("/").text
-    assert "Catálogo de produtos" in client.get("/dashboard").text
-    assert client.get("/static/css/app.css").status_code == 200
-    assert client.get("/static/js/controllers/login.controller.js").status_code == 200
+
+    dashboard = client.get("/dashboard")
+
+    assert dashboard.status_code == 200
+    assert '<div id="root"></div>' in dashboard.text
     assert client.get("/assets/backend/app/config.py").status_code == 404
     assert client.get("/static/backend/app/config.py").status_code == 404
 
