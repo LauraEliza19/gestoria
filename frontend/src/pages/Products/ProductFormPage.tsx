@@ -359,9 +359,8 @@ export function ProductFormPage() {
           <label className="form-label">
             NCM
             <input
-              className={`form-input ${
-                fieldErrors.ncm_code ? 'border-[#d84f62]' : ''
-              }`}
+              className={`form-input ${fieldErrors.ncm_code ? 'border-[#d84f62]' : ''
+                }`}
               inputMode="numeric"
               maxLength={8}
               value={form.ncm_code}
@@ -387,9 +386,8 @@ export function ProductFormPage() {
           <label className="form-label">
             CEST
             <input
-              className={`form-input ${
-                fieldErrors.cest_code ? 'border-[#d84f62]' : ''
-              }`}
+              className={`form-input ${fieldErrors.cest_code ? 'border-[#d84f62]' : ''
+                }`}
               inputMode="numeric"
               maxLength={7}
               value={form.cest_code}
@@ -414,14 +412,11 @@ export function ProductFormPage() {
 
           <label className="form-label">
             Origem fiscal
-            <input
-              className={`form-input ${
-                fieldErrors.fiscal_origin
+            <select
+              className={`form-input ${fieldErrors.fiscal_origin
                   ? 'border-[#d84f62]'
                   : ''
-              }`}
-              inputMode="numeric"
-              maxLength={1}
+                }`}
               value={form.fiscal_origin}
               onChange={(event) =>
                 updateFiscal(
@@ -432,7 +427,37 @@ export function ProductFormPage() {
               }
               aria-invalid={Boolean(fieldErrors.fiscal_origin)}
               aria-describedby="fiscal-origin-help"
-            />
+            >
+              <option value="">Selecione a origem</option>
+              <option value="0">
+                0 — Nacional, exceto códigos 3, 4, 5 e 8
+              </option>
+              <option value="1">
+                1 — Estrangeira, importação direta
+              </option>
+              <option value="2">
+                2 — Estrangeira, adquirida no mercado interno
+              </option>
+              <option value="3">
+                3 — Nacional, conteúdo importado acima de 40% até 70%
+              </option>
+              <option value="4">
+                4 — Nacional, produzida conforme processo produtivo básico
+              </option>
+              <option value="5">
+                5 — Nacional, conteúdo importado de até 40%
+              </option>
+              <option value="6">
+                6 — Estrangeira, importação direta sem similar nacional
+              </option>
+              <option value="7">
+                7 — Estrangeira, mercado interno sem similar nacional
+              </option>
+              <option value="8">
+                8 — Nacional, conteúdo importado acima de 70%
+              </option>
+            </select>
+
             <small
               id="fiscal-origin-help"
               className={
@@ -442,9 +467,11 @@ export function ProductFormPage() {
               }
             >
               {fieldErrors.fiscal_origin ||
-                'Informe um número entre 0 e 8.'}
+                'Selecione a classificação correspondente ao produto.'}
             </small>
           </label>
+
+
         </div>
 
         {status && (
