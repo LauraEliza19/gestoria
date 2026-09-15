@@ -58,6 +58,12 @@ app.mount("/assets", StaticFiles(directory=frontend_dir / "dist" / "assets"), na
 
 @app.get("/{path:path}", include_in_schema=False)
 def react_route(path: str) -> FileResponse:
-    if path.startswith("api/") or path.startswith("assets/"):
-        raise HTTPException(status_code=404, detail="Recurso não encontrado.")
+    reserved_root = path.split("/", maxsplit=1)[0]
+
+    if reserved_root in {"api", "assets", "static"}:
+        raise HTTPException(
+            status_code=404,
+            detail="Recurso não encontrado.",
+        )
+
     return react_index()
