@@ -8,15 +8,24 @@ import {
   ClipboardCheck,
   Clock3,
   FileWarning,
+  Trophy,
   Users,
 } from 'lucide-react'
 import { getSession, type Session } from '../../services/auth.service'
 import { apiFetch } from '../../services/api'
 
+type CustomerCategory =
+  | 'final_consumer'
+  | 'reseller'
+  | 'event'
+
 type Customer = {
   id: string
   name: string
+  category: CustomerCategory
+  total_spent: string
   orders_count: number
+  is_active: boolean
 }
 
 type Product = {
@@ -29,6 +38,7 @@ type Product = {
 
 type Order = {
   id: string
+  customer_id: string
   customer_name: string
   status: string
   total_amount: string
@@ -119,12 +129,14 @@ export function DashboardPage() {
       (order) => order.status === 'in_preparation',
     )
 
-    const completedRevenue = orders
-      .filter((order) => order.status === 'completed')
-      .reduce(
-        (total, order) => total + Number(order.total_amount),
-        0,
-      )
+    const completedOrders = orders.filter(
+      (order) => order.status === 'completed',
+    )
+
+    const completedRevenue = completedOrders.reduce(
+      (total, order) => total + Number(order.total_amount),
+      0,
+    )
 
     const today = startOfToday()
     const expirationLimit = new Date(today)
@@ -144,14 +156,113 @@ export function DashboardPage() {
       return validUntil >= today && validUntil <= expirationLimit
     })
 
+    const activeCustomers = customers.filter(
+      (customer) => customer.is_active,
+    )
+
+    const customerSegments = [
+      {
+        category: 'final_consumer' as CustomerCategory,
+        label: 'Consumidores finais',
+        count: activeCustomers.filter(
+          (customer) =>
+            customer.category === 'final_consumer',
+        ).length,
+      },
+      {
+        category: 'reseller' as CustomerCategory,
+        label: 'Revendedores',
+        count: activeCustomers.filter(
+          (customer) => customer.category === 'reseller',
+        ).length,
+      },
+      {
+        category: 'event' as CustomerCategory,
+        label: 'Clientes de eventos',
+        count: activeCustomers.filter(
+          (customer) => customer.category === 'event',
+        ).length,
+      },
+    ]
+
+    const customersWithCompletedOrders = new Set(
+      completedOrders.map((order) => order.customer_id),
+    )
+
+    const customersWithoutPurchases = activeCustomers.filter(
+      (customer) =>
+        !customersWithCompletedOrders.has(customer.id),
+    )
+
+    const lastCompletedOrderByCustomer = new Map<
+      string,
+      Date
+    >()
+
+    completedOrders.forEach((order) => {
+      const orderDate = new Date(order.created_at)
+      const currentDate = lastCompletedOrderByCustomer.get(
+        order.customer_id,
+      )
+
+      if (
+        !Number.isNaN(orderDate.getTime()) &&
+        (!currentDate || orderDate > currentDate)
+      ) {
+        lastCompletedOrderByCustomer.set(
+          order.customer_id,
+          orderDate,
+        )
+      }
+    })
+
+    const inactivityLimit = new Date()
+    inactivityLimit.setDate(inactivityLimit.getDate() - 60)
+
+    const dormantCustomers = activeCustomers.filter(
+      (customer) => {
+        const lastOrderDate = lastCompletedOrderByCustomer.get(
+          customer.id,
+        )
+
+        return Boolean(
+          lastOrderDate && lastOrderDate < inactivityLimit,
+        )
+      },
+    )
+
+    const topCustomer = activeCustomers.reduce<Customer | null>(
+      (currentTop, customer) => {
+        const customerTotal = Number(customer.total_spent)
+
+        if (customerTotal <= 0) {
+          return currentTop
+        }
+
+        if (
+          !currentTop ||
+          customerTotal > Number(currentTop.total_spent)
+        ) {
+          return customer
+        }
+
+        return currentTop
+      },
+      null,
+    )
+
     return {
       criticalProducts,
       inProduction,
       completedRevenue,
       expiredQuotes,
       expiringQuotes,
+      customerSegments,
+      customersWithoutPurchases,
+      dormantCustomers,
+      topCustomer,
     }
-  }, [orders, products, quotes])
+  }, [customers, orders, products, quotes])
 
   const priorities = [
     {
@@ -336,10 +447,179 @@ export function DashboardPage() {
           </div>
 
           <div className="grid gap-2.5">
-            <QuickLink href="/clientes" label="Gerenciar clientes" />
-            <QuickLink href="/produtos" label="Gerenciar produtos" />
-            <QuickLink href="/orcamentos" label="Criar orçamento" />
-            <QuickLink href="/pedidos/novo" label="Criar pedido" />
+            <QuickLink
+              href="/clientes"
+              label="Gerenciar clientes"
+            />
+            <QuickLink
+              href="/produtos"
+              label="Gerenciar produtos"
+            />
+            <QuickLink
+              href="/orcamentos"
+              label="Criar orçamento"
+            />
+            <QuickLink
+              href="/pedidos/novo"
+              label="Criar pedido"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
+        <div className="page-card">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <p className="eyebrow">
+                Inteligência comercial
+              </p>
+              <h2 className="font-display text-xl font-semibold">
+                Perfil da sua base de clientes
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-muted">
+                Distribuição dos clientes ativos por segmento.
+              </p>
+            </div>
+
+            <Link
+              className="text-xs font-bold text-signal no-underline"
+              to="/clientes"
+            >
+              Ver clientes
+            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {radar.customerSegments.map((segment) => (
+              <Link
+                className="rounded-lg border border-line bg-[#fbfcff] p-4 no-underline transition hover:-translate-y-0.5 hover:border-[#9fb5ff]"
+                key={segment.category}
+                to="/clientes"
+              >
+                <span className="mb-3 grid h-9 w-9 place-items-center rounded-lg bg-[#f2f5ff] text-signal">
+                  <Users size={17} />
+                </span>
+
+                <strong className="block font-display text-2xl font-semibold text-ink">
+                  {segment.count}
+                </strong>
+
+                <span className="mt-1 block text-xs font-bold text-[#354064]">
+                  {segment.label}
+                </span>
+
+                <small className="mt-1 block text-[11px] text-muted">
+                  clientes ativos
+                </small>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="page-card">
+          <div className="mb-5">
+            <p className="eyebrow">Relacionamento</p>
+            <h2 className="font-display text-xl font-semibold">
+              Oportunidades comerciais
+            </h2>
+          </div>
+
+          <div className="mb-3 rounded-lg border border-[#dce4ff] bg-[#f7f9ff] p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e9eeff] text-signal">
+                <Trophy size={18} />
+              </span>
+
+              <div className="min-w-0">
+                <small className="block text-[11px] font-bold uppercase tracking-wide text-muted">
+                  Maior cliente
+                </small>
+
+                {radar.topCustomer ? (
+                  <>
+                    <strong className="mt-1 block truncate text-sm text-ink">
+                      {radar.topCustomer.name}
+                    </strong>
+
+                    <span className="mt-1 block text-xs text-muted">
+                      {formatMoney(
+                        Number(
+                          radar.topCustomer.total_spent,
+                        ),
+                      )}{' '}
+                      em compras concluídas
+                    </span>
+                  </>
+                ) : (
+                  <span className="mt-1 block text-xs text-muted">
+                    Ainda não há compras concluídas.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            <Link
+              className="rounded-lg border border-line p-4 no-underline transition hover:border-[#9fb5ff]"
+              to="/clientes"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <strong className="block text-sm text-ink">
+                    Sem compras concluídas
+                  </strong>
+
+                  <small className="mt-1 block text-xs text-muted">
+                    {radar.customersWithoutPurchases.length >
+                      0
+                      ? radar.customersWithoutPurchases
+                        .slice(0, 2)
+                        .map(
+                          (customer) => customer.name,
+                        )
+                        .join(', ')
+                      : 'Todos os clientes ativos já compraram.'}
+                  </small>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-[#fff8eb] px-3 py-2 text-xs font-bold text-[#c77716]">
+                  {
+                    radar.customersWithoutPurchases
+                      .length
+                  }
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              className="rounded-lg border border-line p-4 no-underline transition hover:border-[#9fb5ff]"
+              to="/clientes"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <strong className="block text-sm text-ink">
+                    Sem comprar há mais de 60 dias
+                  </strong>
+
+                  <small className="mt-1 block text-xs text-muted">
+                    {radar.dormantCustomers.length > 0
+                      ? radar.dormantCustomers
+                        .slice(0, 2)
+                        .map(
+                          (customer) => customer.name,
+                        )
+                        .join(', ')
+                      : 'Nenhum cliente inativo nesse período.'}
+                  </small>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-[#fff1f3] px-3 py-2 text-xs font-bold text-[#d84f62]">
+                  {radar.dormantCustomers.length}
+                </span>
+              </div>
+            </Link>
           </div>
         </div>
       </section>
