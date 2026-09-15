@@ -7,6 +7,7 @@ import { ProductFormPage } from '../pages/Products/ProductFormPage'
 import { ProductsPage } from '../pages/Products/ProductsPage'
 import { CompanyPage } from '../pages/Company/CompanyPage'
 import { OrdersPage } from '../pages/Orders/OrdersPage'
+import { OrderFormPage } from '../pages/Orders/OrderFormPage'
 import { QuotesPage } from '../pages/Quotes/QuotesPage'
 import { CopilotPage } from '../pages/Copilot/CopilotPage'
 import { FactoryModePage } from '../pages/FactoryMode/FactoryModePage'
@@ -30,7 +31,10 @@ function PageTitle() {
 	useEffect(() => {
 		const titles: Record<string, string> = {
 			'/login': 'GestorIA — Entrar', '/dashboard': 'GestorIA — Visão geral', '/clientes': 'GestorIA — Clientes',
-			'/produtos': 'GestorIA — Produtos', '/pedidos': 'GestorIA — Pedidos', '/orcamentos': 'GestorIA — Orçamentos',
+			'/produtos': 'GestorIA — Produtos',
+			'/pedidos': 'GestorIA — Pedidos',
+			'/pedidos/novo': 'GestorIA — Novo pedido',
+			'/orcamentos': 'GestorIA — Orçamentos',
 			'/copiloto': 'GestorIA — Copiloto', '/modo-fabrica': 'GestorIA — Modo fábrica', '/notas-fiscais': 'GestorIA — Notas fiscais',
 			'/empresa/editar': 'GestorIA — Empresa',
 		}
@@ -51,6 +55,7 @@ export function AppRouter() {
 			<Route path="/produtos/novo" element={<ProductFormPage />} />
 			<Route path="/empresa/editar" element={<CompanyPage />} />
 			<Route path="/pedidos" element={<OrdersPage />} />
+			<Route path="/pedidos/novo" element={<OrderFormPage />} />
 			<Route path="/orcamentos" element={<QuotesPage />} />
 			<Route path="/copiloto" element={<CopilotPage />} />
 			<Route path="/modo-fabrica" element={<FactoryModePage />} />
