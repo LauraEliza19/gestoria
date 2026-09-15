@@ -26,6 +26,7 @@ from app.schemas.quote import (
 
 
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
+from app.schemas.fiscal import FiscalDocumentCreate, FiscalDocumentRead, FiscalDocumentStatusUpdate
 
 __all__ = [
     "Money",
@@ -51,4 +52,7 @@ __all__ = [
     "QuoteItemRead",
     "QuoteStatusUpdate",
     "QuoteItemCreate",
+    "FiscalDocumentCreate",
+    "FiscalDocumentRead",
+    "FiscalDocumentStatusUpdate",
 ]

@@ -3,6 +3,7 @@ from app.repositories.orders import OrderItemRepository, OrderRepository
 from app.repositories.products import ProductRepository
 from app.repositories.users import OrganizationRepository, UserRepository
 from app.repositories.quotes import QuoteItemRepository, QuoteRepository
+from app.repositories.fiscal import FiscalDocumentRepository
 
 __all__ = [
     "CustomerSummary",
@@ -14,4 +15,5 @@ __all__ = [
     "OrderItemRepository",
     "QuoteItemRepository",
     "QuoteRepository",
+    "FiscalDocumentRepository",
 ]
