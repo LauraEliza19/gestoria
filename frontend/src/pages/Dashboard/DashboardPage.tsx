@@ -11,7 +11,10 @@ import {
   Trophy,
   Users,
 } from 'lucide-react'
-import { getSession, type Session } from '../../services/auth.service'
+import {
+  getSession,
+  type Session,
+} from '../../services/auth.service'
 import { apiFetch } from '../../services/api'
 
 type CustomerCategory =
@@ -25,6 +28,7 @@ type Customer = {
   category: CustomerCategory
   total_spent: string
   orders_count: number
+  last_purchase_at: string | null
   is_active: boolean
 }
 
@@ -72,7 +76,9 @@ function formatMoney(value: number): string {
 }
 
 export function DashboardPage() {
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<Session | null>(
+    null,
+  )
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
@@ -111,12 +117,15 @@ export function DashboardPage() {
       })
   }, [])
 
-  const firstName = session?.full_name.split(' ')[0] || 'gestor'
+  const firstName =
+    session?.full_name.split(' ')[0] || 'gestor'
 
   const radar = useMemo(() => {
     const criticalProducts = products.filter((product) => {
       const stock = Number(product.stock_quantity)
-      const minimumStock = Number(product.min_stock_quantity)
+      const minimumStock = Number(
+        product.min_stock_quantity,
+      )
 
       return (
         product.status === 'Esgotado' ||
@@ -134,27 +143,38 @@ export function DashboardPage() {
     )
 
     const completedRevenue = completedOrders.reduce(
-      (total, order) => total + Number(order.total_amount),
+      (total, order) =>
+        total + Number(order.total_amount),
       0,
     )
 
     const today = startOfToday()
     const expirationLimit = new Date(today)
-    expirationLimit.setDate(expirationLimit.getDate() + 7)
+    expirationLimit.setDate(
+      expirationLimit.getDate() + 7,
+    )
 
     const pendingQuotes = quotes.filter(
       (quote) => quote.status === 'pending',
     )
 
     const expiredQuotes = pendingQuotes.filter(
-      (quote) => parseDateOnly(quote.valid_until) < today,
+      (quote) =>
+        parseDateOnly(quote.valid_until) < today,
     )
 
-    const expiringQuotes = pendingQuotes.filter((quote) => {
-      const validUntil = parseDateOnly(quote.valid_until)
+    const expiringQuotes = pendingQuotes.filter(
+      (quote) => {
+        const validUntil = parseDateOnly(
+          quote.valid_until,
+        )
 
-      return validUntil >= today && validUntil <= expirationLimit
-    })
+        return (
+          validUntil >= today &&
+          validUntil <= expirationLimit
+        )
+      },
+    )
 
     const activeCustomers = customers.filter(
       (customer) => customer.is_active,
@@ -162,7 +182,8 @@ export function DashboardPage() {
 
     const customerSegments = [
       {
-        category: 'final_consumer' as CustomerCategory,
+        category:
+          'final_consumer' as CustomerCategory,
         label: 'Consumidores finais',
         count: activeCustomers.filter(
           (customer) =>
@@ -173,83 +194,71 @@ export function DashboardPage() {
         category: 'reseller' as CustomerCategory,
         label: 'Revendedores',
         count: activeCustomers.filter(
-          (customer) => customer.category === 'reseller',
+          (customer) =>
+            customer.category === 'reseller',
         ).length,
       },
       {
         category: 'event' as CustomerCategory,
         label: 'Clientes de eventos',
         count: activeCustomers.filter(
-          (customer) => customer.category === 'event',
+          (customer) =>
+            customer.category === 'event',
         ).length,
       },
     ]
 
-    const customersWithCompletedOrders = new Set(
-      completedOrders.map((order) => order.customer_id),
-    )
-
-    const customersWithoutPurchases = activeCustomers.filter(
-      (customer) =>
-        !customersWithCompletedOrders.has(customer.id),
-    )
-
-    const lastCompletedOrderByCustomer = new Map<
-      string,
-      Date
-    >()
-
-    completedOrders.forEach((order) => {
-      const orderDate = new Date(order.created_at)
-      const currentDate = lastCompletedOrderByCustomer.get(
-        order.customer_id,
+    const customersWithoutPurchases =
+      activeCustomers.filter(
+        (customer) =>
+          Number(customer.total_spent) <= 0,
       )
 
-      if (
-        !Number.isNaN(orderDate.getTime()) &&
-        (!currentDate || orderDate > currentDate)
-      ) {
-        lastCompletedOrderByCustomer.set(
-          order.customer_id,
-          orderDate,
-        )
-      }
-    })
-
     const inactivityLimit = new Date()
-    inactivityLimit.setDate(inactivityLimit.getDate() - 60)
+    inactivityLimit.setDate(
+      inactivityLimit.getDate() - 60,
+    )
 
     const dormantCustomers = activeCustomers.filter(
       (customer) => {
-        const lastOrderDate = lastCompletedOrderByCustomer.get(
-          customer.id,
+        if (!customer.last_purchase_at) {
+          return false
+        }
+
+        const lastPurchase = new Date(
+          customer.last_purchase_at,
         )
 
-        return Boolean(
-          lastOrderDate && lastOrderDate < inactivityLimit,
+        return (
+          !Number.isNaN(lastPurchase.getTime()) &&
+          lastPurchase < inactivityLimit
         )
       },
     )
 
-    const topCustomer = activeCustomers.reduce<Customer | null>(
-      (currentTop, customer) => {
-        const customerTotal = Number(customer.total_spent)
+    const topCustomer =
+      activeCustomers.reduce<Customer | null>(
+        (currentTop, customer) => {
+          const customerTotal = Number(
+            customer.total_spent,
+          )
 
-        if (customerTotal <= 0) {
+          if (customerTotal <= 0) {
+            return currentTop
+          }
+
+          if (
+            !currentTop ||
+            customerTotal >
+            Number(currentTop.total_spent)
+          ) {
+            return customer
+          }
+
           return currentTop
-        }
-
-        if (
-          !currentTop ||
-          customerTotal > Number(currentTop.total_spent)
-        ) {
-          return customer
-        }
-
-        return currentTop
-      },
-      null,
-    )
+        },
+        null,
+      )
 
     return {
       criticalProducts,
@@ -314,25 +323,39 @@ export function DashboardPage() {
         <div>
           <p className="eyebrow">Radar operacional</p>
           <h1>Olá, {firstName}.</h1>
-          <p>Veja prioridades e indicadores reais da sua empresa.</p>
+          <p>
+            Veja prioridades e indicadores reais da sua
+            empresa.
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Link className="secondary-button" to="/clientes/novo">
+          <Link
+            className="secondary-button"
+            to="/clientes/novo"
+          >
             Cadastrar cliente
           </Link>
 
-          <Link className="secondary-button" to="/produtos/novo">
+          <Link
+            className="secondary-button"
+            to="/produtos/novo"
+          >
             Cadastrar produto
           </Link>
 
-          <Link className="primary-button" to="/copiloto">
+          <Link
+            className="primary-button"
+            to="/copiloto"
+          >
             Abrir Copiloto
           </Link>
         </div>
       </header>
 
-      {error && <p className="error-banner mb-5">{error}</p>}
+      {error && (
+        <p className="error-banner mb-5">{error}</p>
+      )}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <RadarCard
@@ -362,7 +385,9 @@ export function DashboardPage() {
         <RadarCard
           icon={FileWarning}
           label="Faturamento concluído"
-          value={formatMoney(radar.completedRevenue)}
+          value={formatMoney(
+            radar.completedRevenue,
+          )}
           detail="pedidos concluídos"
           href="/pedidos"
         />
@@ -408,27 +433,35 @@ export function DashboardPage() {
                       <strong className="block text-sm text-ink">
                         {label}
                       </strong>
+
                       <small className="mt-1 block text-xs text-muted">
                         {detail}
                       </small>
                     </span>
 
-                    <ArrowRight className="text-[#8991aa]" size={17} />
+                    <ArrowRight
+                      className="text-[#8991aa]"
+                      size={17}
+                    />
                   </Link>
                 ),
               )}
             </div>
           ) : (
             <div className="flex items-start gap-3 rounded-lg border border-[#bfe8d8] bg-[#effbf6] p-5 text-[#28745b]">
-              <CircleCheck className="mt-0.5 shrink-0" size={22} />
+              <CircleCheck
+                className="mt-0.5 shrink-0"
+                size={22}
+              />
 
               <div>
                 <strong className="block text-sm">
                   Tudo sob controle
                 </strong>
                 <p className="mt-1 text-xs leading-relaxed">
-                  Não há estoques críticos, pedidos aguardando preparo ou
-                  orçamentos que exijam atenção imediata.
+                  Não há estoques críticos, pedidos
+                  aguardando preparo ou orçamentos que
+                  exijam atenção imediata.
                 </p>
               </div>
             </div>
@@ -442,7 +475,8 @@ export function DashboardPage() {
               Operação manual
             </h2>
             <p className="mt-2 text-xs leading-relaxed text-muted">
-              Escolha como trabalhar. O Copiloto é opcional.
+              Escolha como trabalhar. O Copiloto é
+              opcional.
             </p>
           </div>
 
@@ -478,7 +512,8 @@ export function DashboardPage() {
                 Perfil da sua base de clientes
               </h2>
               <p className="mt-2 text-xs leading-relaxed text-muted">
-                Distribuição dos clientes ativos por segmento.
+                Distribuição dos clientes ativos por
+                segmento.
               </p>
             </div>
 
@@ -495,7 +530,7 @@ export function DashboardPage() {
               <Link
                 className="rounded-lg border border-line bg-[#fbfcff] p-4 no-underline transition hover:-translate-y-0.5 hover:border-[#9fb5ff]"
                 key={segment.category}
-                to="/clientes"
+                to={`/clientes?category=${segment.category}`}
               >
                 <span className="mb-3 grid h-9 w-9 place-items-center rounded-lg bg-[#f2f5ff] text-signal">
                   <Users size={17} />
@@ -563,7 +598,7 @@ export function DashboardPage() {
           <div className="grid gap-3">
             <Link
               className="rounded-lg border border-line p-4 no-underline transition hover:border-[#9fb5ff]"
-              to="/clientes"
+              to="/clientes?opportunity=without-purchases"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -572,12 +607,13 @@ export function DashboardPage() {
                   </strong>
 
                   <small className="mt-1 block text-xs text-muted">
-                    {radar.customersWithoutPurchases.length >
-                      0
+                    {radar.customersWithoutPurchases
+                      .length > 0
                       ? radar.customersWithoutPurchases
                         .slice(0, 2)
                         .map(
-                          (customer) => customer.name,
+                          (customer) =>
+                            customer.name,
                         )
                         .join(', ')
                       : 'Todos os clientes ativos já compraram.'}
@@ -595,7 +631,7 @@ export function DashboardPage() {
 
             <Link
               className="rounded-lg border border-line p-4 no-underline transition hover:border-[#9fb5ff]"
-              to="/clientes"
+              to="/clientes?opportunity=dormant"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -608,7 +644,8 @@ export function DashboardPage() {
                       ? radar.dormantCustomers
                         .slice(0, 2)
                         .map(
-                          (customer) => customer.name,
+                          (customer) =>
+                            customer.name,
                         )
                         .join(', ')
                       : 'Nenhum cliente inativo nesse período.'}
@@ -649,10 +686,14 @@ function RadarCard({
         <Icon size={18} />
       </span>
 
-      <span className="block text-xs text-muted">{label}</span>
+      <span className="block text-xs text-muted">
+        {label}
+      </span>
+
       <strong className="mt-1 block font-display text-2xl font-semibold text-ink">
         {value}
       </strong>
+
       <small className="mt-1 block text-[11px] text-[#8991aa]">
         {detail}
       </small>

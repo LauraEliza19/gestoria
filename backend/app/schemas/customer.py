@@ -82,6 +82,7 @@ class CustomerRead(BaseModel):
     is_active: bool
     total_spent: Money = Decimal(0)
     orders_count: int = 0
+    last_purchase_at: datetime | None = None
 
     person_type: str
     document: str | None
