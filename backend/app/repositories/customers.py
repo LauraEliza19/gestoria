@@ -18,6 +18,7 @@ class CustomerSummary:
     is_active: bool
     total_spent: Decimal
     orders_count: int
+    last_purchase_at: datetime | None
 
     person_type: str
     document: str | None
@@ -58,8 +59,24 @@ class CustomerRepository:
             ),
             Decimal(0),
         )
+
+        last_purchase_at = func.max(
+        case(
+            (
+                Order.status == "completed",
+                Order.created_at,
+            ),
+            else_=None,
+        )
+    )
+
         query = (
-            select(Customer, completed_total, func.count(Order.id))
+            select(
+                Customer,
+                completed_total,
+                func.count(Order.id),
+                last_purchase_at,
+                )
             .outerjoin(
                 Order,
                 and_(
@@ -80,6 +97,7 @@ class CustomerRepository:
                 is_active=customer.is_active,
                 total_spent=total_spent,
                 orders_count=orders_count,
+                last_purchase_at=last_purchase_at,
                 person_type=customer.person_type,
                 document=customer.document,
                 trade_name=customer.trade_name,
@@ -100,7 +118,12 @@ class CustomerRepository:
                 created_at=customer.created_at,
                 updated_at=customer.updated_at,
             )
-            for customer, total_spent, orders_count in db.execute(query)
+            for (
+                customer,
+                total_spent,
+                orders_count,
+                last_purchase_at,
+                ) in db.execute(query)
         ]
 
     @staticmethod
