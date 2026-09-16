@@ -94,6 +94,7 @@ def test_customer_repository_aggregates_completed_orders_only(db: Session) -> No
     assert summaries[0].name == "Ana"
     assert summaries[0].total_spent == Decimal("40.00")
     assert summaries[0].orders_count == 2
+    assert summaries[0].last_purchase_at == completed.created_at
 
 def test_quote_repository_can_lock_quote_for_conversion() -> None:
     db = Mock(spec=Session)

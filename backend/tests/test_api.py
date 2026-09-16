@@ -115,6 +115,7 @@ def test_customer_flow_normalizes_phone_and_checks_permissions(
     assert customer["phone"] == "35999990000"
     assert Decimal(customer["total_spent"]) == Decimal(0)
     assert customer["orders_count"] == 0
+    assert customer["last_purchase_at"] is None
 
     duplicate = client.post(
         "/api/customers",
@@ -188,6 +189,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     customers = client.get("/api/customers", headers=headers).json()
     assert customers[0]["total_spent"] == "37.50"
     assert customers[0]["orders_count"] == 1
+    assert customers[0]["last_purchase_at"] is not None
 
     listed = client.get("/api/orders", headers=headers)
     assert listed.status_code == 200
@@ -202,9 +204,16 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert Decimal(
         client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
     ) == Decimal("5")
+
+    customers_after_cancellation = client.get(
+        "/api/customers",
+        headers=headers,
+    ).json()
+
     assert Decimal(
-        client.get("/api/customers", headers=headers).json()[0]["total_spent"]
+        customers_after_cancellation[0]["total_spent"]
     ) == Decimal(0)
+    assert customers_after_cancellation[0]["last_purchase_at"] is None
 
     reactivated = client.patch(
         f"/api/orders/{order['id']}",
