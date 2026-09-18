@@ -22,6 +22,29 @@ class QuoteRepository:
         return list (db.scalars(query).unique())
 
     @staticmethod
+    def list_for_customer(
+        db: Session,
+        organization_id: uuid.UUID,
+        customer_id: uuid.UUID,
+    ) -> list[Quote]:
+        query = (
+            select(Quote)
+            .options(
+                joinedload(Quote.customer),
+                selectinload(Quote.items).joinedload(
+                    QuoteItem.product
+                ),
+            )
+            .where(
+                Quote.organization_id == organization_id,
+                Quote.customer_id == customer_id,
+            )
+            .order_by(Quote.created_at.desc())
+        )
+
+        return list(db.scalars(query).unique())
+
+    @staticmethod
     def get_for_organization(
         db: Session,
         quote_id: uuid.UUID,
