@@ -291,6 +291,10 @@ export function CustomersPage() {
                   </span>
 
                   <span className="row-actions">
+                    <Link to={`/clientes/${customer.id}`}>
+                      Ver perfil
+                    </Link>
+
                     <Link
                       to={`/clientes/novo?id=${customer.id}`}
                     >
