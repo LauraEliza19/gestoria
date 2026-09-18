@@ -209,6 +209,7 @@ export function OrdersPage() {
                 </span>
 
                 <span className="row-actions">
+                  <Link to={`/notas-fiscais?order_id=${order.id}`}>Notas fiscais</Link>
                   <button onClick={() => void removeOrder(order)}>
                     Excluir
                   </button>
