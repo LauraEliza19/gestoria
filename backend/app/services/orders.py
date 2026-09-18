@@ -1,7 +1,10 @@
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from app.models import FiscalDocument
 
 from app.models import Order, Product
 from app.repositories import (
@@ -148,6 +151,24 @@ def create_order(
         raise
 
 
+class OrderFiscalConflictError(OrderServiceError):
+    pass
+
+
+def check_fiscal_documents(db, order, *, deleting=False):
+    query = select(FiscalDocument.id).where(
+        FiscalDocument.organization_id == order.organization_id,
+        FiscalDocument.order_id == order.id,
+    )
+    if not deleting:
+        query = query.where(FiscalDocument.status.in_(("Autorizada", "Em processamento")))
+    if db.scalar(query.limit(1)):
+        raise OrderFiscalConflictError(
+            "Pedido possui histórico fiscal e não pode ser excluído."
+            if deleting else "Resolva a nota fiscal ativa antes de cancelar o pedido."
+        )
+
+
 def update_order_status(db: Session, order: Order, status: str) -> Order:
     if order.status == status:
         return order
@@ -161,6 +182,7 @@ def update_order_status(db: Session, order: Order, status: str) -> Order:
 
     try:
         if status == "cancelled":
+            check_fiscal_documents(db, order)
             for item in sorted(
                 order.items, key=lambda current: str(current.product_id)
             ):
@@ -204,6 +226,7 @@ def update_order_status(db: Session, order: Order, status: str) -> Order:
 
 def delete_order_record(db: Session, order: Order) -> None:
     try:
+        check_fiscal_documents(db, order, deleting=True)
         if order.status != "cancelled":
             for item in sorted(
                 order.items, key=lambda current: str(current.product_id)

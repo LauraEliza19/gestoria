@@ -28,7 +28,7 @@ def resolve_frontend_dir() -> Path:
 
 frontend_dir = resolve_frontend_dir()
 
-app = FastAPI(title=settings.app_name, version="0.2.0-security.1")
+app = FastAPI(title=settings.app_name, version="0.3.0-fiscal.1")
 app.include_router(auth.router)
 app.include_router(order_operations.router)
 app.include_router(products.router)
@@ -37,6 +37,7 @@ app.include_router(orders.router)
 app.include_router(quotes.router)
 app.include_router(organization.router)
 app.include_router(fiscal.router)
+app.include_router(fiscal.supplier_router)
 
 
 @app.get("/api/health", tags=["health"])
