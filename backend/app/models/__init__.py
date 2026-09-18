@@ -37,6 +37,10 @@ __all__ = [
     "Quote",
     "QuoteItem",
     "FiscalDocument",
+    "FiscalDocumentItem",
+    "FiscalEvent",
+    "FiscalStockMovement",
+    "Supplier",
 ]
 
 
@@ -117,6 +121,7 @@ class OrganizationMember(Base):
 class Product(Base, TimestampMixin):
     __tablename__ = "products"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_products_org_id"),
         UniqueConstraint("organization_id", "name", name="uq_product_org_name"),
         CheckConstraint("price >= 0", name="ck_product_price_nonnegative"),
         CheckConstraint("stock_quantity >= 0", name="ck_product_stock_nonnegative"),
@@ -215,6 +220,7 @@ class Product(Base, TimestampMixin):
 class Customer(Base, TimestampMixin):
     __tablename__ = "customers"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_customers_org_id"),
         UniqueConstraint("organization_id", "phone", name="uq_customer_org_phone"),
         Index("ix_customers_org_created_at", "organization_id", "created_at"),
         Index("ix_customers_org_name", "organization_id", "name"),
@@ -280,6 +286,7 @@ class Customer(Base, TimestampMixin):
 class Order(Base, TimestampMixin):
     __tablename__ = "orders"
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_orders_org_id"),
         CheckConstraint(
             "status IN ('in_preparation', 'completed', 'cancelled')",
             name="ck_order_status",
@@ -414,31 +421,6 @@ class QuoteItem(Base, TimestampMixin):
     product: Mapped[Product] = relationship(back_populates="quote_items")
 
 
-class FiscalDocument(Base, TimestampMixin):
-    __tablename__ = "fiscal_documents"
-    __table_args__ = (
-        CheckConstraint("document_type IN ('saida', 'entrada')", name="ck_fiscal_document_type"),
-        CheckConstraint("model IN ('55', '65', 'NFS-e')", name="ck_fiscal_document_model"),
-        CheckConstraint("status IN ('Autorizada', 'Em processamento', 'Cancelada', 'Rejeitada', 'Inutilizada', 'Denegada')", name="ck_fiscal_document_status"),
-        CheckConstraint("value >= 0", name="ck_fiscal_document_value_nonnegative"),
-        Index("ix_fiscal_documents_org_date", "organization_id", "issue_date"),
-        Index("ix_fiscal_documents_org_type_status", "organization_id", "document_type", "status"),
-    )
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    organization_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    order_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("orders.id", ondelete="SET NULL"))
-    document_type: Mapped[str] = mapped_column(String(10), nullable=False)
-    number: Mapped[str] = mapped_column(String(30), nullable=False)
-    series: Mapped[str] = mapped_column(String(20), nullable=False, default="1")
-    model: Mapped[str] = mapped_column(String(10), nullable=False, default="55")
-    participant_name: Mapped[str] = mapped_column(String(160), nullable=False)
-    participant_document: Mapped[str | None] = mapped_column(String(18))
-    issue_date: Mapped[date] = mapped_column(Date, nullable=False)
-    cfop: Mapped[str | None] = mapped_column(String(10))
-    operation_nature: Mapped[str | None] = mapped_column(String(160))
-    value: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="Em processamento")
-    access_key: Mapped[str | None] = mapped_column(String(44), unique=True)
-    xml_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    pdf_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+from app.models.fiscal import (  # noqa: E402
+    FiscalDocument, FiscalDocumentItem, FiscalEvent, FiscalStockMovement, Supplier,
+)

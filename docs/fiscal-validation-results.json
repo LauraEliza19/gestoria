@@ -1,0 +1,71 @@
+{
+  "date_utc": "2026-09-17",
+  "source_zip_sha256": "d29a2fd672e86fe70bf1d9073edb907fbb821ddfafccf9ed1fe8f9a1a7db58d9",
+  "pytest": {
+    "total": 148,
+    "passed": 139,
+    "skipped": 9,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 40.088,
+    "database": "SQLite with foreign keys; file/WAL for concurrency",
+    "not_run": "Online PostgreSQL migration/concurrency cases require TEST_POSTGRES_URL"
+  },
+  "frontend": {
+    "typescript": "passed via npm run build",
+    "production_build": "passed",
+    "lint": "passed via npm run lint",
+    "manual_browser": "not performed"
+  },
+  "python_lint": {
+    "result": "passed",
+    "scope": "new/rewritten fiscal API, models, schemas, services, repository, tests, new migration and SQL-export script; not global legacy lint"
+  },
+  "migration_smoke": {
+    "runtime": "PGlite (embedded PostgreSQL/WASM; not concurrent server validation)",
+    "version": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+    "tests": [
+      {
+        "name": "empty upgrade/downgrade/upgrade",
+        "passed": true
+      },
+      {
+        "name": "legacy data preserved without fabricated actor/date/items",
+        "passed": true
+      },
+      {
+        "name": "duplicate active orders abort atomically",
+        "passed": true
+      },
+      {
+        "name": "duplicate numbering aborts atomically",
+        "passed": true
+      },
+      {
+        "name": "cross-tenant order aborts atomically",
+        "passed": true
+      },
+      {
+        "name": "incoming sales-order link aborts atomically",
+        "passed": true
+      },
+      {
+        "name": "partial uniqueness, tenant FK and preservation after cancellation",
+        "passed": true
+      }
+    ],
+    "total": 7,
+    "passed": 7
+  },
+  "not_validated": [
+    "Docker execution",
+    "PostgreSQL 17 online",
+    "Production database state",
+    "SEFAZ or external fiscal provider",
+    "Load/performance benchmark"
+  ],
+  "warnings": [
+    "Starlette httpx TestClient deprecation",
+    "AnyIO BlockingPortal alias deprecation"
+  ]
+}

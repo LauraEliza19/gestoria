@@ -39,7 +39,7 @@ Objetivos específicos:
 | Segurança de pedidos | Operacional | HMAC, idempotência, comprovante e auditoria |
 | Copiloto | Em evolução | Interface pronta; inteligência e execução pendentes |
 | Relatórios | Em evolução | Parte dos indicadores ainda pode usar dados simulados |
-| Notas fiscais | Protótipo visual | Sem integração fiscal no backend |
+| Notas fiscais | Registro persistido | Vínculos com pedidos, fornecedores, itens, eventos e recebimento; emissão externa pendente |
 
 ### 2.2 Fora do escopo atual
 
@@ -323,3 +323,8 @@ Critérios mínimos de aceite do MVP atual:
 | Proposta / envelope | Documento assinado pelo servidor que a pessoa confirma para criar o pedido |
 | Modo Fábrica | Tela de produção em tempo real |
 | Tenant | Empresa dona dos dados; isolada das demais |
+
+
+## Atualização fiscal de 17/09/2026
+
+A descrição fiscal anterior foi complementada pela revisão `0006_fiscal_integrity`. O frontend atual usa React/TypeScript; saídas exigem pedido e entradas possuem fornecedor e recebimento de estoque separado. Consulte [o relatório fiscal](docs/FISCAL_ATUALIZACOES_E_TESTES.md) para o modelo atualizado, exceções históricas, regras de reemissão e testes. A autorização real depende de integração externa.
