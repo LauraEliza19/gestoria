@@ -29,6 +29,16 @@ type Order = {
   created_at: string
 }
 
+type Quote = {
+  id: string
+  status: string
+  valid_until: string
+  total_amount: string
+  converted_order_id: string | null
+  items: OrderItem[]
+  created_at: string
+}
+
 type CustomerProfile = {
   id: string
   name: string
@@ -56,6 +66,7 @@ type CustomerProfile = {
   last_purchase_at: string | null
   created_at: string
   orders: Order[]
+  quotes: Quote[]
 }
 
 const categoryLabels: Record<
@@ -82,6 +93,24 @@ const orderStatusClasses: Record<string, string> = {
     'border-[#f3c8d0] bg-[#fff1f3] text-[#b43d51]',
 }
 
+const quoteStatusLabels: Record<string, string> = {
+  pending: 'Pendente',
+  approved: 'Aprovado',
+  rejected: 'Rejeitado',
+  converted: 'Convertido em pedido',
+}
+
+const quoteStatusClasses: Record<string, string> = {
+  pending:
+    'border-[#f4d9a8] bg-[#fff8eb] text-[#9a6512]',
+  approved:
+    'border-[#bfd5ff] bg-[#f1f5ff] text-[#315cc9]',
+  rejected:
+    'border-[#f3c8d0] bg-[#fff1f3] text-[#b43d51]',
+  converted:
+    'border-[#bfe8d8] bg-[#effbf6] text-[#28745b]',
+}
+
 function formatMoney(value: string): string {
   return Number(value).toLocaleString('pt-BR', {
     style: 'currency',
@@ -93,6 +122,12 @@ function formatDate(value: string | null): string {
   if (!value) return 'Não registrada'
 
   return new Date(value).toLocaleDateString('pt-BR')
+}
+
+function formatDateOnly(value: string): string {
+  return new Date(
+    `${value}T00:00:00`,
+  ).toLocaleDateString('pt-BR')
 }
 
 function getCommercialSituation(
@@ -133,8 +168,8 @@ export function CustomerProfilePage() {
     useState<CustomerProfile | null>(null)
   const [status, setStatus] = useState(
     customerId
-    ? 'Carregando perfil do cliente...'
-    : 'Cliente não identificado.',
+      ? 'Carregando perfil do cliente...'
+      : 'Cliente não identificado.',
   )
 
   useEffect(() => {
@@ -220,6 +255,14 @@ export function CustomerProfilePage() {
           </Link>
 
           <Link
+            className="secondary-button"
+            to={`/orcamentos?customer_id=${profile.id}`}
+          >
+            <FileText size={16} />
+            Criar orçamento
+          </Link>
+
+          <Link
             className="primary-button"
             to={`/pedidos/novo?customer_id=${profile.id}`}
           >
@@ -280,103 +323,209 @@ export function CustomerProfilePage() {
       </section>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="page-card">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-[#edf0f6] pb-4">
-            <div>
-              <p className="eyebrow">
-                Histórico comercial
-              </p>
-              <h2 className="font-display text-xl font-semibold text-ink">
-                Pedidos do cliente
-              </h2>
+        <div className="grid content-start gap-5">
+          <section className="page-card">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-[#edf0f6] pb-4">
+              <div>
+                <p className="eyebrow">
+                  Histórico comercial
+                </p>
+                <h2 className="font-display text-xl font-semibold text-ink">
+                  Pedidos do cliente
+                </h2>
+              </div>
+
+              <Link
+                className="text-xs font-bold text-signal no-underline"
+                to={`/pedidos/novo?customer_id=${profile.id}`}
+              >
+                Novo pedido
+              </Link>
             </div>
 
-            <Link
-              className="text-xs font-bold text-signal no-underline"
-              to={`/pedidos/novo?customer_id=${profile.id}`}
-            >
-              Novo pedido
-            </Link>
-          </div>
-
-          <div className="grid gap-3">
-            {profile.orders.map((order) => (
-              <article
-                className="rounded-xl border border-line bg-[#fbfcff] p-4"
-                key={order.id}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <strong className="block text-sm text-ink">
-                      Pedido #{order.id.slice(0, 8)}
-                    </strong>
-                    <span className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                      <CalendarDays size={14} />
-                      {formatDate(order.created_at)}
-                    </span>
-                  </div>
-
-                  <div className="text-right">
-                    <strong className="block text-sm text-ink">
-                      {formatMoney(order.total_amount)}
-                    </strong>
-                    <span
-                      className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                        orderStatusClasses[order.status] ||
-                        'border-line bg-white text-muted'
-                      }`}
-                    >
-                      {orderStatusLabels[order.status] ||
-                        order.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 border-t border-[#edf0f6] pt-3">
-                  {order.items.map((item) => (
-                    <div
-                      className="flex flex-wrap justify-between gap-2 text-xs"
-                      key={item.id}
-                    >
-                      <span className="text-[#536080]">
-                        {item.quantity} ×{' '}
-                        {item.product_name}
-                      </span>
-                      <span className="font-semibold text-ink">
-                        {formatMoney(item.unit_price)}
+            <div className="grid gap-3">
+              {profile.orders.map((order) => (
+                <article
+                  className="rounded-xl border border-line bg-[#fbfcff] p-4"
+                  key={order.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <strong className="block text-sm text-ink">
+                        Pedido #{order.id.slice(0, 8)}
+                      </strong>
+                      <span className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                        <CalendarDays size={14} />
+                        {formatDate(order.created_at)}
                       </span>
                     </div>
-                  ))}
-                </div>
 
-                <div className="mt-4 flex justify-end">
-                  <Link
-                    className="text-xs font-bold text-signal no-underline"
-                    to={`/notas-fiscais?order_id=${order.id}`}
-                  >
-                    Consultar notas fiscais
-                  </Link>
-                </div>
-              </article>
-            ))}
+                    <div className="text-right">
+                      <strong className="block text-sm text-ink">
+                        {formatMoney(order.total_amount)}
+                      </strong>
+                      <span
+                        className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${orderStatusClasses[order.status] ||
+                          'border-line bg-white text-muted'
+                          }`}
+                      >
+                        {orderStatusLabels[order.status] ||
+                          order.status}
+                      </span>
+                    </div>
+                  </div>
 
-            {profile.orders.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line px-5 py-10 text-center">
-                <ShoppingBag
-                  className="mx-auto text-[#9aa6c6]"
-                  size={28}
-                />
-                <strong className="mt-3 block text-sm text-ink">
-                  Nenhum pedido registrado
-                </strong>
-                <p className="mt-1 text-xs text-muted">
-                  Este cliente ainda não possui histórico
-                  de compras.
+                  <div className="mt-4 grid gap-2 border-t border-[#edf0f6] pt-3">
+                    {order.items.map((item) => (
+                      <div
+                        className="flex flex-wrap justify-between gap-2 text-xs"
+                        key={item.id}
+                      >
+                        <span className="text-[#536080]">
+                          {item.quantity} ×{' '}
+                          {item.product_name}
+                        </span>
+                        <span className="font-semibold text-ink">
+                          {formatMoney(item.unit_price)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <Link
+                      className="text-xs font-bold text-signal no-underline"
+                      to={`/notas-fiscais?order_id=${order.id}`}
+                    >
+                      Consultar notas fiscais
+                    </Link>
+                  </div>
+                </article>
+              ))}
+
+              {profile.orders.length === 0 && (
+                <div className="rounded-xl border border-dashed border-line px-5 py-10 text-center">
+                  <ShoppingBag
+                    className="mx-auto text-[#9aa6c6]"
+                    size={28}
+                  />
+                  <strong className="mt-3 block text-sm text-ink">
+                    Nenhum pedido registrado
+                  </strong>
+                  <p className="mt-1 text-xs text-muted">
+                    Este cliente ainda não possui histórico
+                    de compras.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="page-card">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-[#edf0f6] pb-4">
+              <div>
+                <p className="eyebrow">
+                  Propostas comerciais
                 </p>
+                <h2 className="font-display text-xl font-semibold text-ink">
+                  Orçamentos do cliente
+                </h2>
               </div>
-            )}
-          </div>
-        </section>
+
+              <Link
+                className="text-xs font-bold text-signal no-underline"
+                to={`/orcamentos?customer_id=${profile.id}`}
+              >
+                Novo orçamento
+              </Link>
+            </div>
+
+            <div className="grid gap-3">
+              {profile.quotes.map((quote) => (
+                <article
+                  className="rounded-xl border border-line bg-[#fbfcff] p-4"
+                  key={quote.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <strong className="block text-sm text-ink">
+                        Orçamento #{quote.id.slice(0, 8)}
+                      </strong>
+
+                      <span className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                        <CalendarDays size={14} />
+                        Criado em {formatDate(quote.created_at)}
+                      </span>
+
+                      <span className="mt-1 block text-xs text-muted">
+                        Válido até {formatDateOnly(quote.valid_until)}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <strong className="block text-sm text-ink">
+                        {formatMoney(quote.total_amount)}
+                      </strong>
+
+                      <span
+                        className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${quoteStatusClasses[quote.status] ||
+                          'border-line bg-white text-muted'
+                          }`}
+                      >
+                        {quoteStatusLabels[quote.status] ||
+                          quote.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-2 border-t border-[#edf0f6] pt-3">
+                    {quote.items.map((item) => (
+                      <div
+                        className="flex flex-wrap justify-between gap-2 text-xs"
+                        key={item.id}
+                      >
+                        <span className="text-[#536080]">
+                          {item.quantity} × {item.product_name}
+                        </span>
+
+                        <span className="font-semibold text-ink">
+                          {formatMoney(item.unit_price)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <Link
+                      className="text-xs font-bold text-signal no-underline"
+                      to="/orcamentos"
+                    >
+                      Gerenciar orçamento
+                    </Link>
+                  </div>
+                </article>
+              ))}
+
+              {profile.quotes.length === 0 && (
+                <div className="rounded-xl border border-dashed border-line px-5 py-10 text-center">
+                  <FileText
+                    className="mx-auto text-[#9aa6c6]"
+                    size={28}
+                  />
+
+                  <strong className="mt-3 block text-sm text-ink">
+                    Nenhum orçamento registrado
+                  </strong>
+
+                  <p className="mt-1 text-xs text-muted">
+                    Este cliente ainda não possui propostas
+                    comerciais.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
 
         <aside className="grid content-start gap-5">
           <section className="page-card">
