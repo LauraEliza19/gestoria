@@ -6,7 +6,7 @@ from app.schemas.auth import (
     OrganizationUpdate,
 )
 from app.schemas.common import Money, normalize_phone
-from app.schemas.customer import CustomerCreate, CustomerRead, CustomerUpdate
+from app.schemas.customer import CustomerCreate, CustomerProfileRead, CustomerRead, CustomerUpdate
 from app.schemas.order import (
     OrderCreate,
     OrderItemCreate,
@@ -42,6 +42,7 @@ __all__ = [
     "CustomerCreate",
     "CustomerUpdate",
     "CustomerRead",
+    "CustomerProfileRead",
     "OrderItemCreate",
     "OrderCreate",
     "OrderStatusUpdate",

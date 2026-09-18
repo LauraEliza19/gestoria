@@ -143,6 +143,105 @@ def test_customer_flow_normalizes_phone_and_checks_permissions(
         == 204
     )
 
+def test_customer_profile_returns_order_history_and_is_tenant_scoped(
+    client: TestClient,
+) -> None:
+    owner_headers = login(client)
+    member_headers = login(client, "membro@gestoria.dev")
+    other_organization_headers = login(
+        client,
+        "empresa-b@gestoria.dev",
+    )
+
+    customer_response = client.post(
+        "/api/customers",
+        headers=owner_headers,
+        json={
+            "name": "Cliente Perfil 360",
+            "phone": "35977775555",
+            "email": "perfil@gestoria.dev",
+            "category": "reseller",
+        },
+    )
+    assert customer_response.status_code == 201
+    customer = customer_response.json()
+
+    product_response = client.post(
+        "/api/products",
+        headers=owner_headers,
+        json={
+            "name": "Produto Perfil 360",
+            "price": "25.00",
+            "stock_quantity": 10,
+        },
+    )
+    assert product_response.status_code == 201
+    product = product_response.json()
+
+    order_response = secure_order(
+        client,
+        headers=owner_headers,
+        json={
+            "customer_id": customer["id"],
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+        },
+    )
+    assert order_response.status_code == 201
+    order = order_response.json()
+
+    completed_response = client.patch(
+        f"/api/orders/{order['id']}",
+        headers=owner_headers,
+        json={"status": "completed"},
+    )
+    assert completed_response.status_code == 200
+
+    profile_response = client.get(
+        f"/api/customers/{customer['id']}",
+        headers=owner_headers,
+    )
+    assert profile_response.status_code == 200
+
+    profile = profile_response.json()
+    assert profile["id"] == customer["id"]
+    assert profile["name"] == "Cliente Perfil 360"
+    assert profile["category"] == "reseller"
+    assert profile["total_spent"] == "50.00"
+    assert profile["orders_count"] == 1
+    assert profile["last_purchase_at"] is not None
+
+    assert len(profile["orders"]) == 1
+    assert profile["orders"][0]["id"] == order["id"]
+    assert profile["orders"][0]["status"] == "completed"
+    assert profile["orders"][0]["total_amount"] == "50.00"
+    assert len(profile["orders"][0]["items"]) == 1
+    assert (
+        profile["orders"][0]["items"][0]["product_name"]
+        == "Produto Perfil 360"
+    )
+
+    member_response = client.get(
+        f"/api/customers/{customer['id']}",
+        headers=member_headers,
+    )
+    assert member_response.status_code == 200
+
+    private_customers = client.get(
+        "/api/customers",
+        headers=other_organization_headers,
+    ).json()
+    private_customer = private_customers[0]
+
+    cross_organization_response = client.get(
+        f"/api/customers/{private_customer['id']}",
+        headers=owner_headers,
+    )
+    assert cross_organization_response.status_code == 404
 
 def test_order_flow_updates_stock_status_and_customer_total(
     client: TestClient,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams, } from 'react-router-dom'
 import { Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 
@@ -73,6 +73,10 @@ function formatMoney(value: string | number): string {
 export function OrderFormPage() {
   const navigate = useNavigate()
 
+  const [searchParams] = useSearchParams()
+  const requestedCustomerId =
+    searchParams.get('customer_id')
+
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [customerId, setCustomerId] = useState('')
@@ -87,8 +91,29 @@ export function OrderFormPage() {
       apiFetch<Product[]>('/api/products'),
     ])
       .then(([customerList, productList]) => {
-        setCustomers(customerList.filter((customer) => customer.is_active !== false))
-        setProducts(productList.filter((product) => product.is_active !== false))
+        const activeCustomers = customerList.filter(
+          (customer) =>
+            customer.is_active !== false,
+        )
+
+        setCustomers(activeCustomers)
+        setProducts(
+          productList.filter(
+            (product) =>
+              product.is_active !== false,
+          ),
+        )
+
+        if (
+          requestedCustomerId &&
+          activeCustomers.some(
+            (customer) =>
+              customer.id === requestedCustomerId,
+          )
+        ) {
+          setCustomerId(requestedCustomerId)
+        }
+
         setStatus('')
       })
       .catch((error) => {
@@ -98,7 +123,7 @@ export function OrderFormPage() {
             : 'Não foi possível carregar os dados.',
         )
       })
-  }, [])
+  }, [requestedCustomerId])
 
   const selectedProductIds = useMemo(
     () => new Set(items.map((item) => item.productId).filter(Boolean)),

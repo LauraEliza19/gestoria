@@ -22,6 +22,29 @@ class OrderRepository:
         return list(db.scalars(query).unique())
 
     @staticmethod
+    def list_for_customer(
+        db: Session,
+        organization_id: uuid.UUID,
+        customer_id: uuid.UUID,
+    ) -> list[Order]:
+        query = (
+            select(Order)
+            .options(
+                joinedload(Order.customer),
+                selectinload(Order.items).joinedload(
+                    OrderItem.product
+                ),
+            )
+            .where(
+                Order.organization_id == organization_id,
+                Order.customer_id == customer_id,
+            )
+            .order_by(Order.created_at.desc())
+        )
+
+        return list(db.scalars(query).unique())
+
+    @staticmethod
     def get_for_organization(
         db: Session,
         order_id: uuid.UUID,
