@@ -42,7 +42,7 @@ class OrderRepository:
         )
 
         if for_update:
-            query = query.with_for_update(of=Order)
+            query = query.with_for_update(of=Order).execution_options(populate_existing=True)
 
         return db.scalar(query)
 

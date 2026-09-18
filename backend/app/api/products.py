@@ -25,7 +25,7 @@ def duplicate_product() -> HTTPException:
 def product_in_use() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_409_CONFLICT,
-        detail="Este produto possui itens de pedido vinculados e não pode ser excluído.",
+        detail="Este produto possui pedidos ou registros fiscais vinculados e não pode ser excluído. Desative o cadastro para preservar o histórico.",
     )
 
 

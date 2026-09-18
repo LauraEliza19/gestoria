@@ -12,6 +12,7 @@ from app.services import (
     delete_order_record,
     update_order_status,
 )
+from app.services.orders import OrderFiscalConflictError
 from app.services.order_serialization import order_to_read as _build_order_read
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
@@ -58,7 +59,7 @@ def update_status_route(
         order = update_order_status(db, order, payload.status)
     except ProductNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    except (InsufficientStockError, OrderStatusTransitionError) as exc:
+    except (InsufficientStockError, OrderStatusTransitionError, OrderFiscalConflictError) as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
@@ -82,5 +83,8 @@ def delete_order_route(
     if not order:
         raise order_not_found()
 
-    delete_order_record(db, order)
+    try:
+        delete_order_record(db, order)
+    except OrderFiscalConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

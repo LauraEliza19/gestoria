@@ -22,6 +22,12 @@ A criação direta de pedidos exige proposta assinada e confirmação. Consulte 
 - Pedido, estoque, comprovante e auditoria confirmados na mesma transação.
 - Rota antiga de criação responde HTTP 428; conversão de orçamento mantém seu fluxo existente e está fora deste primeiro escopo criptográfico.
 
+## Atualização fiscal — setembro/2026
+
+Notas de saída agora exigem pedido da mesma empresa, com destinatário, itens e valores conferidos no servidor. Cancelamentos preservam o histórico; apenas uma saída ativa é permitida por pedido. Entradas usam fornecedor e recebimento de estoque explícito.
+
+Leia [o mapeamento, as regras, a migração e o roteiro de testes](docs/FISCAL_ATUALIZACOES_E_TESTES.md) antes de atualizar um banco existente. A nova revisão é `0006_fiscal_integrity`; o registro de eventos externos não constitui emissão ou autorização pela SEFAZ.
+
 ## Tecnologias
 
 | Camada | Tecnologias |
@@ -78,7 +84,11 @@ As credenciais são exclusivas do ambiente de desenvolvimento e podem ser altera
 | `order_items` | Produtos, quantidades e preços históricos do pedido |
 | `order_operations` | Propostas assinadas, idempotência e comprovantes históricos |
 | `order_audit_events` | Eventos autenticados de preparação, execução, rejeição e cancelamento |
-| `fiscal_documents` | Cadastro e acompanhamento de documentos fiscais |
+| `fiscal_documents` | Notas vinculadas, evidências e datas fiscais |
+| `fiscal_document_items` | Itens e valores capturados para o histórico |
+| `fiscal_events` | Ações fiscais com usuário responsável |
+| `suppliers` | Fornecedores de notas de entrada |
+| `fiscal_stock_movements` | Recebimentos e estornos de entrada |
 
 O `organization_id` delimita os dados de cada empresa. Pedidos são gravados em uma única transação: se qualquer produto não existir ou não tiver estoque suficiente, nenhuma alteração é persistida.
 
@@ -123,11 +133,16 @@ Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não exi
 | `GET` | `/api/orders/proposals/{id}/receipt` | Consultar comprovante verificado |
 | `GET` | `/api/orders/security/events` | Consultar eventos autorizados e sua integridade |
 | `PATCH` | `/api/orders/{id}` | Atualizar o status do pedido |
-| `DELETE` | `/api/orders/{id}` | Excluir pedido e recompor estoque como owner/admin |
+| `DELETE` | `/api/orders/{id}` | Excluir pedido sem histórico fiscal e recompor estoque como owner/admin |
 | `GET` | `/api/fiscal-documents` | Listar e filtrar documentos fiscais |
-| `POST` | `/api/fiscal-documents` | Cadastrar documento fiscal manualmente |
-| `PATCH` | `/api/fiscal-documents/{id}` | Atualizar status fiscal |
-| `DELETE` | `/api/fiscal-documents/{id}` | Excluir documento fiscal como owner/admin |
+| `POST` | `/api/fiscal-documents` | Registrar saída por pedido ou entrada por fornecedor/itens |
+| `PATCH` | `/api/fiscal-documents/{id}` | Registrar transição permitida com evidência externa |
+| `DELETE` | `/api/fiscal-documents/{id}` | Exclusão bloqueada (409), histórico preservado |
+| `GET` | `/api/fiscal-documents/{id}` | Consultar detalhes e eventos |
+| `POST` | `/api/fiscal-documents/{id}/link-order` | Conciliar saída histórica |
+| `POST` | `/api/fiscal-documents/{id}/receive` | Confirmar recebimento de entrada uma única vez |
+| `GET/POST` | `/api/fiscal-suppliers` | Listar/cadastrar fornecedores |
+| `PATCH` | `/api/fiscal-suppliers/{id}` | Ativar/desativar fornecedor |
 | `GET` | `/api/health` | Verificar a disponibilidade da API |
 
 ## Organização
@@ -157,7 +172,7 @@ backend/
   tests/                 testes de API, transações e isolamento
 ```
 
-As rotas não executam SQL diretamente e o frontend nunca recebe credenciais do banco.
+As regras transacionais ficam nos services e as consultas fiscais principais nos repositories. O frontend nunca recebe credenciais do banco.
 
 Para regenerar o build Tailwind/React depois de alterar componentes:
 
@@ -178,7 +193,7 @@ pytest -q
 ruff check app tests alembic\versions
 ```
 
-Os testes usam um SQLite temporário com chaves estrangeiras ativadas. A aplicação executada pelo Docker utiliza PostgreSQL.
+Os testes locais usam SQLite temporário com chaves estrangeiras ativadas. Para validar também migrations e concorrência no PostgreSQL 17, use `docker compose -p gestoria-fiscal-tests -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests`. Consulte os resultados e limites no relatório fiscal.
 
 ## Evoluir o schema
 
