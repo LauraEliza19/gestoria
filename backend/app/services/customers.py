@@ -3,9 +3,10 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.repositories import CustomerRepository, OrderRepository
+from app.repositories import CustomerRepository, OrderRepository, QuoteRepository
 from app.schemas import CustomerProfileRead, CustomerRead
 from app.services.order_serialization import order_to_read
+from app.services.quote_serialization import quote_to_read
 
 
 def get_customer_profile(
@@ -23,6 +24,12 @@ def get_customer_profile(
         return None
 
     orders = OrderRepository.list_for_customer(
+        db,
+        organization_id,
+        customer_id,
+    )
+
+    quotes = QuoteRepository.list_for_customer(
         db,
         organization_id,
         customer_id,
@@ -61,6 +68,10 @@ def get_customer_profile(
         orders=[
             order_to_read(order)
             for order in orders
+        ],
+        quotes=[
+            quote_to_read(quote)
+            for quote in quotes
         ],
     )
 

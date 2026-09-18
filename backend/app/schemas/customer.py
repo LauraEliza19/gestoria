@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.schemas.common import Money, normalize_phone
 from app.schemas.order import OrderRead
+from app.schemas.quote import QuoteRead
 
 
 class CustomerCreate(BaseModel):
@@ -113,3 +114,4 @@ class CustomerRead(BaseModel):
 
 class CustomerProfileRead(CustomerRead):
     orders: list[OrderRead] = Field(default_factory=list)
+    quotes: list[QuoteRead] = Field(default_factory=list)

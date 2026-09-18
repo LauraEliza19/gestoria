@@ -199,7 +199,27 @@ def test_customer_profile_returns_order_history_and_is_tenant_scoped(
         headers=owner_headers,
         json={"status": "completed"},
     )
+
     assert completed_response.status_code == 200
+
+    quote_response = client.post(
+        "/api/quotes",
+        headers=owner_headers,
+        json={
+            "customer_id": customer["id"],
+            "valid_until": (
+                business_today() + timedelta(days=7)
+            ).isoformat(),
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                }
+            ],
+        },
+    )
+    assert quote_response.status_code == 201
+    quote = quote_response.json()
 
     profile_response = client.get(
         f"/api/customers/{customer['id']}",
@@ -222,6 +242,16 @@ def test_customer_profile_returns_order_history_and_is_tenant_scoped(
     assert len(profile["orders"][0]["items"]) == 1
     assert (
         profile["orders"][0]["items"][0]["product_name"]
+        == "Produto Perfil 360"
+    )
+
+    assert len(profile["quotes"]) == 1
+    assert profile["quotes"][0]["id"] == quote["id"]
+    assert profile["quotes"][0]["status"] == "pending"
+    assert profile["quotes"][0]["total_amount"] == "25.00"
+    assert len(profile["quotes"][0]["items"]) == 1
+    assert (
+        profile["quotes"][0]["items"][0]["product_name"]
         == "Produto Perfil 360"
     )
 
