@@ -5,13 +5,22 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import CustomerRepository
-from app.schemas import CustomerCreate, CustomerRead, CustomerUpdate
+from app.schemas import (
+    CustomerCreate,
+    CustomerProfileRead,
+    CustomerRead,
+    CustomerUpdate,
+)
+from app.services import get_customer_profile
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
 
 def customer_not_found() -> HTTPException:
-    return HTTPException(status_code=404, detail="Cliente não encontrado.")
+    return HTTPException(
+        status_code=404,
+        detail="Cliente não encontrado.",
+    )
 
 
 def duplicate_customer() -> HTTPException:
@@ -29,13 +38,25 @@ def customer_in_use() -> HTTPException:
 
 
 @router.get("", response_model=list[CustomerRead])
-def list_customers(db: DatabaseSession, current: CurrentUser) -> list[CustomerRead]:
-    return CustomerRepository.list_for_organization(db, current.organization.id)
+def list_customers(
+    db: DatabaseSession,
+    current: CurrentUser,
+) -> list[CustomerRead]:
+    return CustomerRepository.list_for_organization(
+        db,
+        current.organization.id,
+    )
 
 
-@router.post("", response_model=CustomerRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=CustomerRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_customer(
-    payload: CustomerCreate, db: DatabaseSession, current: CurrentUser
+    payload: CustomerCreate,
+    db: DatabaseSession,
+    current: CurrentUser,
 ) -> CustomerRead:
     try:
         return CustomerRepository.create(
@@ -48,7 +69,31 @@ def create_customer(
         raise duplicate_customer()
 
 
-@router.patch("/{customer_id}", response_model=CustomerRead)
+@router.get(
+    "/{customer_id}",
+    response_model=CustomerProfileRead,
+)
+def read_customer_profile(
+    customer_id: uuid.UUID,
+    db: DatabaseSession,
+    current: CurrentUser,
+) -> CustomerProfileRead:
+    profile = get_customer_profile(
+        db,
+        current.organization.id,
+        customer_id,
+    )
+
+    if profile is None:
+        raise customer_not_found()
+
+    return profile
+
+
+@router.patch(
+    "/{customer_id}",
+    response_model=CustomerRead,
+)
 def update_customer(
     customer_id: uuid.UUID,
     payload: CustomerUpdate,
@@ -56,28 +101,42 @@ def update_customer(
     current: CurrentUser,
 ) -> CustomerRead:
     customer = CustomerRepository.get_for_organization(
-        db, customer_id, current.organization.id
+        db,
+        customer_id,
+        current.organization.id,
     )
+
     if not customer:
         raise customer_not_found()
 
     try:
         return CustomerRepository.update(
-            db, customer, payload.model_dump(exclude_unset=True)
+            db,
+            customer,
+            payload.model_dump(exclude_unset=True),
         )
     except IntegrityError:
         db.rollback()
         raise duplicate_customer()
 
 
-@router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{customer_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_customer(
-    customer_id: uuid.UUID, db: DatabaseSession, current: CurrentUser
+    customer_id: uuid.UUID,
+    db: DatabaseSession,
+    current: CurrentUser,
 ) -> Response:
     require_role(current, {"owner", "admin"})
+
     customer = CustomerRepository.get_for_organization(
-        db, customer_id, current.organization.id
+        db,
+        customer_id,
+        current.organization.id,
     )
+
     if not customer:
         raise customer_not_found()
 
@@ -86,4 +145,7 @@ def delete_customer(
     except IntegrityError:
         db.rollback()
         raise customer_in_use()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT,
+    )

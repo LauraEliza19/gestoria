@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { useEffect } from 'react'
 import { DashboardPage } from '../pages/Dashboard/DashboardPage'
 import { CustomerFormPage } from '../pages/Custumers/CustomerFormPage'
+import { CustomerProfilePage } from '../pages/Custumers/CustomerProfilePage'
 import { CustomersPage } from '../pages/Custumers/CustomersPage'
 import { ProductFormPage } from '../pages/Products/ProductFormPage'
 import { ProductsPage } from '../pages/Products/ProductsPage'
@@ -38,7 +39,13 @@ function PageTitle() {
 			'/copiloto': 'GestorIA — Copiloto', '/modo-fabrica': 'GestorIA — Modo fábrica', '/notas-fiscais': 'GestorIA — Notas fiscais',
 			'/empresa/editar': 'GestorIA — Empresa',
 		}
-		document.title = titles[location.pathname] || 'GestorIA'
+		const isCustomerProfile =
+			/^\/clientes\/[^/]+$/.test(location.pathname) &&
+			location.pathname !== '/clientes/novo'
+
+		document.title = isCustomerProfile
+			? 'GestorIA — Perfil do cliente'
+			: titles[location.pathname] || 'GestorIA'
 	}, [location.pathname])
 	return null
 }
@@ -49,9 +56,13 @@ export function AppRouter() {
 		<Route path="/logout" element={<LogoutPage />} />
 		<Route element={<ProtectedLayout />}>
 			<Route path="/dashboard" element={<DashboardPage />} />
-				<Route path="/clientes" element={<CustomersPage />} />
+			<Route path="/clientes" element={<CustomersPage />} />
 			<Route path="/clientes/novo" element={<CustomerFormPage />} />
-				<Route path="/produtos" element={<ProductsPage />} />
+			<Route
+				path="/clientes/:customerId"
+				element={<CustomerProfilePage />}
+			/>
+			<Route path="/produtos" element={<ProductsPage />} />
 			<Route path="/produtos/novo" element={<ProductFormPage />} />
 			<Route path="/empresa/editar" element={<CompanyPage />} />
 			<Route path="/pedidos" element={<OrdersPage />} />

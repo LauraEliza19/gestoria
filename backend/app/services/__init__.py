@@ -1,4 +1,5 @@
 from app.services.auth import AuthenticatedUser, authenticate
+from app.services.customers import get_customer_profile
 from app.services.orders import (
     CustomerNotFoundError,
     InsufficientStockError,
@@ -51,4 +52,5 @@ __all__ = [
     "update_quote_status",
     "convert_quote_to_order",
     "delete_quote_record",
+    "get_customer_profile",
 ]
