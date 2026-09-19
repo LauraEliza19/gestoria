@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 import pytest
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
@@ -116,5 +117,5 @@ def test_online_downgrade_protects_new_fiscal_data(monkeypatch):
             assert conn.scalar(text("SELECT COUNT(*) FROM suppliers")) == 1
             assert (
                 conn.scalar(text("SELECT version_num FROM alembic_version"))
-                == "0006_fiscal_integrity"
+                == ScriptDirectory.from_config(Config("alembic.ini")).get_current_head()
             )

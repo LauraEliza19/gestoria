@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Building2, ClipboardList, FileText, Factory, LayoutDashboard, LogOut, Package, ReceiptText, Sparkles, Users } from 'lucide-react'
+import { Building2, ClipboardList, FileText, ChefHat, LayoutDashboard, LogOut, Package, ReceiptText, Sparkles, Users } from 'lucide-react'
 import { clearSession } from '../services/session'
 
 export function DashboardLayout() {
@@ -10,7 +10,7 @@ export function DashboardLayout() {
 		{ to: '/pedidos', label: 'Pedidos', icon: ClipboardList },
 		{ to: '/orcamentos', label: 'Orçamentos', icon: FileText },
 		{ to: '/copiloto', label: 'Copiloto', icon: Sparkles },
-		{ to: '/modo-fabrica', label: 'Modo fábrica', icon: Factory },
+		{ to: '/modo-fabrica', label: 'Cozinha', icon: ChefHat },
 		{ to: '/notas-fiscais', label: 'Notas fiscais', icon: ReceiptText },
 		{ to: '/empresa/editar', label: 'Empresa', icon: Building2 },
 	]
