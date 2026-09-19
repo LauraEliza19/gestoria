@@ -424,3 +424,5 @@ class QuoteItem(Base, TimestampMixin):
 from app.models.fiscal import (  # noqa: E402
     FiscalDocument, FiscalDocumentItem, FiscalEvent, FiscalStockMovement, Supplier,
 )
+
+from app.models.production import Ingredient, Recipe, RecipeIngredient  # noqa: E402, F401
