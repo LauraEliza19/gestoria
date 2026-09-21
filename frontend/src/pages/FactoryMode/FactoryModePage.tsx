@@ -31,6 +31,8 @@ export function FactoryModePage() {
   const [loading, setLoading] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [completing, setCompleting] = useState<string | null>(null)
+  const [completedOrder, setCompletedOrder] =
+    useState<Order | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const busy = useRef(true)
@@ -97,6 +99,7 @@ export function FactoryModePage() {
     setLoading(true)
     setError('')
     setNotice('')
+    setCompletedOrder(null)
     try {
       setOrders(await apiFetch<Order[]>('/api/orders'))
       setLoaded(true)
@@ -111,19 +114,36 @@ export function FactoryModePage() {
 
   async function complete(order: Order) {
     if (busy.current) return
+
     busy.current = true
     setCompleting(order.id)
     setError('')
     setNotice('')
+    setCompletedOrder(null)
+
     try {
-      const updated = await apiFetch<Order>(`/api/orders/${order.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'completed' }),
-      })
-      setOrders((current) => current.map((item) => item.id === order.id ? updated : item))
-      setNotice(`Pedido ${order.id.slice(0, 8)} de ${order.customer_name} concluído.`)
+      const updated = await apiFetch<Order>(
+        `/api/orders/${order.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'completed',
+          }),
+        },
+      )
+
+      setOrders((current) =>
+        current.map((item) =>
+          item.id === order.id ? updated : item,
+        ),
+      )
+      setCompletedOrder(updated)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Não foi possível concluir o pedido. Tente novamente.')
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Não foi possível concluir o pedido. Tente novamente.',
+      )
     } finally {
       busy.current = false
       setCompleting(null)
@@ -203,10 +223,68 @@ export function FactoryModePage() {
             </select>
           </label>
         </div>
+        {error && (
+          <p
+            role="alert"
+            className="mb-4 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
+          >
+            {error}
+            {loaded &&
+              ' Os pedidos exibidos foram mantidos; atualize a fila para conferir.'}
+          </p>
+        )}
 
-        {error && <p role="alert" className="mb-4 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]">{error}{loaded && ' Os pedidos exibidos foram mantidos; atualize a fila para conferir.'}</p>}
-        <p role="status" className="mb-4 text-sm text-muted">{loading ? (loaded ? 'Atualizando a fila...' : 'Carregando pedidos...') : notice}</p>
+        {(loading || notice) && (
+          <p
+            role="status"
+            className="mb-4 text-sm text-muted"
+          >
+            {loading
+              ? loaded
+                ? 'Atualizando a fila...'
+                : 'Carregando pedidos...'
+              : notice}
+          </p>
+        )}
 
+        {completedOrder && (
+          <section
+            aria-labelledby="completed-order-title"
+            className="mb-4 flex flex-col gap-4 rounded-lg border border-[#b9e7d5] bg-[#effbf6] p-4 sm:flex-row sm:items-center sm:justify-between"
+            role="status"
+          >
+            <div>
+              <p
+                className="font-semibold text-[#28745b]"
+                id="completed-order-title"
+              >
+                Pedido {completedOrder.id.slice(0, 8)} de{' '}
+                {completedOrder.customer_name} concluído.
+              </p>
+              <p className="mt-1 text-sm text-[#4f7769]">
+                A produção foi finalizada. Você pode
+                consultar o pedido ou seguir para os
+                documentos fiscais.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <Link
+                className="secondary-button w-full sm:w-auto"
+                to={`/pedidos?order_id=${completedOrder.id}`}
+              >
+                Ver pedido concluído
+              </Link>
+
+              <Link
+                className="primary-button w-full sm:w-auto"
+                to={`/notas-fiscais?order_id=${completedOrder.id}`}
+              >
+                Consultar nota fiscal
+              </Link>
+            </div>
+          </section>
+        )}
         {loaded && <div className="grid gap-4" aria-busy={loading}>
           <p className="text-xs text-muted">
             {visible.length}{' '}
