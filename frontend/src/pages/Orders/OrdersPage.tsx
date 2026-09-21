@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import {
+  Link,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 
@@ -37,9 +41,13 @@ const statusTransitions: Record<string, string[]> = {
 export function OrdersPage() {
   const location = useLocation()
   const pageState = location.state as PageState | null
+  const [searchParams] = useSearchParams()
+  const highlightedOrderId =
+    searchParams.get('order_id')
 
   const [orders, setOrders] = useState<Order[]>([])
   const [status, setStatus] = useState('Carregando pedidos...')
+
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
@@ -56,6 +64,21 @@ export function OrdersPage() {
         )
       })
   }, [])
+
+  useEffect(() => {
+    if (!highlightedOrderId || orders.length === 0) {
+      return
+    }
+
+    const highlightedOrder = document.getElementById(
+      `order-${highlightedOrderId}`,
+    )
+
+    highlightedOrder?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }, [highlightedOrderId, orders])
 
   async function updateStatus(order: Order, nextStatus: string) {
     if (nextStatus === order.status) return
@@ -150,7 +173,7 @@ export function OrdersPage() {
         </p>
 
         {!status && (
-          <div className="data-table order-table">
+          <div className="data-table order-table lg:overflow-x-visible">
             <div className="data-table-row data-table-head">
               <span>Cliente</span>
               <span>Itens</span>
@@ -160,7 +183,15 @@ export function OrdersPage() {
             </div>
 
             {visibleOrders.map((order) => (
-              <div className="data-table-row" key={order.id}>
+              <div
+                className={`data-table-row ${
+                  order.id === highlightedOrderId
+                    ?'scroll-mt-24 rounded-lg border-t-transparent bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5] lg:-mx-3 lg:px-3'
+                    : ''
+                }`}
+                id={`order-${order.id}`}
+                key={order.id}
+              >
                 <span>
                   <strong>{order.customer_name}</strong>
                   <small>
@@ -169,7 +200,9 @@ export function OrdersPage() {
                 </span>
 
                 <span>
-                  {order.items.length} item(ns)
+                  {order.items.length === 1
+                    ? '1 item'
+                    : `${order.items.length} itens`}
                   <small>
                     {order.items
                       .map(
