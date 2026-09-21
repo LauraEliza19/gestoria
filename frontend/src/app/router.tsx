@@ -36,7 +36,7 @@ function PageTitle() {
 			'/pedidos': 'GestorIA — Pedidos',
 			'/pedidos/novo': 'GestorIA — Novo pedido',
 			'/orcamentos': 'GestorIA — Orçamentos',
-			'/copiloto': 'GestorIA — Copiloto', '/modo-fabrica': 'GestorIA — Cozinha', '/notas-fiscais': 'GestorIA — Notas fiscais',
+			'/copiloto': 'GestorIA — Copiloto', '/modo-fabrica': 'GestorIA — Produção', '/notas-fiscais': 'GestorIA — Notas fiscais',
 			'/empresa/editar': 'GestorIA — Empresa',
 		}
 		const isCustomerProfile =

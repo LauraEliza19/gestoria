@@ -57,6 +57,7 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
     )
 
     assert user is not None
+    assert user.full_name == "Marina Silva"
 
     membership = db.get(
         OrganizationMember,
