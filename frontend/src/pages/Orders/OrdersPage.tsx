@@ -242,8 +242,23 @@ export function OrdersPage() {
                 </span>
 
                 <span className="row-actions">
-                  <Link to={`/notas-fiscais?order_id=${order.id}`}>Notas fiscais</Link>
-                  <button onClick={() => void removeOrder(order)}>
+                  {order.status === 'in_preparation' && (
+                    <Link
+                      to={`/modo-fabrica?order_id=${order.id}`}
+                    >
+                      Ver na produção
+                    </Link>
+                  )}
+
+                  <Link
+                    to={`/notas-fiscais?order_id=${order.id}`}
+                  >
+                    Notas fiscais
+                  </Link>
+
+                  <button
+                    onClick={() => void removeOrder(order)}
+                  >
                     Excluir
                   </button>
                 </span>
