@@ -587,40 +587,67 @@ export function DashboardPage() {
             </h2>
           </div>
 
-          <div className="mb-3 rounded-lg border border-[#dce4ff] bg-[#f7f9ff] p-4">
-            <div className="flex items-start gap-3">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e9eeff] text-signal">
-                <Trophy size={18} />
-              </span>
+          {radar.topCustomer ? (
+            <Link
+              className="group mb-3 block rounded-lg border border-[#dce4ff] bg-[#f7f9ff] p-4 no-underline transition hover:-translate-y-0.5 hover:border-[#9fb5ff]"
+              to={`/clientes/${radar.topCustomer.id}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e9eeff] text-signal">
+                  <Trophy
+                    aria-hidden="true"
+                    size={18}
+                  />
+                </span>
 
-              <div className="min-w-0">
-                <small className="block text-[11px] font-bold uppercase tracking-wide text-muted">
-                  Maior cliente
-                </small>
+                <div className="min-w-0 flex-1">
+                  <small className="block text-[11px] font-bold uppercase tracking-wide text-muted">
+                    Maior cliente
+                  </small>
 
-                {radar.topCustomer ? (
-                  <>
-                    <strong className="mt-1 block truncate text-sm text-ink">
-                      {radar.topCustomer.name}
-                    </strong>
+                  <strong className="mt-1 block truncate text-sm text-ink">
+                    {radar.topCustomer.name}
+                  </strong>
 
-                    <span className="mt-1 block text-xs text-muted">
-                      {formatMoney(
-                        Number(
-                          radar.topCustomer.total_spent,
-                        ),
-                      )}{' '}
-                      em compras concluídas
-                    </span>
-                  </>
-                ) : (
+                  <span className="mt-1 block text-xs text-muted">
+                    {formatMoney(
+                      Number(
+                        radar.topCustomer.total_spent,
+                      ),
+                    )}{' '}
+                    em compras concluídas
+                  </span>
+                </div>
+
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mt-2 shrink-0 text-[#8991aa] transition group-hover:translate-x-0.5 group-hover:text-signal"
+                  size={16}
+                />
+              </div>
+            </Link>
+          ) : (
+            <div className="mb-3 rounded-lg border border-[#dce4ff] bg-[#f7f9ff] p-4">
+              <div className="flex items-start gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e9eeff] text-signal">
+                  <Trophy
+                    aria-hidden="true"
+                    size={18}
+                  />
+                </span>
+
+                <div className="min-w-0">
+                  <small className="block text-[11px] font-bold uppercase tracking-wide text-muted">
+                    Maior cliente
+                  </small>
+
                   <span className="mt-1 block text-xs text-muted">
                     Ainda não há compras concluídas.
                   </span>
-                )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="grid gap-3">
             <Link
