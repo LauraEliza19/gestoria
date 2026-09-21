@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import {
+  Link,
+  useSearchParams,
+} from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 
 type Customer = {
@@ -246,6 +250,16 @@ export function QuotesPage() {
             vendas.
           </p>
         </div>
+
+        {selectedCustomerId && (
+          <Link
+            className="secondary-button"
+            to={`/clientes/${selectedCustomerId}`}
+          >
+            <ArrowLeft size={16} />
+            Voltar ao cliente
+          </Link>
+        )}
       </header>
 
       <form
