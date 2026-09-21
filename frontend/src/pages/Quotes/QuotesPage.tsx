@@ -421,6 +421,14 @@ export function QuotesPage() {
                     </button>
                   )}
 
+                {quote.converted_order_id && (
+                  <Link
+                    to={`/pedidos?order_id=${quote.converted_order_id}`}
+                  >
+                    Ver pedido
+                  </Link>
+                )}
+
                 <button
                   type="button"
                   onClick={() => void remove(quote)}
