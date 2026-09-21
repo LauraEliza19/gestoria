@@ -107,14 +107,14 @@ export function FactoryModePage() {
     <div className="page-wrap factory-page">
       <header className="page-header">
         <div>
-          <p className="eyebrow !text-signal">GestorIA / Cozinha</p>
-          <h1 className="flex items-center gap-3"><ChefHat size={32} aria-hidden="true" />Cozinha</h1>
+          <p className="eyebrow !text-signal">GestorIA / Produção</p>
+          <h1 className="flex items-center gap-3"><ChefHat size={32} aria-hidden="true" />Produção</h1>
           <p>Organize a fila de preparo e acompanhe cada pedido até a conclusão.</p>
         </div>
         <Link className="secondary-button" to="/dashboard">Voltar ao painel</Link>
       </header>
 
-      <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Áreas da cozinha">
+      <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Áreas de produção">
         <button type="button" aria-pressed={area === 'orders'} className={area === 'orders' ? 'primary-button' : 'secondary-button'} onClick={() => setArea('orders')}>Fila de pedidos</button>
         <button type="button" aria-pressed={area === 'production'} className={area === 'production' ? 'primary-button' : 'secondary-button'} onClick={() => setArea('production')}>Produção e receitas</button>
       </div>
@@ -125,7 +125,7 @@ export function FactoryModePage() {
         <article><span>Concluídos</span><strong>{loaded ? completed.length : '—'}</strong><small>Todos os pedidos concluídos</small></article>
       </div>
 
-      <section className="page-card" aria-label="Fila da cozinha">
+      <section className="page-card" aria-label="Fila de produção">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Status dos pedidos">
             {(['in_preparation', 'completed'] as const).map((value) => (
