@@ -245,11 +245,29 @@ export function FactoryModePage() {
                   </li>
                 ))}
               </ul>
-              {order.status === 'in_preparation' && <div className="flex justify-end">
-                <button type="button" className="primary-button w-full gap-2 sm:w-auto" disabled={disabled} onClick={() => void complete(order)} aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}>
-                  <Check size={17} aria-hidden="true" />{completing === order.id ? 'Concluindo...' : 'Marcar concluído'}
-                </button>
-              </div>}
+              <div className="flex flex-wrap justify-end gap-3">
+                <Link
+                  className="secondary-button w-full sm:w-auto"
+                  to={`/pedidos?order_id=${order.id}`}
+                >
+                  Ver pedido
+                </Link>
+
+                {order.status === 'in_preparation' && (
+                  <button
+                    type="button"
+                    className="primary-button w-full gap-2 sm:w-auto"
+                    disabled={disabled}
+                    onClick={() => void complete(order)}
+                    aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}
+                  >
+                    <Check size={17} aria-hidden="true" />
+                    {completing === order.id
+                      ? 'Concluindo...'
+                      : 'Marcar concluído'}
+                  </button>
+                )}
+              </div>
             </article>
           ))}
           {visible.length === 0 && <div className="rounded-lg border border-dashed border-line px-4 py-10 text-center">
