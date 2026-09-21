@@ -62,7 +62,7 @@ export function ProductionPanel() {
 
   const availableCount = data.recipes.filter(recipe => recipe.max_batches > 0).length
   const shownRecipes = view === 'available' && onlyAvailable ? data.recipes.filter(recipe => recipe.max_batches > 0) : data.recipes
-  return <section aria-label="Produção da cozinha">
+  return <section aria-label="Painel de produção">
     <div className="metric-grid">
       <article><span>Itens em estoque</span><strong>{loaded ? data.stock_items.length : '—'}</strong><small>Estoque exclusivo da produção</small></article>
       <article><span>Receitas cadastradas</span><strong>{loaded ? data.recipes.length : '—'}</strong><small>Ingredientes e rendimento definidos</small></article>

@@ -75,6 +75,17 @@ function formatMoney(value: number): string {
   })
 }
 
+function formatCountMessage(
+  count: number,
+  singularMessage: string,
+  pluralMessage: string,
+): string {
+  const message =
+    count === 1 ? singularMessage : pluralMessage
+
+  return `${count} ${message}`
+}
+
 export function DashboardPage() {
   const [session, setSession] = useState<Session | null>(
     null,
@@ -277,7 +288,11 @@ export function DashboardPage() {
     {
       active: radar.criticalProducts.length > 0,
       label: 'Estoque crítico',
-      detail: `${radar.criticalProducts.length} produto(s) precisam de reposição.`,
+      detail: formatCountMessage(
+        radar.criticalProducts.length,
+        'produto precisa de reposição.',
+        'produtos precisam de reposição.',
+      ),
       href: '/produtos',
       icon: AlertTriangle,
       tone: 'bg-[#fff8eb] text-[#c77716]',
@@ -285,7 +300,11 @@ export function DashboardPage() {
     {
       active: radar.inProduction.length > 0,
       label: 'Pedidos em produção',
-      detail: `${radar.inProduction.length} pedido(s) aguardando preparo.`,
+      detail: formatCountMessage(
+        radar.inProduction.length,
+        'pedido aguardando preparo.',
+        'pedidos aguardando preparo.',
+      ),
       href: '/pedidos',
       icon: ClipboardCheck,
       tone: 'bg-[#f2f5ff] text-signal',
@@ -293,7 +312,11 @@ export function DashboardPage() {
     {
       active: radar.expiredQuotes.length > 0,
       label: 'Orçamentos vencidos',
-      detail: `${radar.expiredQuotes.length} orçamento(s) estão fora da validade.`,
+      detail: formatCountMessage(
+        radar.expiredQuotes.length,
+        'orçamento está fora da validade.',
+        'orçamentos estão fora da validade.',
+      ),
       href: '/orcamentos',
       icon: FileWarning,
       tone: 'bg-[#fff1f3] text-[#d84f62]',
@@ -301,7 +324,11 @@ export function DashboardPage() {
     {
       active: radar.expiringQuotes.length > 0,
       label: 'Orçamentos vencendo',
-      detail: `${radar.expiringQuotes.length} orçamento(s) vencem nos próximos 7 dias.`,
+      detail: formatCountMessage(
+        radar.expiringQuotes.length,
+        'orçamento vence nos próximos 7 dias.',
+        'orçamentos vencem nos próximos 7 dias.',
+      ),
       href: '/orcamentos',
       icon: Clock3,
       tone: 'bg-[#f8f2ff] text-[#8b5cc7]',
