@@ -83,7 +83,7 @@ def pitch_user(
     if user is None:
         user = User(
             id=stable_id("user:pitch"),
-            full_name="Apresentação GestorIA",
+            full_name="Marina Silva",
             email=PITCH_EMAIL,
             password_hash=hash_password(
                 settings.demo_password,
@@ -92,7 +92,7 @@ def pitch_user(
         )
         db.add(user)
     else:
-        user.full_name = "Apresentação GestorIA"
+        user.full_name = "Marina Silva"
         user.password_hash = hash_password(
             settings.demo_password,
         )

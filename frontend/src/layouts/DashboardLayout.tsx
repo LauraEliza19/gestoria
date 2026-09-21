@@ -10,7 +10,7 @@ export function DashboardLayout() {
 		{ to: '/pedidos', label: 'Pedidos', icon: ClipboardList },
 		{ to: '/orcamentos', label: 'Orçamentos', icon: FileText },
 		{ to: '/copiloto', label: 'Copiloto', icon: Sparkles },
-		{ to: '/modo-fabrica', label: 'Cozinha', icon: ChefHat },
+		{ to: '/modo-fabrica', label: 'Produção', icon: ChefHat },
 		{ to: '/notas-fiscais', label: 'Notas fiscais', icon: ReceiptText },
 		{ to: '/empresa/editar', label: 'Empresa', icon: Building2 },
 	]
