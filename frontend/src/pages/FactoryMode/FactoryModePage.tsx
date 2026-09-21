@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import {
+  Link,
+  useSearchParams,
+} from 'react-router-dom'
 import { ChefHat, Check, Clock3, RefreshCw, Search } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { ProductionPanel } from './ProductionPanel'
@@ -32,6 +35,10 @@ export function FactoryModePage() {
   const [notice, setNotice] = useState('')
   const busy = useRef(true)
 
+  const [searchParams] = useSearchParams()
+  const highlightedOrderId =
+    searchParams.get('order_id')
+
   useEffect(() => {
     const controller = new AbortController()
     apiFetch<Order[]>('/api/orders', { signal: controller.signal })
@@ -51,6 +58,38 @@ export function FactoryModePage() {
       })
     return () => controller.abort()
   }, [])
+
+      useEffect(() => {
+    if (!highlightedOrderId || orders.length === 0) {
+      return
+    }
+
+    const hasHighlightedOrder = orders.some(
+      (order) =>
+        order.id === highlightedOrderId &&
+        order.status === 'in_preparation',
+    )
+
+    if (!hasHighlightedOrder) {
+      return
+    }
+
+    const animationFrame = window.requestAnimationFrame(
+      () => {
+        document
+          .getElementById(
+            `factory-order-${highlightedOrderId}`,
+          )
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          })
+      },
+    )
+
+    return () =>
+      window.cancelAnimationFrame(animationFrame)
+  }, [highlightedOrderId, orders])
 
   async function refresh() {
     if (busy.current) return
@@ -111,7 +150,14 @@ export function FactoryModePage() {
           <h1 className="flex items-center gap-3"><ChefHat size={32} aria-hidden="true" />Produção</h1>
           <p>Organize a fila de preparo e acompanhe cada pedido até a conclusão.</p>
         </div>
-        <Link className="secondary-button" to="/dashboard">Voltar ao painel</Link>
+        <Link
+          className="secondary-button"
+          to={highlightedOrderId ? '/pedidos' : '/dashboard'}
+        >
+          {highlightedOrderId
+            ? 'Voltar aos pedidos'
+            : 'Voltar ao painel'}
+        </Link>
       </header>
 
       <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Áreas de produção">
@@ -162,9 +208,23 @@ export function FactoryModePage() {
         <p role="status" className="mb-4 text-sm text-muted">{loading ? (loaded ? 'Atualizando a fila...' : 'Carregando pedidos...') : notice}</p>
 
         {loaded && <div className="grid gap-4" aria-busy={loading}>
-          <p className="text-xs text-muted">{visible.length} pedido(s) encontrado(s)</p>
+          <p className="text-xs text-muted">
+            {visible.length}{' '}
+            {visible.length === 1
+              ? 'pedido encontrado'
+              : 'pedidos encontrados'}
+          </p>
           {visible.map((order) => (
-            <article className="min-w-0 rounded-lg border border-line p-4 sm:p-5" key={order.id} aria-labelledby={`order-${order.id}`}>
+            <article
+              aria-labelledby={`order-${order.id}`}
+              className={`min-w-0 scroll-mt-24 rounded-lg border p-4 transition sm:p-5 ${
+                order.id === highlightedOrderId
+                  ? 'border-[#9fb5ff] bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5]'
+                  : 'border-line'
+              }`}
+              id={`factory-order-${order.id}`}
+              key={order.id}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="mb-1 font-mono text-xs text-muted">Pedido {order.id.slice(0, 8)}</p>
