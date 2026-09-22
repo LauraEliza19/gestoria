@@ -44,6 +44,8 @@ export function OrdersPage() {
   const [searchParams] = useSearchParams()
   const highlightedOrderId =
     searchParams.get('order_id')
+  const fromProduction =
+    searchParams.get('from') === 'production'
 
   const [orders, setOrders] = useState<Order[]>([])
   const [status, setStatus] = useState('Carregando pedidos...')
@@ -140,6 +142,14 @@ export function OrdersPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {fromProduction && (
+            <Link
+              className="secondary-button"
+              to="/modo-fabrica"
+            >
+              Voltar à produção
+            </Link>
+          )}
           <select
             className="status-filter"
             value={filter}
@@ -251,7 +261,11 @@ export function OrdersPage() {
                   )}
 
                   <Link
-                    to={`/notas-fiscais?order_id=${order.id}`}
+                    to={`/notas-fiscais?order_id=${order.id}${
+                      fromProduction
+                        ? '&from=production'
+                        : ''
+                    }`}
                   >
                     Notas fiscais
                   </Link>
