@@ -271,14 +271,14 @@ export function FactoryModePage() {
             <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
               <Link
                 className="secondary-button w-full sm:w-auto"
-                to={`/pedidos?order_id=${completedOrder.id}`}
+                to={`/pedidos?order_id=${completedOrder.id}&from=production`}
               >
                 Ver pedido concluído
               </Link>
 
               <Link
                 className="primary-button w-full sm:w-auto"
-                to={`/notas-fiscais?order_id=${completedOrder.id}`}
+                to={`/notas-fiscais?order_id=${completedOrder.id}&from=production`}
               >
                 Consultar nota fiscal
               </Link>
@@ -326,7 +326,7 @@ export function FactoryModePage() {
               <div className="flex flex-wrap justify-end gap-3">
                 <Link
                   className="secondary-button w-full sm:w-auto"
-                  to={`/pedidos?order_id=${order.id}`}
+                  to={`/pedidos?order_id=${order.id}&from=production`}
                 >
                   Ver pedido
                 </Link>
