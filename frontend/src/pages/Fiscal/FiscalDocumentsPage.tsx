@@ -109,6 +109,8 @@ function Items({ items }: { items: Item[] }) {
 export function FiscalDocumentsPage() {
   const [params] = useSearchParams();
   const orderFilter = params.get("order_id") || "";
+  const fromProduction =
+    params.get("from") === "production";
   const [documents, setDocuments] = useState<FiscalDocument[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -175,6 +177,9 @@ export function FiscalDocumentsPage() {
             .includes(search.toLowerCase()),
       ),
     [documents, type, statusFilter, orderFilter, search],
+  );
+  const contextOrder = orders.find(
+    (order) => order.id === orderFilter,
   );
   const chosenOrder = orders.find((o) => o.id === form.order_id);
   const isOccupied = (id: string) =>
@@ -273,15 +278,33 @@ export function FiscalDocumentsPage() {
           <h1>Notas fiscais</h1>
           <p>Pedidos, documentos e histórico da operação.</p>
         </div>
-        {canEdit && (
-          <button
-            className="primary-button"
-            disabled={busy}
-            onClick={() => start()}
-          >
-            + Nova nota
-          </button>
-        )}
+        <div className="flex flex-wrap gap-3">
+          {orderFilter && (
+            <Link
+              className="secondary-button"
+              to={`/pedidos?order_id=${orderFilter}${
+                fromProduction
+                  ? "&from=production"
+                  : ""
+              }`}
+            >
+              Voltar ao pedido
+            </Link>
+          )}
+
+          {canEdit &&
+            (!orderFilter || !isOccupied(orderFilter)) && (
+              <button
+                className="primary-button"
+                disabled={busy}
+                onClick={() => start()}
+              >
+                {orderFilter
+                  ? '+ Nota deste pedido'
+                  : '+ Nova nota'}
+              </button>
+            )}
+        </div>
       </header>
       <p className="info-note">
         Este módulo registra documentos e eventos informados pelo responsável. A
@@ -610,10 +633,28 @@ export function FiscalDocumentsPage() {
       )}
       <section className="page-card fiscal-panel">
         {orderFilter && (
-          <p className="info-note">
-            Notas do pedido {orderFilter.slice(0, 8)} ·{" "}
-            <Link to="/notas-fiscais">Remover filtro</Link>
-          </p>
+          <div className="info-note flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">
+                Documentos do pedido{' '}
+                {orderFilter.slice(0, 8)}
+              </p>
+
+              {contextOrder && (
+                <p className="mt-1 text-sm">
+                  Cliente: {contextOrder.customer_name} · Total:{' '}
+                  {money(contextOrder.total_amount)}
+                </p>
+              )}
+            </div>
+
+            <Link
+              className="shrink-0 font-semibold"
+              to="/notas-fiscais"
+            >
+              Ver todas as notas
+            </Link>
+          </div>
         )}
         <div className="fiscal-tabs">
           <button
@@ -664,7 +705,7 @@ export function FiscalDocumentsPage() {
         </div>
         {loading ? (
           <p className="table-status">Carregando...</p>
-        ) : (
+        ) : visible.length > 0 ? (
           <div className="data-table fiscal-table">
             <div className="data-table-row data-table-head">
               <span>Nota</span>
@@ -675,27 +716,86 @@ export function FiscalDocumentsPage() {
               <span>Status</span>
               <span>Ações</span>
             </div>
-            {visible.map((d) => (
-              <div className="data-table-row" key={d.id}>
+
+            {visible.map((document) => (
+              <div
+                className="data-table-row"
+                key={document.id}
+              >
                 <span>
-                  <strong>NF {d.number}</strong>
+                  <strong>NF {document.number}</strong>
                   <small>
-                    Série {d.series}
-                    {d.is_legacy ? " · histórica" : ""}
+                    Série {document.series}
+                    {document.is_legacy
+                      ? " · histórica"
+                      : ""}
                   </small>
                 </span>
-                <span>{d.participant_name}</span>
-                <span>{d.model}</span>
-                <span>{d.issue_date.split("-").reverse().join("/")}</span>
-                <span>{money(d.value)}</span>
-                <span>{d.status}</span>
+
+                <span>{document.participant_name}</span>
+                <span>{document.model}</span>
+                <span>
+                  {document.issue_date
+                    .split("-")
+                    .reverse()
+                    .join("/")}
+                </span>
+                <span>{money(document.value)}</span>
+                <span>{document.status}</span>
+
                 <span className="row-actions">
-                  <button onClick={() => selectDocument(d)}>Detalhes</button>
+                  <button
+                    onClick={() =>
+                      selectDocument(document)
+                    }
+                  >
+                    Detalhes
+                  </button>
                 </span>
               </div>
             ))}
-            {!visible.length && (
-              <p className="table-status">Nenhum documento encontrado.</p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-line px-5 py-10 text-center">
+            {orderFilter &&
+            type === "saida" &&
+            !search &&
+            !statusFilter ? (
+              <>
+                <p className="font-semibold text-ink">
+                  Este pedido ainda não possui nota fiscal.
+                </p>
+                <p className="mt-2 text-sm text-muted">
+                  Inicie o registro fiscal com o pedido,
+                  cliente, itens e valores já vinculados.
+                </p>
+
+                {canEdit &&
+                  !isOccupied(orderFilter) && (
+                    <button
+                      className="primary-button mt-4"
+                      disabled={busy}
+                      onClick={() =>
+                        start(orderFilter)
+                      }
+                    >
+                      Criar nota deste pedido
+                    </button>
+                  )}
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-ink">
+                  Nenhum documento encontrado.
+                </p>
+                <p className="mt-2 text-sm text-muted">
+                  {search || statusFilter
+                    ? "Tente ajustar a busca ou os filtros."
+                    : type === "saida"
+                      ? "As notas de saída aparecerão aqui."
+                      : "As notas de entrada aparecerão aqui."}
+                </p>
+              </>
             )}
           </div>
         )}
