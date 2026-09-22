@@ -70,7 +70,7 @@
   .quote-form { @apply mb-6; }
   .quote-form h2, .fiscal-form h2 { @apply font-display text-xl font-semibold; }
   .quote-form-grid { @apply mb-[18px] grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-[1.4fr_1.4fr_.7fr_1fr]; }
-  .quote-table .data-table-row { @apply min-w-[950px] grid-cols-[1.2fr_1.5fr_.8fr_.9fr_1.5fr]; }
+  .quote-table .data-table-row { @apply min-w-[950px] grid-cols-[1.15fr_1.4fr_.7fr_.85fr_1.9fr]; }
   .fiscal-summary { @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-4; }
   .fiscal-panel { @apply overflow-hidden; }
   .fiscal-tabs { @apply mb-[18px] flex gap-1 border-b border-[#edf0f6]; }
