@@ -558,6 +558,6 @@ O aplicativo não deve possuir uma base de dados empresarial independente. As in
 O armazenamento local no dispositivo deve ser limitado às informações necessárias para o funcionamento do aplicativo e deve evitar a exposição desnecessária de dados empresariais.
 
 ---
-ading Plano de Negocios GestorIA.md…]()
+
 
 
