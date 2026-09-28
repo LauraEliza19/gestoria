@@ -18,6 +18,10 @@ Plataforma de gestão empresarial com experiência orientada por inteligência a
   <img src="https://img.shields.io/badge/FISCAL-DOCUMENTAÇÕES-ea580c?style=for-the-badge" />
 </a>
 
+<a href="docs/pdf/lean-canvas.pdf">
+  <img src="https://img.shields.io/badge/DOC-LEANS CANVAS-7c3aed?style=for-the-badge" />
+</a>
+
 <br><br>
 
 <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=000000" />
