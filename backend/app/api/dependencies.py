@@ -31,7 +31,7 @@ def get_current_user(
         user_id = uuid.UUID(payload["sub"])
         organization_id = uuid.UUID(payload["organization_id"])
     except (KeyError, TypeError, ValueError):
-        raise unauthorized
+        raise unauthorized from None
 
     user = UserRepository.get_by_id(db, user_id)
     membership = UserRepository.get_membership(db, user_id, organization_id)

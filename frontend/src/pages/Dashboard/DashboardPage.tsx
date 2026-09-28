@@ -11,16 +11,11 @@ import {
   Trophy,
   Users,
 } from 'lucide-react'
-import {
-  getSession,
-  type Session,
-} from '../../services/auth.service'
+import { getSession, type Session } from '../../services/auth.service'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
-type CustomerCategory =
-  | 'final_consumer'
-  | 'reseller'
-  | 'event'
+type CustomerCategory = 'final_consumer' | 'reseller' | 'event'
 
 type Customer = {
   id: string
@@ -75,21 +70,14 @@ function formatMoney(value: number): string {
   })
 }
 
-function formatCountMessage(
-  count: number,
-  singularMessage: string,
-  pluralMessage: string,
-): string {
-  const message =
-    count === 1 ? singularMessage : pluralMessage
+function formatCountMessage(count: number, singularMessage: string, pluralMessage: string): string {
+  const message = count === 1 ? singularMessage : pluralMessage
 
   return `${count} ${message}`
 }
 
 export function DashboardPage() {
-  const [session, setSession] = useState<Session | null>(
-    null,
-  )
+  const [session, setSession] = useState<Session | null>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
@@ -104,172 +92,103 @@ export function DashboardPage() {
       apiFetch<Order[]>('/api/orders'),
       apiFetch<Quote[]>('/api/quotes'),
     ])
-      .then(
-        ([
-          currentSession,
-          customerList,
-          productList,
-          orderList,
-          quoteList,
-        ]) => {
-          setSession(currentSession)
-          setCustomers(customerList)
-          setProducts(productList)
-          setOrders(orderList)
-          setQuotes(quoteList)
-        },
-      )
+      .then(([currentSession, customerList, productList, orderList, quoteList]) => {
+        setSession(currentSession)
+        setCustomers(customerList)
+        setProducts(productList)
+        setOrders(orderList)
+        setQuotes(quoteList)
+      })
       .catch((requestError) => {
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : 'Não foi possível carregar o Radar.',
-        )
+        setError(getErrorMessage(requestError, 'Não foi possível carregar o Radar.'))
       })
   }, [])
 
-  const firstName =
-    session?.full_name.split(' ')[0] || 'gestor'
+  const firstName = session?.full_name.split(' ')[0] || 'gestor'
 
   const radar = useMemo(() => {
     const criticalProducts = products.filter((product) => {
       const stock = Number(product.stock_quantity)
-      const minimumStock = Number(
-        product.min_stock_quantity,
-      )
+      const minimumStock = Number(product.min_stock_quantity)
 
       return (
-        product.status === 'Esgotado' ||
-        product.status === 'Estoque baixo' ||
-        stock <= minimumStock
+        product.status === 'Esgotado' || product.status === 'Estoque baixo' || stock <= minimumStock
       )
     })
 
-    const inProduction = orders.filter(
-      (order) => order.status === 'in_preparation',
-    )
+    const inProduction = orders.filter((order) => order.status === 'in_preparation')
 
-    const completedOrders = orders.filter(
-      (order) => order.status === 'completed',
-    )
+    const completedOrders = orders.filter((order) => order.status === 'completed')
 
     const completedRevenue = completedOrders.reduce(
-      (total, order) =>
-        total + Number(order.total_amount),
+      (total, order) => total + Number(order.total_amount),
       0,
     )
 
     const today = startOfToday()
     const expirationLimit = new Date(today)
-    expirationLimit.setDate(
-      expirationLimit.getDate() + 7,
-    )
+    expirationLimit.setDate(expirationLimit.getDate() + 7)
 
-    const pendingQuotes = quotes.filter(
-      (quote) => quote.status === 'pending',
-    )
+    const pendingQuotes = quotes.filter((quote) => quote.status === 'pending')
 
-    const expiredQuotes = pendingQuotes.filter(
-      (quote) =>
-        parseDateOnly(quote.valid_until) < today,
-    )
+    const expiredQuotes = pendingQuotes.filter((quote) => parseDateOnly(quote.valid_until) < today)
 
-    const expiringQuotes = pendingQuotes.filter(
-      (quote) => {
-        const validUntil = parseDateOnly(
-          quote.valid_until,
-        )
+    const expiringQuotes = pendingQuotes.filter((quote) => {
+      const validUntil = parseDateOnly(quote.valid_until)
 
-        return (
-          validUntil >= today &&
-          validUntil <= expirationLimit
-        )
-      },
-    )
+      return validUntil >= today && validUntil <= expirationLimit
+    })
 
-    const activeCustomers = customers.filter(
-      (customer) => customer.is_active,
-    )
+    const activeCustomers = customers.filter((customer) => customer.is_active)
 
     const customerSegments = [
       {
-        category:
-          'final_consumer' as CustomerCategory,
+        category: 'final_consumer' as CustomerCategory,
         label: 'Consumidores finais',
-        count: activeCustomers.filter(
-          (customer) =>
-            customer.category === 'final_consumer',
-        ).length,
+        count: activeCustomers.filter((customer) => customer.category === 'final_consumer').length,
       },
       {
         category: 'reseller' as CustomerCategory,
         label: 'Revendedores',
-        count: activeCustomers.filter(
-          (customer) =>
-            customer.category === 'reseller',
-        ).length,
+        count: activeCustomers.filter((customer) => customer.category === 'reseller').length,
       },
       {
         category: 'event' as CustomerCategory,
         label: 'Clientes de eventos',
-        count: activeCustomers.filter(
-          (customer) =>
-            customer.category === 'event',
-        ).length,
+        count: activeCustomers.filter((customer) => customer.category === 'event').length,
       },
     ]
 
-    const customersWithoutPurchases =
-      activeCustomers.filter(
-        (customer) =>
-          Number(customer.total_spent) <= 0,
-      )
+    const customersWithoutPurchases = activeCustomers.filter(
+      (customer) => Number(customer.total_spent) <= 0,
+    )
 
     const inactivityLimit = new Date()
-    inactivityLimit.setDate(
-      inactivityLimit.getDate() - 60,
-    )
+    inactivityLimit.setDate(inactivityLimit.getDate() - 60)
 
-    const dormantCustomers = activeCustomers.filter(
-      (customer) => {
-        if (!customer.last_purchase_at) {
-          return false
-        }
+    const dormantCustomers = activeCustomers.filter((customer) => {
+      if (!customer.last_purchase_at) {
+        return false
+      }
 
-        const lastPurchase = new Date(
-          customer.last_purchase_at,
-        )
+      const lastPurchase = new Date(customer.last_purchase_at)
 
-        return (
-          !Number.isNaN(lastPurchase.getTime()) &&
-          lastPurchase < inactivityLimit
-        )
-      },
-    )
+      return !Number.isNaN(lastPurchase.getTime()) && lastPurchase < inactivityLimit
+    })
 
-    const topCustomer =
-      activeCustomers.reduce<Customer | null>(
-        (currentTop, customer) => {
-          const customerTotal = Number(
-            customer.total_spent,
-          )
+    const topCustomer = activeCustomers.reduce<Customer | null>((currentTop, customer) => {
+      const customerTotal = Number(customer.total_spent)
 
-          if (customerTotal <= 0) {
-            return currentTop
-          }
+      if (customerTotal <= 0) {
+        return currentTop
+      }
 
-          if (
-            !currentTop ||
-            customerTotal >
-            Number(currentTop.total_spent)
-          ) {
-            return customer
-          }
+      if (!currentTop || customerTotal > Number(currentTop.total_spent)) {
+        return customer
+      }
 
-          return currentTop
-        },
-        null,
-      )
+      return currentTop
+    }, null)
 
     return {
       criticalProducts,
@@ -335,14 +254,10 @@ export function DashboardPage() {
     },
   ]
 
-  const activePriorities = priorities.filter(
-    (priority) => priority.active,
-  )
+  const activePriorities = priorities.filter((priority) => priority.active)
 
   const alertLabel =
-    activePriorities.length === 1
-      ? '1 alerta'
-      : `${activePriorities.length} alertas`
+    activePriorities.length === 1 ? '1 alerta' : `${activePriorities.length} alertas`
 
   return (
     <div className="page-wrap">
@@ -350,39 +265,25 @@ export function DashboardPage() {
         <div>
           <p className="eyebrow">Radar operacional</p>
           <h1>Olá, {firstName}.</h1>
-          <p>
-            Veja prioridades e indicadores reais da sua
-            empresa.
-          </p>
+          <p>Veja prioridades e indicadores reais da sua empresa.</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Link
-            className="secondary-button"
-            to="/clientes/novo"
-          >
+          <Link className="secondary-button" to="/clientes/novo">
             Cadastrar cliente
           </Link>
 
-          <Link
-            className="secondary-button"
-            to="/produtos/novo"
-          >
+          <Link className="secondary-button" to="/produtos/novo">
             Cadastrar produto
           </Link>
 
-          <Link
-            className="primary-button"
-            to="/copiloto"
-          >
+          <Link className="primary-button" to="/copiloto">
             Abrir Copiloto
           </Link>
         </div>
       </header>
 
-      {error && (
-        <p className="error-banner mb-5">{error}</p>
-      )}
+      {error && <p className="error-banner mb-5">{error}</p>}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <RadarCard
@@ -412,9 +313,7 @@ export function DashboardPage() {
         <RadarCard
           icon={FileWarning}
           label="Faturamento concluído"
-          value={formatMoney(
-            radar.completedRevenue,
-          )}
+          value={formatMoney(radar.completedRevenue)}
           detail="pedidos concluídos"
           href="/pedidos"
         />
@@ -425,9 +324,7 @@ export function DashboardPage() {
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p className="eyebrow">Prioridades</p>
-              <h2 className="font-display text-xl font-semibold">
-                O que precisa da sua atenção
-              </h2>
+              <h2 className="font-display text-xl font-semibold">O que precisa da sua atenção</h2>
             </div>
 
             <span className="shrink-0 rounded-full bg-[#f2f5ff] px-3 py-2 text-xs font-bold text-signal">
@@ -437,58 +334,35 @@ export function DashboardPage() {
 
           {activePriorities.length > 0 ? (
             <div className="grid gap-3">
-              {activePriorities.map(
-                ({
-                  label,
-                  detail,
-                  href,
-                  icon: PriorityIcon,
-                  tone,
-                }) => (
-                  <Link
-                    className="flex items-center gap-3 rounded-lg border border-line p-4 no-underline transition hover:border-[#9fb5ff]"
-                    key={label}
-                    to={href}
-                  >
-                    <span
-                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${tone}`}
-                    >
-                      <PriorityIcon size={19} />
-                    </span>
+              {activePriorities.map(({ label, detail, href, icon: PriorityIcon, tone }) => (
+                <Link
+                  className="flex items-center gap-3 rounded-lg border border-line p-4 no-underline transition hover:border-[#9fb5ff]"
+                  key={label}
+                  to={href}
+                >
+                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${tone}`}>
+                    <PriorityIcon size={19} />
+                  </span>
 
-                    <span className="min-w-0 flex-1">
-                      <strong className="block text-sm text-ink">
-                        {label}
-                      </strong>
+                  <span className="min-w-0 flex-1">
+                    <strong className="block text-sm text-ink">{label}</strong>
 
-                      <small className="mt-1 block text-xs text-muted">
-                        {detail}
-                      </small>
-                    </span>
+                    <small className="mt-1 block text-xs text-muted">{detail}</small>
+                  </span>
 
-                    <ArrowRight
-                      className="text-[#8991aa]"
-                      size={17}
-                    />
-                  </Link>
-                ),
-              )}
+                  <ArrowRight className="text-[#8991aa]" size={17} />
+                </Link>
+              ))}
             </div>
           ) : (
             <div className="flex items-start gap-3 rounded-lg border border-[#bfe8d8] bg-[#effbf6] p-5 text-[#28745b]">
-              <CircleCheck
-                className="mt-0.5 shrink-0"
-                size={22}
-              />
+              <CircleCheck className="mt-0.5 shrink-0" size={22} />
 
               <div>
-                <strong className="block text-sm">
-                  Tudo sob controle
-                </strong>
+                <strong className="block text-sm">Tudo sob controle</strong>
                 <p className="mt-1 text-xs leading-relaxed">
-                  Não há estoques críticos, pedidos
-                  aguardando preparo ou orçamentos que
-                  exijam atenção imediata.
+                  Não há estoques críticos, pedidos aguardando preparo ou orçamentos que exijam
+                  atenção imediata.
                 </p>
               </div>
             </div>
@@ -498,32 +372,17 @@ export function DashboardPage() {
         <div className="page-card">
           <div className="mb-5">
             <p className="eyebrow">Acesso rápido</p>
-            <h2 className="font-display text-xl font-semibold">
-              Operação manual
-            </h2>
+            <h2 className="font-display text-xl font-semibold">Operação manual</h2>
             <p className="mt-2 text-xs leading-relaxed text-muted">
-              Escolha como trabalhar. O Copiloto é
-              opcional.
+              Escolha como trabalhar. O Copiloto é opcional.
             </p>
           </div>
 
           <div className="grid gap-2.5">
-            <QuickLink
-              href="/clientes"
-              label="Gerenciar clientes"
-            />
-            <QuickLink
-              href="/produtos"
-              label="Gerenciar produtos"
-            />
-            <QuickLink
-              href="/orcamentos"
-              label="Criar orçamento"
-            />
-            <QuickLink
-              href="/pedidos/novo"
-              label="Criar pedido"
-            />
+            <QuickLink href="/clientes" label="Gerenciar clientes" />
+            <QuickLink href="/produtos" label="Gerenciar produtos" />
+            <QuickLink href="/orcamentos" label="Criar orçamento" />
+            <QuickLink href="/pedidos/novo" label="Criar pedido" />
           </div>
         </div>
       </section>
@@ -532,22 +391,14 @@ export function DashboardPage() {
         <div className="page-card">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <p className="eyebrow">
-                Inteligência comercial
-              </p>
-              <h2 className="font-display text-xl font-semibold">
-                Perfil da sua base de clientes
-              </h2>
+              <p className="eyebrow">Inteligência comercial</p>
+              <h2 className="font-display text-xl font-semibold">Perfil da sua base de clientes</h2>
               <p className="mt-2 text-xs leading-relaxed text-muted">
-                Distribuição dos clientes ativos por
-                segmento.
+                Distribuição dos clientes ativos por segmento.
               </p>
             </div>
 
-            <Link
-              className="text-xs font-bold text-signal no-underline"
-              to="/clientes"
-            >
+            <Link className="text-xs font-bold text-signal no-underline" to="/clientes">
               Ver clientes
             </Link>
           </div>
@@ -567,13 +418,9 @@ export function DashboardPage() {
                   {segment.count}
                 </strong>
 
-                <span className="mt-1 block text-xs font-bold text-[#354064]">
-                  {segment.label}
-                </span>
+                <span className="mt-1 block text-xs font-bold text-[#354064]">{segment.label}</span>
 
-                <small className="mt-1 block text-[11px] text-muted">
-                  clientes ativos
-                </small>
+                <small className="mt-1 block text-[11px] text-muted">clientes ativos</small>
               </Link>
             ))}
           </div>
@@ -582,9 +429,7 @@ export function DashboardPage() {
         <div className="page-card">
           <div className="mb-5">
             <p className="eyebrow">Relacionamento</p>
-            <h2 className="font-display text-xl font-semibold">
-              Oportunidades comerciais
-            </h2>
+            <h2 className="font-display text-xl font-semibold">Oportunidades comerciais</h2>
           </div>
 
           {radar.topCustomer ? (
@@ -594,10 +439,7 @@ export function DashboardPage() {
             >
               <div className="flex items-start gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e9eeff] text-signal">
-                  <Trophy
-                    aria-hidden="true"
-                    size={18}
-                  />
+                  <Trophy aria-hidden="true" size={18} />
                 </span>
 
                 <div className="min-w-0 flex-1">
@@ -610,12 +452,7 @@ export function DashboardPage() {
                   </strong>
 
                   <span className="mt-1 block text-xs text-muted">
-                    {formatMoney(
-                      Number(
-                        radar.topCustomer.total_spent,
-                      ),
-                    )}{' '}
-                    em compras concluídas
+                    {formatMoney(Number(radar.topCustomer.total_spent))} em compras concluídas
                   </span>
                 </div>
 
@@ -630,10 +467,7 @@ export function DashboardPage() {
             <div className="mb-3 rounded-lg border border-[#dce4ff] bg-[#f7f9ff] p-4">
               <div className="flex items-start gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e9eeff] text-signal">
-                  <Trophy
-                    aria-hidden="true"
-                    size={18}
-                  />
+                  <Trophy aria-hidden="true" size={18} />
                 </span>
 
                 <div className="min-w-0">
@@ -656,29 +490,20 @@ export function DashboardPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <strong className="block text-sm text-ink">
-                    Sem compras concluídas
-                  </strong>
+                  <strong className="block text-sm text-ink">Sem compras concluídas</strong>
 
                   <small className="mt-1 block text-xs text-muted">
-                    {radar.customersWithoutPurchases
-                      .length > 0
+                    {radar.customersWithoutPurchases.length > 0
                       ? radar.customersWithoutPurchases
-                        .slice(0, 2)
-                        .map(
-                          (customer) =>
-                            customer.name,
-                        )
-                        .join(', ')
+                          .slice(0, 2)
+                          .map((customer) => customer.name)
+                          .join(', ')
                       : 'Todos os clientes ativos já compraram.'}
                   </small>
                 </div>
 
                 <span className="shrink-0 rounded-full bg-[#fff8eb] px-3 py-2 text-xs font-bold text-[#c77716]">
-                  {
-                    radar.customersWithoutPurchases
-                      .length
-                  }
+                  {radar.customersWithoutPurchases.length}
                 </span>
               </div>
             </Link>
@@ -689,19 +514,14 @@ export function DashboardPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <strong className="block text-sm text-ink">
-                    Sem comprar há mais de 60 dias
-                  </strong>
+                  <strong className="block text-sm text-ink">Sem comprar há mais de 60 dias</strong>
 
                   <small className="mt-1 block text-xs text-muted">
                     {radar.dormantCustomers.length > 0
                       ? radar.dormantCustomers
-                        .slice(0, 2)
-                        .map(
-                          (customer) =>
-                            customer.name,
-                        )
-                        .join(', ')
+                          .slice(0, 2)
+                          .map((customer) => customer.name)
+                          .join(', ')
                       : 'Nenhum cliente inativo nesse período.'}
                   </small>
                 </div>
@@ -740,28 +560,16 @@ function RadarCard({
         <Icon size={18} />
       </span>
 
-      <span className="block text-xs text-muted">
-        {label}
-      </span>
+      <span className="block text-xs text-muted">{label}</span>
 
-      <strong className="mt-1 block font-display text-2xl font-semibold text-ink">
-        {value}
-      </strong>
+      <strong className="mt-1 block font-display text-2xl font-semibold text-ink">{value}</strong>
 
-      <small className="mt-1 block text-[11px] text-[#8991aa]">
-        {detail}
-      </small>
+      <small className="mt-1 block text-[11px] text-[#8991aa]">{detail}</small>
     </Link>
   )
 }
 
-function QuickLink({
-  href,
-  label,
-}: {
-  href: string
-  label: string
-}) {
+function QuickLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       className="flex items-center justify-between rounded-lg border border-line px-3.5 py-3 text-xs font-bold text-[#354064] no-underline hover:border-[#9fb5ff] hover:text-signal"

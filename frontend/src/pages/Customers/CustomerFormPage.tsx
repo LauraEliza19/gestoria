@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
-type Customer = Record<
-  string,
-  string | number | boolean | null | undefined
-> & {
+type Customer = Record<string, string | number | boolean | null | undefined> & {
   id: string
 }
 
@@ -83,31 +81,19 @@ export function CustomerFormPage() {
             const formKey = key as keyof typeof initialForm
             const value = customer[key]
 
-            return [
-              key,
-              value == null
-                ? initialForm[formKey]
-                : String(value),
-            ]
+            return [key, value == null ? initialForm[formKey] : String(value)]
           }),
         ) as typeof initialForm
 
         setForm(loadedForm)
       })
       .catch((error) => {
-        setStatus(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar o cliente.',
-        )
+        setStatus(getErrorMessage(error, 'Não foi possível carregar o cliente.'))
       })
       .finally(() => setLoading(false))
   }, [id])
 
-  function update(
-    field: keyof typeof initialForm,
-    value: string,
-  ) {
+  function update(field: keyof typeof initialForm, value: string) {
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -143,33 +129,20 @@ export function CustomerFormPage() {
         ...form,
         email: form.email || null,
         birth_date: form.birth_date || null,
-        default_discount_percent:
-          form.default_discount_percent
-            ? form.default_discount_percent.replace(',', '.')
-            : null,
-        ...Object.fromEntries(
-          nullableFields.map((field) => [
-            field,
-            form[field] || null,
-          ]),
-        ),
+        default_discount_percent: form.default_discount_percent
+          ? form.default_discount_percent.replace(',', '.')
+          : null,
+        ...Object.fromEntries(nullableFields.map((field) => [field, form[field] || null])),
       }
 
-      await apiFetch(
-        id ? `/api/customers/${id}` : '/api/customers',
-        {
-          method: id ? 'PATCH' : 'POST',
-          body: JSON.stringify(payload),
-        },
-      )
+      await apiFetch(id ? `/api/customers/${id}` : '/api/customers', {
+        method: id ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      })
 
       navigate('/clientes')
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível salvar o cliente.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível salvar o cliente.'))
     }
   }
 
@@ -187,9 +160,7 @@ export function CustomerFormPage() {
         <div>
           <p className="eyebrow">Cadastro manual</p>
           <h1>{id ? 'Editar cliente' : 'Novo cliente'}</h1>
-          <p>
-            Preencha os dados comerciais, pessoais e de endereço.
-          </p>
+          <p>Preencha os dados comerciais, pessoais e de endereço.</p>
         </div>
 
         <Link className="secondary-button" to="/clientes">
@@ -199,9 +170,7 @@ export function CustomerFormPage() {
 
       <form className="page-card grid gap-6" onSubmit={submit}>
         <div>
-          <p className="eyebrow mb-4">
-            Identificação do cliente
-          </p>
+          <p className="eyebrow mb-4">Identificação do cliente</p>
 
           <div className="grid gap-4 md:grid-cols-3">
             <label className="form-label">
@@ -209,9 +178,7 @@ export function CustomerFormPage() {
               <select
                 className="form-input"
                 value={form.person_type}
-                onChange={(event) =>
-                  update('person_type', event.target.value)
-                }
+                onChange={(event) => update('person_type', event.target.value)}
               >
                 <option value="individual">Pessoa física</option>
                 <option value="company">Pessoa jurídica</option>
@@ -223,13 +190,9 @@ export function CustomerFormPage() {
               <select
                 className="form-input"
                 value={form.category}
-                onChange={(event) =>
-                  update('category', event.target.value)
-                }
+                onChange={(event) => update('category', event.target.value)}
               >
-                <option value="final_consumer">
-                  Consumidor final
-                </option>
+                <option value="final_consumer">Consumidor final</option>
                 <option value="reseller">Revendedor</option>
                 <option value="event">Cliente de eventos</option>
               </select>
@@ -241,12 +204,8 @@ export function CustomerFormPage() {
                 <input
                   className="form-input"
                   value={form[field]}
-                  onChange={(event) =>
-                    update(field, event.target.value)
-                  }
-                  required={
-                    field === 'name' || field === 'phone'
-                  }
+                  onChange={(event) => update(field, event.target.value)}
+                  required={field === 'name' || field === 'phone'}
                 />
               </label>
             ))}
@@ -254,9 +213,7 @@ export function CustomerFormPage() {
         </div>
 
         <div className="border-t border-line pt-5">
-          <p className="eyebrow mb-4">
-            Contato e relacionamento
-          </p>
+          <p className="eyebrow mb-4">Contato e relacionamento</p>
 
           <div className="grid gap-4 md:grid-cols-3">
             {relationshipFields.map(([field, label]) => (
@@ -264,22 +221,10 @@ export function CustomerFormPage() {
                 {label}
                 <input
                   className="form-input"
-                  type={
-                    field === 'email'
-                      ? 'email'
-                      : field === 'birth_date'
-                        ? 'date'
-                        : 'text'
-                  }
-                  inputMode={
-                    field === 'default_discount_percent'
-                      ? 'decimal'
-                      : undefined
-                  }
+                  type={field === 'email' ? 'email' : field === 'birth_date' ? 'date' : 'text'}
+                  inputMode={field === 'default_discount_percent' ? 'decimal' : undefined}
                   value={form[field]}
-                  onChange={(event) =>
-                    update(field, event.target.value)
-                  }
+                  onChange={(event) => update(field, event.target.value)}
                 />
               </label>
             ))}
@@ -289,9 +234,7 @@ export function CustomerFormPage() {
               <textarea
                 className="form-input min-h-24"
                 value={form.notes}
-                onChange={(event) =>
-                  update('notes', event.target.value)
-                }
+                onChange={(event) => update('notes', event.target.value)}
               />
             </label>
           </div>
@@ -303,20 +246,14 @@ export function CustomerFormPage() {
           <div className="grid gap-4 md:grid-cols-4">
             {addressFields.map(([field, label]) => (
               <label
-                className={`form-label ${
-                  field === 'street'
-                    ? 'md:col-span-2'
-                    : ''
-                }`}
+                className={`form-label ${field === 'street' ? 'md:col-span-2' : ''}`}
                 key={field}
               >
                 {label}
                 <input
                   className="form-input"
                   value={form[field]}
-                  onChange={(event) =>
-                    update(field, event.target.value)
-                  }
+                  onChange={(event) => update(field, event.target.value)}
                   maxLength={field === 'state' ? 2 : undefined}
                 />
               </label>
@@ -325,11 +262,7 @@ export function CustomerFormPage() {
         </div>
 
         {status && (
-          <p
-            className="form-status"
-            role="alert"
-            aria-live="polite"
-          >
+          <p className="form-status" role="alert" aria-live="polite">
             {status}
           </p>
         )}

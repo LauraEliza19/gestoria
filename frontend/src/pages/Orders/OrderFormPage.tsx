@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams, } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
 type Customer = {
   id: string
@@ -74,8 +75,7 @@ export function OrderFormPage() {
   const navigate = useNavigate()
 
   const [searchParams] = useSearchParams()
-  const requestedCustomerId =
-    searchParams.get('customer_id')
+  const requestedCustomerId = searchParams.get('customer_id')
 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -86,30 +86,16 @@ export function OrderFormPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      apiFetch<Customer[]>('/api/customers'),
-      apiFetch<Product[]>('/api/products'),
-    ])
+    Promise.all([apiFetch<Customer[]>('/api/customers'), apiFetch<Product[]>('/api/products')])
       .then(([customerList, productList]) => {
-        const activeCustomers = customerList.filter(
-          (customer) =>
-            customer.is_active !== false,
-        )
+        const activeCustomers = customerList.filter((customer) => customer.is_active !== false)
 
         setCustomers(activeCustomers)
-        setProducts(
-          productList.filter(
-            (product) =>
-              product.is_active !== false,
-          ),
-        )
+        setProducts(productList.filter((product) => product.is_active !== false))
 
         if (
           requestedCustomerId &&
-          activeCustomers.some(
-            (customer) =>
-              customer.id === requestedCustomerId,
-          )
+          activeCustomers.some((customer) => customer.id === requestedCustomerId)
         ) {
           setCustomerId(requestedCustomerId)
         }
@@ -117,11 +103,7 @@ export function OrderFormPage() {
         setStatus('')
       })
       .catch((error) => {
-        setStatus(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar os dados.',
-        )
+        setStatus(getErrorMessage(error, 'Não foi possível carregar os dados.'))
       })
   }, [requestedCustomerId])
 
@@ -130,15 +112,9 @@ export function OrderFormPage() {
     [items],
   )
 
-  function updateItem(
-    key: string,
-    field: 'productId' | 'quantity',
-    value: string,
-  ) {
+  function updateItem(key: string, field: 'productId' | 'quantity', value: string) {
     setItems((current) =>
-      current.map((item) =>
-        item.key === key ? { ...item, [field]: value } : item,
-      ),
+      current.map((item) => (item.key === key ? { ...item, [field]: value } : item)),
     )
   }
 
@@ -165,9 +141,7 @@ export function OrderFormPage() {
     if (
       items.some(
         (item) =>
-          !item.productId ||
-          !Number.isFinite(Number(item.quantity)) ||
-          Number(item.quantity) <= 0,
+          !item.productId || !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0,
       )
     ) {
       setStatus('Selecione os produtos e informe quantidades válidas.')
@@ -182,30 +156,23 @@ export function OrderFormPage() {
     try {
       setSubmitting(true)
 
-      const prepared = await apiFetch<OrderProposal>(
-        '/api/orders/proposals',
-        {
-          method: 'POST',
-          headers: {
-            'Idempotency-Key': crypto.randomUUID(),
-          },
-          body: JSON.stringify({
-            customer_id: customerId,
-            items: items.map((item) => ({
-              product_id: item.productId,
-              quantity: Number(item.quantity),
-            })),
-          }),
+      const prepared = await apiFetch<OrderProposal>('/api/orders/proposals', {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': crypto.randomUUID(),
         },
-      )
+        body: JSON.stringify({
+          customer_id: customerId,
+          items: items.map((item) => ({
+            product_id: item.productId,
+            quantity: Number(item.quantity),
+          })),
+        }),
+      })
 
       setProposal(prepared)
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível preparar o pedido.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível preparar o pedido.'))
     } finally {
       setSubmitting(false)
     }
@@ -217,19 +184,12 @@ export function OrderFormPage() {
     try {
       setSubmitting(true)
 
-      await apiFetch(
-        `/api/orders/proposals/${proposal.operation_id}/cancel`,
-        { method: 'POST' },
-      )
+      await apiFetch(`/api/orders/proposals/${proposal.operation_id}/cancel`, { method: 'POST' })
 
       setProposal(null)
       setStatus('')
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível cancelar a revisão.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível cancelar a revisão.'))
     } finally {
       setSubmitting(false)
     }
@@ -259,11 +219,7 @@ export function OrderFormPage() {
         },
       })
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível confirmar o pedido.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível confirmar o pedido.'))
     } finally {
       setSubmitting(false)
     }
@@ -278,9 +234,7 @@ export function OrderFormPage() {
           <div>
             <p className="eyebrow">Confirmação segura</p>
             <h1>Revise o pedido</h1>
-            <p>
-              Confira os dados antes de descontar o estoque e registrar a venda.
-            </p>
+            <p>Confira os dados antes de descontar o estoque e registrar a venda.</p>
           </div>
         </header>
 
@@ -290,8 +244,8 @@ export function OrderFormPage() {
             <div>
               <strong className="block text-sm">Revisão protegida</strong>
               <p className="mt-1 text-xs leading-relaxed">
-                Os dados foram assinados pelo servidor. Preços e estoque serão
-                conferidos novamente durante a confirmação.
+                Os dados foram assinados pelo servidor. Preços e estoque serão conferidos novamente
+                durante a confirmação.
               </p>
             </div>
           </div>
@@ -320,11 +274,7 @@ export function OrderFormPage() {
                     {item.quantity} {item.unit_of_measure}
                   </span>
                   <span>{formatMoney(item.unit_price)}</span>
-                  <span>
-                    {formatMoney(
-                      Number(item.quantity) * Number(item.unit_price),
-                    )}
-                  </span>
+                  <span>{formatMoney(Number(item.quantity) * Number(item.unit_price))}</span>
                 </div>
               ))}
             </div>
@@ -332,9 +282,7 @@ export function OrderFormPage() {
 
           <div className="mt-6 flex items-center justify-between border-t border-line pt-5">
             <span className="text-sm text-muted">Total do pedido</span>
-            <strong className="font-display text-2xl">
-              {formatMoney(plan.total_amount)}
-            </strong>
+            <strong className="font-display text-2xl">{formatMoney(plan.total_amount)}</strong>
           </div>
 
           {status && <p className="form-status mt-4">{status}</p>}
@@ -377,10 +325,7 @@ export function OrderFormPage() {
         </Link>
       </header>
 
-      <form
-        className="page-card mx-auto grid max-w-[900px] gap-6"
-        onSubmit={prepareOrder}
-      >
+      <form className="page-card mx-auto grid max-w-[900px] gap-6" onSubmit={prepareOrder}>
         <label className="form-label">
           Cliente
           <select
@@ -401,16 +346,10 @@ export function OrderFormPage() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="eyebrow">Itens do pedido</p>
-              <h2 className="font-display text-xl font-semibold">
-                Produtos e quantidades
-              </h2>
+              <h2 className="font-display text-xl font-semibold">Produtos e quantidades</h2>
             </div>
 
-            <button
-              className="secondary-button"
-              onClick={addItem}
-              type="button"
-            >
+            <button className="secondary-button" onClick={addItem} type="button">
               <Plus size={16} />
               Adicionar produto
             </button>
@@ -427,16 +366,13 @@ export function OrderFormPage() {
                   <select
                     className="form-input"
                     value={item.productId}
-                    onChange={(event) =>
-                      updateItem(item.key, 'productId', event.target.value)
-                    }
+                    onChange={(event) => updateItem(item.key, 'productId', event.target.value)}
                   >
                     <option value="">Selecione um produto</option>
                     {products.map((product) => (
                       <option
                         disabled={
-                          item.productId !== product.id &&
-                          selectedProductIds.has(product.id)
+                          item.productId !== product.id && selectedProductIds.has(product.id)
                         }
                         key={product.id}
                         value={product.id}
@@ -456,9 +392,7 @@ export function OrderFormPage() {
                     step="0.001"
                     type="number"
                     value={item.quantity}
-                    onChange={(event) =>
-                      updateItem(item.key, 'quantity', event.target.value)
-                    }
+                    onChange={(event) => updateItem(item.key, 'quantity', event.target.value)}
                   />
                 </label>
 
@@ -478,15 +412,13 @@ export function OrderFormPage() {
 
         {customers.length === 0 && !status && (
           <p className="info-note">
-            Nenhum cliente ativo encontrado. Cadastre um cliente antes de criar
-            o pedido.
+            Nenhum cliente ativo encontrado. Cadastre um cliente antes de criar o pedido.
           </p>
         )}
 
         {products.length === 0 && !status && (
           <p className="info-note">
-            Nenhum produto ativo encontrado. Cadastre um produto antes de criar
-            o pedido.
+            Nenhum produto ativo encontrado. Cadastre um produto antes de criar o pedido.
           </p>
         )}
 
@@ -495,9 +427,7 @@ export function OrderFormPage() {
         <div className="flex flex-wrap gap-3">
           <button
             className="primary-button"
-            disabled={
-              submitting || customers.length === 0 || products.length === 0
-            }
+            disabled={submitting || customers.length === 0 || products.length === 0}
             type="submit"
           >
             {submitting ? 'Preparando...' : 'Revisar pedido'}

@@ -64,9 +64,9 @@ def create_customer(
             current.organization.id,
             payload.model_dump(),
         )
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise duplicate_customer()
+        raise duplicate_customer() from exc
 
 
 @router.get(
@@ -115,9 +115,9 @@ def update_customer(
             customer,
             payload.model_dump(exclude_unset=True),
         )
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise duplicate_customer()
+        raise duplicate_customer() from exc
 
 
 @router.delete(
@@ -142,9 +142,9 @@ def delete_customer(
 
     try:
         CustomerRepository.delete(db, customer)
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise customer_in_use()
+        raise customer_in_use() from exc
 
     return Response(
         status_code=status.HTTP_204_NO_CONTENT,

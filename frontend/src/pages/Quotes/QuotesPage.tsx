@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import {
-  Link,
-  useSearchParams,
-} from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
 type Customer = {
   id: string
@@ -55,49 +53,35 @@ function formatMoney(value: string): string {
 }
 
 function formatDate(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(
-    'pt-BR',
-  )
+  return new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR')
 }
 
 export function QuotesPage() {
   const [searchParams] = useSearchParams()
-  const selectedCustomerId =
-    searchParams.get('customer_id') ?? ''
+  const selectedCustomerId = searchParams.get('customer_id') ?? ''
 
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
 
-  const [customerId, setCustomerId] = useState(
-    selectedCustomerId,
-  )
+  const [customerId, setCustomerId] = useState(selectedCustomerId)
   const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState('1')
   const [validUntil, setValidUntil] = useState(() =>
-    new Date(Date.now() + 7 * 86400000)
-      .toISOString()
-      .slice(0, 10),
+    new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
   )
-  const [status, setStatus] = useState(
-    'Carregando orçamentos...',
-  )
+  const [status, setStatus] = useState('Carregando orçamentos...')
 
   async function load() {
     try {
-      const [quoteList, customerList, productList] =
-        await fetchQuotes()
+      const [quoteList, customerList, productList] = await fetchQuotes()
 
       setQuotes(quoteList)
       setCustomers(customerList)
       setProducts(productList)
       setStatus('')
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível carregar os dados.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível carregar os dados.'))
     }
   }
 
@@ -110,25 +94,15 @@ export function QuotesPage() {
         setStatus('')
       })
       .catch((error) => {
-        setStatus(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar os dados.',
-        )
+        setStatus(getErrorMessage(error, 'Não foi possível carregar os dados.'))
       })
   }, [])
 
   async function createQuote(event: React.FormEvent) {
     event.preventDefault()
 
-    if (
-      !customerId ||
-      !productId ||
-      Number(quantity) <= 0
-    ) {
-      setStatus(
-        'Selecione cliente, produto e quantidade válidos.',
-      )
+    if (!customerId || !productId || Number(quantity) <= 0) {
+      setStatus('Selecione cliente, produto e quantidade válidos.')
       return
     }
 
@@ -153,70 +127,39 @@ export function QuotesPage() {
 
       await load()
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível criar o orçamento.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível criar o orçamento.'))
     }
   }
 
-  async function updateQuote(
-    quote: Quote,
-    nextStatus: string,
-  ) {
+  async function updateQuote(quote: Quote, nextStatus: string) {
     try {
-      const updated = await apiFetch<Quote>(
-        `/api/quotes/${quote.id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: nextStatus,
-          }),
-        },
-      )
+      const updated = await apiFetch<Quote>(`/api/quotes/${quote.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: nextStatus,
+        }),
+      })
 
-      setQuotes((current) =>
-        current.map((item) =>
-          item.id === quote.id ? updated : item,
-        ),
-      )
+      setQuotes((current) => current.map((item) => (item.id === quote.id ? updated : item)))
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível atualizar o orçamento.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível atualizar o orçamento.'))
     }
   }
 
   async function convert(quote: Quote) {
     try {
-      const updated = await apiFetch<Quote>(
-        `/api/quotes/${quote.id}/convert`,
-        {
-          method: 'POST',
-        },
-      )
+      const updated = await apiFetch<Quote>(`/api/quotes/${quote.id}/convert`, {
+        method: 'POST',
+      })
 
-      setQuotes((current) =>
-        current.map((item) =>
-          item.id === quote.id ? updated : item,
-        ),
-      )
+      setQuotes((current) => current.map((item) => (item.id === quote.id ? updated : item)))
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível converter o orçamento.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível converter o orçamento.'))
     }
   }
 
   async function remove(quote: Quote) {
-    const confirmed = window.confirm(
-      `Excluir o orçamento de ${quote.customer_name}?`,
-    )
+    const confirmed = window.confirm(`Excluir o orçamento de ${quote.customer_name}?`)
 
     if (!confirmed) {
       return
@@ -227,15 +170,9 @@ export function QuotesPage() {
         method: 'DELETE',
       })
 
-      setQuotes((current) =>
-        current.filter((item) => item.id !== quote.id),
-      )
+      setQuotes((current) => current.filter((item) => item.id !== quote.id))
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível excluir o orçamento.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível excluir o orçamento.'))
     }
   }
 
@@ -245,46 +182,28 @@ export function QuotesPage() {
         <div>
           <p className="eyebrow">Vendas</p>
           <h1>Orçamentos</h1>
-          <p>
-            Monte propostas, acompanhe aprovações e converta
-            vendas.
-          </p>
+          <p>Monte propostas, acompanhe aprovações e converta vendas.</p>
         </div>
 
         {selectedCustomerId && (
-          <Link
-            className="secondary-button"
-            to={`/clientes/${selectedCustomerId}`}
-          >
+          <Link className="secondary-button" to={`/clientes/${selectedCustomerId}`}>
             <ArrowLeft size={16} />
             Voltar ao cliente
           </Link>
         )}
       </header>
 
-      <form
-        className="page-card quote-form"
-        onSubmit={createQuote}
-      >
+      <form className="page-card quote-form" onSubmit={createQuote}>
         <h2>Novo orçamento</h2>
 
         <div className="quote-form-grid">
           <label>
             Cliente
-
-            <select
-              value={customerId}
-              onChange={(event) =>
-                setCustomerId(event.target.value)
-              }
-            >
+            <select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
               <option value="">Selecione</option>
 
               {customers.map((customer) => (
-                <option
-                  key={customer.id}
-                  value={customer.id}
-                >
+                <option key={customer.id} value={customer.id}>
                   {customer.name}
                 </option>
               ))}
@@ -293,20 +212,11 @@ export function QuotesPage() {
 
           <label>
             Produto
-
-            <select
-              value={productId}
-              onChange={(event) =>
-                setProductId(event.target.value)
-              }
-            >
+            <select value={productId} onChange={(event) => setProductId(event.target.value)}>
               <option value="">Selecione</option>
 
               {products.map((product) => (
-                <option
-                  key={product.id}
-                  value={product.id}
-                >
+                <option key={product.id} value={product.id}>
                   {product.name} - {formatMoney(product.price)}
                 </option>
               ))}
@@ -315,27 +225,21 @@ export function QuotesPage() {
 
           <label>
             Quantidade
-
             <input
               min="0.001"
               step="0.001"
               type="number"
               value={quantity}
-              onChange={(event) =>
-                setQuantity(event.target.value)
-              }
+              onChange={(event) => setQuantity(event.target.value)}
             />
           </label>
 
           <label>
             Válido até
-
             <input
               type="date"
               value={validUntil}
-              onChange={(event) =>
-                setValidUntil(event.target.value)
-              }
+              onChange={(event) => setValidUntil(event.target.value)}
             />
           </label>
         </div>
@@ -345,9 +249,7 @@ export function QuotesPage() {
         </button>
       </form>
 
-      {status && (
-        <p className="table-status">{status}</p>
-      )}
+      {status && <p className="table-status">{status}</p>}
 
       <section className="page-card">
         <div className="data-table quote-table">
@@ -360,31 +262,18 @@ export function QuotesPage() {
           </div>
 
           {quotes.map((quote) => (
-            <div
-              className="data-table-row"
-              key={quote.id}
-            >
+            <div className="data-table-row" key={quote.id}>
               <span>
                 <strong>{quote.customer_name}</strong>
 
-                <small>
-                  {quoteStatusLabels[quote.status] ||
-                    quote.status}
-                </small>
+                <small>{quoteStatusLabels[quote.status] || quote.status}</small>
               </span>
 
               <span>
-                {quote.items
-                  .map(
-                    (item) =>
-                      `${item.product_name} (${item.quantity})`,
-                  )
-                  .join(', ')}
+                {quote.items.map((item) => `${item.product_name} (${item.quantity})`).join(', ')}
               </span>
 
-              <span>
-                {formatMoney(quote.total_amount)}
-              </span>
+              <span>{formatMoney(quote.total_amount)}</span>
 
               <span>{formatDate(quote.valid_until)}</span>
 
@@ -393,46 +282,26 @@ export function QuotesPage() {
                   className="inline-status"
                   disabled={quote.status === 'converted'}
                   value={quote.status}
-                  onChange={(event) =>
-                    void updateQuote(
-                      quote,
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => void updateQuote(quote, event.target.value)}
                 >
                   <option value="pending">Pendente</option>
                   <option value="approved">Aprovado</option>
                   <option value="rejected">Rejeitado</option>
 
-                  {quote.status === 'converted' && (
-                    <option value="converted">
-                      Convertido
-                    </option>
-                  )}
+                  {quote.status === 'converted' && <option value="converted">Convertido</option>}
                 </select>
 
-                {quote.status === 'approved' &&
-                  !quote.converted_order_id && (
-                    <button
-                      type="button"
-                      onClick={() => void convert(quote)}
-                    >
-                      Converter
-                    </button>
-                  )}
-
-                {quote.converted_order_id && (
-                  <Link
-                    to={`/pedidos?order_id=${quote.converted_order_id}`}
-                  >
-                    Ver pedido
-                  </Link>
+                {quote.status === 'approved' && !quote.converted_order_id && (
+                  <button type="button" onClick={() => void convert(quote)}>
+                    Converter
+                  </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => void remove(quote)}
-                >
+                {quote.converted_order_id && (
+                  <Link to={`/pedidos?order_id=${quote.converted_order_id}`}>Ver pedido</Link>
+                )}
+
+                <button type="button" onClick={() => void remove(quote)}>
                   Excluir
                 </button>
               </span>
@@ -440,9 +309,7 @@ export function QuotesPage() {
           ))}
 
           {quotes.length === 0 && !status && (
-            <p className="table-status">
-              Nenhum orçamento cadastrado.
-            </p>
+            <p className="table-status">Nenhum orçamento cadastrado.</p>
           )}
         </div>
       </section>

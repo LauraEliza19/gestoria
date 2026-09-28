@@ -21,7 +21,9 @@ export async function login(email: string, password: string): Promise<LoginRespo
       body: JSON.stringify({ email, password }),
     })
   } catch {
-    throw new Error('Não foi possível conectar à API. Verifique se o frontend e o backend estão em execução.')
+    throw new Error(
+      'Não foi possível conectar à API. Verifique se o frontend e o backend estão em execução.',
+    )
   }
 
   const body = await response.json().catch(() => ({}))

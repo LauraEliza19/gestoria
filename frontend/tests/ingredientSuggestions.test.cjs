@@ -5,8 +5,13 @@ const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const ts = require('typescript')
 
-const source = readFileSync(join(__dirname, '../src/pages/FactoryMode/ingredientSuggestions.ts'), 'utf8')
-const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText
+const source = readFileSync(
+  join(__dirname, '../src/pages/FactoryMode/ingredientSuggestions.ts'),
+  'utf8',
+)
+const code = ts.transpileModule(source, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 },
+}).outputText
 const exported = {}
 vm.runInNewContext(code, { exports: exported })
 const { normalizeIngredientName, suggestIngredients } = exported
@@ -25,15 +30,18 @@ test('case, accents and whitespace match the same name', () => {
 
 test('misspellings and transposed letters suggest the intended ingredient', () => {
   for (const query of ['farina de trigo', 'farinha de trgio', 'frainha']) {
-    assert.ok(suggestIngredients(query, ingredients).some(result => result.ingredient.id === 'wheat'), query)
+    assert.ok(
+      suggestIngredients(query, ingredients).some((result) => result.ingredient.id === 'wheat'),
+      query,
+    )
   }
 })
 
 test('brand names suggest candidates without treating them as exact matches', () => {
   const results = suggestIngredients('Farinha Santa Amália', ingredients)
-  assert.ok(results.some(result => result.ingredient.id === 'wheat'))
-  assert.ok(results.some(result => result.ingredient.id === 'rice'))
-  assert.ok(results.every(result => result.exact === false))
+  assert.ok(results.some((result) => result.ingredient.id === 'wheat'))
+  assert.ok(results.some((result) => result.ingredient.id === 'rice'))
+  assert.ok(results.every((result) => result.exact === false))
 })
 
 test('specific ingredient ranks ahead of similar alternatives', () => {

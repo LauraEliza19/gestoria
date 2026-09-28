@@ -12,7 +12,10 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 
 
 def product_not_found() -> HTTPException:
-    return HTTPException(status_code=404, detail="Produto não encontrado.")
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Produto não encontrado.",
+    )
 
 
 def duplicate_product() -> HTTPException:
@@ -25,18 +28,34 @@ def duplicate_product() -> HTTPException:
 def product_in_use() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_409_CONFLICT,
-        detail="Este produto possui pedidos ou registros fiscais vinculados e não pode ser excluído. Desative o cadastro para preservar o histórico.",
+        detail=(
+            "Este produto possui pedidos ou registros fiscais vinculados "
+            "e não pode ser excluído. Desative o cadastro para preservar "
+            "o histórico."
+        ),
     )
 
 
 @router.get("", response_model=list[ProductRead])
-def list_products(db: DatabaseSession, current: CurrentUser) -> list[ProductRead]:
-    return ProductRepository.list_for_organization(db, current.organization.id)
+def list_products(
+    db: DatabaseSession,
+    current: CurrentUser,
+) -> list[ProductRead]:
+    return ProductRepository.list_for_organization(
+        db,
+        current.organization.id,
+    )
 
 
-@router.post("", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ProductRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_product_route(
-    payload: ProductCreate, db: DatabaseSession, current: CurrentUser
+    payload: ProductCreate,
+    db: DatabaseSession,
+    current: CurrentUser,
 ) -> ProductRead:
     try:
         return create_product(
@@ -44,16 +63,20 @@ def create_product_route(
             current.organization.id,
             payload.model_dump(),
         )
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise duplicate_product()
+        raise duplicate_product() from exc
     except ProductServiceError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
-        )
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
 
 
-@router.patch("/{product_id}", response_model=ProductRead)
+@router.patch(
+    "/{product_id}",
+    response_model=ProductRead,
+)
 def update_product_route(
     product_id: uuid.UUID,
     payload: ProductUpdate,
@@ -61,36 +84,56 @@ def update_product_route(
     current: CurrentUser,
 ) -> ProductRead:
     product = ProductRepository.get_for_organization(
-        db, product_id, current.organization.id
+        db,
+        product_id,
+        current.organization.id,
     )
+
     if not product:
         raise product_not_found()
 
     try:
-        return update_product(db, product, payload.model_dump(exclude_unset=True))
-    except IntegrityError:
+        return update_product(
+            db,
+            product,
+            payload.model_dump(exclude_unset=True),
+        )
+    except IntegrityError as exc:
         db.rollback()
-        raise duplicate_product()
+        raise duplicate_product() from exc
     except ProductServiceError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
-        )
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
 
 
-@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_product_route(
-    product_id: uuid.UUID, db: DatabaseSession, current: CurrentUser
+    product_id: uuid.UUID,
+    db: DatabaseSession,
+    current: CurrentUser,
 ) -> Response:
     require_role(current, {"owner", "admin"})
+
     product = ProductRepository.get_for_organization(
-        db, product_id, current.organization.id
+        db,
+        product_id,
+        current.organization.id,
     )
+
     if not product:
         raise product_not_found()
 
     try:
         ProductRepository.delete(db, product)
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise product_in_use()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        raise product_in_use() from exc
+
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
