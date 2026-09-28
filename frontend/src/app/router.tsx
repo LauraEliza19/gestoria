@@ -18,60 +18,68 @@ import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, getAccessToken } from '../services/session'
 
 function ProtectedLayout() {
-	if (!getAccessToken()) return <Navigate to="/login" replace />
-	return <DashboardLayout />
+  if (!getAccessToken()) return <Navigate to="/login" replace />
+  return <DashboardLayout />
 }
 
 function LogoutPage() {
-	clearSession()
-	return <Navigate to="/login" replace />
+  clearSession()
+  return <Navigate to="/login" replace />
 }
 
 function PageTitle() {
-	const location = useLocation()
-	useEffect(() => {
-		const titles: Record<string, string> = {
-			'/login': 'GestorIA — Entrar', '/dashboard': 'GestorIA — Visão geral', '/clientes': 'GestorIA — Clientes',
-			'/produtos': 'GestorIA — Produtos',
-			'/pedidos': 'GestorIA — Pedidos',
-			'/pedidos/novo': 'GestorIA — Novo pedido',
-			'/orcamentos': 'GestorIA — Orçamentos',
-			'/copiloto': 'GestorIA — Copiloto', '/modo-fabrica': 'GestorIA — Produção', '/notas-fiscais': 'GestorIA — Notas fiscais',
-			'/empresa/editar': 'GestorIA — Empresa',
-		}
-		const isCustomerProfile =
-			/^\/clientes\/[^/]+$/.test(location.pathname) &&
-			location.pathname !== '/clientes/novo'
+  const location = useLocation()
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/login': 'GestorIA — Entrar',
+      '/dashboard': 'GestorIA — Visão geral',
+      '/clientes': 'GestorIA — Clientes',
+      '/produtos': 'GestorIA — Produtos',
+      '/pedidos': 'GestorIA — Pedidos',
+      '/pedidos/novo': 'GestorIA — Novo pedido',
+      '/orcamentos': 'GestorIA — Orçamentos',
+      '/copiloto': 'GestorIA — Copiloto',
+      '/modo-fabrica': 'GestorIA — Produção',
+      '/notas-fiscais': 'GestorIA — Notas fiscais',
+      '/empresa/editar': 'GestorIA — Empresa',
+    }
+    const isCustomerProfile =
+      /^\/clientes\/[^/]+$/.test(location.pathname) && location.pathname !== '/clientes/novo'
 
-		document.title = isCustomerProfile
-			? 'GestorIA — Perfil do cliente'
-			: titles[location.pathname] || 'GestorIA'
-	}, [location.pathname])
-	return null
+    document.title = isCustomerProfile
+      ? 'GestorIA — Perfil do cliente'
+      : titles[location.pathname] || 'GestorIA'
+  }, [location.pathname])
+  return null
 }
 
 export function AppRouter() {
-	return <BrowserRouter><PageTitle /><Routes>
-		<Route path="/login" element={<LoginPage />} />
-		<Route path="/logout" element={<LogoutPage />} />
-		<Route element={<ProtectedLayout />}>
-			<Route path="/dashboard" element={<DashboardPage />} />
-			<Route path="/clientes" element={<CustomersPage />} />
-			<Route path="/clientes/novo" element={<CustomerFormPage />} />
-			<Route
-				path="/clientes/:customerId"
-				element={<CustomerProfilePage />}
-			/>
-			<Route path="/produtos" element={<ProductsPage />} />
-			<Route path="/produtos/novo" element={<ProductFormPage />} />
-			<Route path="/empresa/editar" element={<CompanyPage />} />
-			<Route path="/pedidos" element={<OrdersPage />} />
-			<Route path="/pedidos/novo" element={<OrderFormPage />} />
-			<Route path="/orcamentos" element={<QuotesPage />} />
-			<Route path="/copiloto" element={<CopilotPage />} />
-			<Route path="/modo-fabrica" element={<FactoryModePage />} />
-			<Route path="/notas-fiscais" element={<FiscalDocumentsPage />} />
-		</Route>
-		<Route path="*" element={<Navigate to={getAccessToken() ? '/dashboard' : '/login'} replace />} />
-	</Routes></BrowserRouter>
+  return (
+    <BrowserRouter>
+      <PageTitle />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/logout" element={<LogoutPage />} />
+        <Route element={<ProtectedLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/clientes" element={<CustomersPage />} />
+          <Route path="/clientes/novo" element={<CustomerFormPage />} />
+          <Route path="/clientes/:customerId" element={<CustomerProfilePage />} />
+          <Route path="/produtos" element={<ProductsPage />} />
+          <Route path="/produtos/novo" element={<ProductFormPage />} />
+          <Route path="/empresa/editar" element={<CompanyPage />} />
+          <Route path="/pedidos" element={<OrdersPage />} />
+          <Route path="/pedidos/novo" element={<OrderFormPage />} />
+          <Route path="/orcamentos" element={<QuotesPage />} />
+          <Route path="/copiloto" element={<CopilotPage />} />
+          <Route path="/modo-fabrica" element={<FactoryModePage />} />
+          <Route path="/notas-fiscais" element={<FiscalDocumentsPage />} />
+        </Route>
+        <Route
+          path="*"
+          element={<Navigate to={getAccessToken() ? '/dashboard' : '/login'} replace />}
+        />
+      </Routes>
+    </BrowserRouter>
+  )
 }

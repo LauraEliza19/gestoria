@@ -8,7 +8,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
   const response = await fetch(path, {
     ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...options.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
   })
   if (response.status === 401) {
     clearSession()

@@ -1,18 +1,11 @@
 import { useEffect, useState } from 'react'
-import {
-  Link,
-  useSearchParams,
-} from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
-type CustomerCategory =
-  | 'final_consumer'
-  | 'reseller'
-  | 'event'
+type CustomerCategory = 'final_consumer' | 'reseller' | 'event'
 
-type CustomerOpportunity =
-  | 'without-purchases'
-  | 'dormant'
+type CustomerOpportunity = 'without-purchases' | 'dormant'
 
 type Customer = {
   id: string
@@ -31,36 +24,17 @@ const categoryLabels: Record<CustomerCategory, string> = {
   event: 'Cliente de eventos',
 }
 
-const opportunityLabels: Record<
-  CustomerOpportunity,
-  string
-> = {
+const opportunityLabels: Record<CustomerOpportunity, string> = {
   'without-purchases': 'Sem compras concluídas',
   dormant: 'Sem comprar há mais de 60 dias',
 }
 
-function isCustomerCategory(
-  value: string | null,
-): value is CustomerCategory {
-  return (
-    value !== null &&
-    Object.prototype.hasOwnProperty.call(
-      categoryLabels,
-      value,
-    )
-  )
+function isCustomerCategory(value: string | null): value is CustomerCategory {
+  return value !== null && Object.prototype.hasOwnProperty.call(categoryLabels, value)
 }
 
-function isCustomerOpportunity(
-  value: string | null,
-): value is CustomerOpportunity {
-  return (
-    value !== null &&
-    Object.prototype.hasOwnProperty.call(
-      opportunityLabels,
-      value,
-    )
-  )
+function isCustomerOpportunity(value: string | null): value is CustomerOpportunity {
+  return value !== null && Object.prototype.hasOwnProperty.call(opportunityLabels, value)
 }
 
 function getCategoryLabel(category?: string) {
@@ -68,35 +42,22 @@ function getCategoryLabel(category?: string) {
     return categoryLabels.final_consumer
   }
 
-  return (
-    categoryLabels[category as CustomerCategory] ||
-    'Categoria não identificada'
-  )
+  return categoryLabels[category as CustomerCategory] || 'Categoria não identificada'
 }
 
 export function CustomersPage() {
-  const [searchParams, setSearchParams] =
-    useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState(
-    'Carregando clientes...',
-  )
+  const [status, setStatus] = useState('Carregando clientes...')
 
   const categoryParameter = searchParams.get('category')
-  const opportunityParameter =
-    searchParams.get('opportunity')
+  const opportunityParameter = searchParams.get('opportunity')
 
-  const categoryFilter = isCustomerCategory(
-    categoryParameter,
-  )
-    ? categoryParameter
-    : null
+  const categoryFilter = isCustomerCategory(categoryParameter) ? categoryParameter : null
 
-  const opportunityFilter = isCustomerOpportunity(
-    opportunityParameter,
-  )
+  const opportunityFilter = isCustomerOpportunity(opportunityParameter)
     ? opportunityParameter
     : null
 
@@ -107,18 +68,12 @@ export function CustomersPage() {
         setStatus('')
       })
       .catch((error) => {
-        setStatus(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar os clientes.',
-        )
+        setStatus(getErrorMessage(error, 'Não foi possível carregar clientes.'))
       })
   }, [])
 
   async function removeCustomer(customer: Customer) {
-    const confirmed = window.confirm(
-      `Excluir o cliente "${customer.name}"?`,
-    )
+    const confirmed = window.confirm(`Excluir o cliente "${customer.name}"?`)
 
     if (!confirmed) return
 
@@ -127,15 +82,9 @@ export function CustomersPage() {
         method: 'DELETE',
       })
 
-      setCustomers((current) =>
-        current.filter((item) => item.id !== customer.id),
-      )
+      setCustomers((current) => current.filter((item) => item.id !== customer.id))
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível excluir o cliente.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível excluir o cliente.'))
     }
   }
 
@@ -149,39 +98,24 @@ export function CustomersPage() {
   const normalizedSearch = search.trim().toLowerCase()
 
   const filteredCustomers = customers.filter((customer) => {
-    if (
-      categoryFilter &&
-      (!customer.is_active ||
-        customer.category !== categoryFilter)
-    ) {
+    if (categoryFilter && (!customer.is_active || customer.category !== categoryFilter)) {
       return false
     }
 
     if (opportunityFilter === 'without-purchases') {
-      if (
-        !customer.is_active ||
-        Number(customer.total_spent) > 0
-      ) {
+      if (!customer.is_active || Number(customer.total_spent) > 0) {
         return false
       }
     }
 
     if (opportunityFilter === 'dormant') {
-      if (
-        !customer.is_active ||
-        !customer.last_purchase_at
-      ) {
+      if (!customer.is_active || !customer.last_purchase_at) {
         return false
       }
 
-      const lastPurchase = new Date(
-        customer.last_purchase_at,
-      )
+      const lastPurchase = new Date(customer.last_purchase_at)
 
-      if (
-        Number.isNaN(lastPurchase.getTime()) ||
-        lastPurchase >= inactivityLimit
-      ) {
+      if (Number.isNaN(lastPurchase.getTime()) || lastPurchase >= inactivityLimit) {
         return false
       }
     }
@@ -210,9 +144,7 @@ export function CustomersPage() {
         <div>
           <p className="eyebrow">Relacionamento</p>
           <h1>Clientes</h1>
-          <p>
-            Consulte e mantenha sua base de clientes atualizada.
-          </p>
+          <p>Consulte e mantenha sua base de clientes atualizada.</p>
         </div>
 
         <Link className="primary-button" to="/clientes/novo">
@@ -234,16 +166,10 @@ export function CustomersPage() {
               <small className="block text-[10px] font-bold uppercase tracking-wide text-muted">
                 Filtro aplicado pelo Radar
               </small>
-              <strong className="mt-1 block text-sm text-ink">
-                {activeFilterLabel}
-              </strong>
+              <strong className="mt-1 block text-sm text-ink">{activeFilterLabel}</strong>
             </div>
 
-            <button
-              className="text-xs font-bold text-signal"
-              type="button"
-              onClick={clearFilters}
-            >
+            <button className="text-xs font-bold text-signal" type="button" onClick={clearFilters}>
               Limpar filtro
             </button>
           </div>
@@ -259,9 +185,7 @@ export function CustomersPage() {
           <>
             <p className="mt-4 text-xs text-muted">
               {filteredCustomers.length}{' '}
-              {filteredCustomers.length === 1
-                ? 'cliente encontrado'
-                : 'clientes encontrados'}
+              {filteredCustomers.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
             </p>
 
             <div className="data-table">
@@ -273,49 +197,28 @@ export function CustomersPage() {
               </div>
 
               {filteredCustomers.map((customer) => (
-                <div
-                  className="data-table-row"
-                  key={customer.id}
-                >
+                <div className="data-table-row" key={customer.id}>
                   <span>
                     <strong>{customer.name}</strong>
-                    <small>
-                      {getCategoryLabel(customer.category)}
-                    </small>
+                    <small>{getCategoryLabel(customer.category)}</small>
                   </span>
 
                   <span>{customer.phone}</span>
 
-                  <span>
-                    {customer.email || 'Não informado'}
-                  </span>
+                  <span>{customer.email || 'Não informado'}</span>
 
                   <span className="row-actions">
-                    <Link to={`/clientes/${customer.id}`}>
-                      Ver perfil
-                    </Link>
+                    <Link to={`/clientes/${customer.id}`}>Ver perfil</Link>
 
-                    <Link
-                      to={`/clientes/novo?id=${customer.id}`}
-                    >
-                      Editar
-                    </Link>
+                    <Link to={`/clientes/novo?id=${customer.id}`}>Editar</Link>
 
-                    <button
-                      onClick={() =>
-                        void removeCustomer(customer)
-                      }
-                    >
-                      Excluir
-                    </button>
+                    <button onClick={() => void removeCustomer(customer)}>Excluir</button>
                   </span>
                 </div>
               ))}
 
               {filteredCustomers.length === 0 && (
-                <p className="table-status">
-                  Nenhum cliente corresponde aos filtros.
-                </p>
+                <p className="table-status">Nenhum cliente corresponde aos filtros.</p>
               )}
             </div>
           </>

@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit --project tsconfig.app.json",
-    "test": "node --test tests/ingredientSuggestions.test.cjs",
-    "preview": "vite preview"
+    "test": "node --test tests/ingredientSuggestions.test.cjs tests/errorMessage.test.cjs",
+    "preview": "vite preview",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.cjs\" package.json",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.cjs\" package.json"
   },
   "dependencies": {
     "lucide-react": "^1.43.0",
@@ -25,6 +27,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
+    "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"

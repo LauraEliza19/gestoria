@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
-type Product = Record<
-  string,
-  string | number | boolean | null | undefined
-> & {
+type Product = Record<string, string | number | boolean | null | undefined> & {
   id: string
 }
 
@@ -83,30 +81,19 @@ export function ProductFormPage() {
         setForm(loadedForm)
       })
       .catch((error) => {
-        setStatus(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar o produto.',
-        )
+        setStatus(getErrorMessage(error, 'Não foi possível carregar o produto.'))
       })
       .finally(() => setLoading(false))
   }, [id])
 
-  function update(
-    field: keyof typeof initialForm,
-    value: string | boolean,
-  ) {
+  function update(field: keyof typeof initialForm, value: string | boolean) {
     setForm((current) => ({
       ...current,
       [field]: value,
     }))
   }
 
-  function updateFiscal(
-    field: keyof FiscalFieldErrors,
-    value: string,
-    maxLength: number,
-  ) {
+  function updateFiscal(field: keyof FiscalFieldErrors, value: string, maxLength: number) {
     const numbersOnly = value.replace(/\D/g, '').slice(0, maxLength)
 
     update(field, numbersOnly)
@@ -135,8 +122,7 @@ export function ProductFormPage() {
     }
 
     if (form.fiscal_origin && !/^[0-8]$/.test(form.fiscal_origin)) {
-      errors.fiscal_origin =
-        'A origem fiscal deve ser um número entre 0 e 8.'
+      errors.fiscal_origin = 'A origem fiscal deve ser um número entre 0 e 8.'
     }
 
     setFieldErrors(errors)
@@ -175,12 +161,8 @@ export function ProductFormPage() {
         cost_price: decimal(form.cost_price),
         min_stock_quantity: decimal(form.min_stock_quantity) || 5,
         shelf_life_days:
-          form.perishable && form.shelf_life_days
-            ? Number(form.shelf_life_days)
-            : null,
-        fiscal_origin: form.fiscal_origin
-          ? Number(form.fiscal_origin)
-          : null,
+          form.perishable && form.shelf_life_days ? Number(form.shelf_life_days) : null,
+        fiscal_origin: form.fiscal_origin ? Number(form.fiscal_origin) : null,
         description: form.description || null,
         barcode: form.barcode || null,
         ncm_code: form.ncm_code || null,
@@ -194,11 +176,7 @@ export function ProductFormPage() {
 
       navigate('/produtos')
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível salvar o produto.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível salvar o produto.'))
     }
   }
 
@@ -216,10 +194,7 @@ export function ProductFormPage() {
         <div>
           <p className="eyebrow">Cadastro manual</p>
           <h1>{id ? 'Editar produto' : 'Novo produto'}</h1>
-          <p>
-            Cadastre catálogo, estoque, custos, validade e informações
-            fiscais.
-          </p>
+          <p>Cadastre catálogo, estoque, custos, validade e informações fiscais.</p>
         </div>
 
         <Link className="secondary-button" to="/produtos">
@@ -244,9 +219,7 @@ export function ProductFormPage() {
             <textarea
               className="form-input min-h-24"
               value={form.description}
-              onChange={(event) =>
-                update('description', event.target.value)
-              }
+              onChange={(event) => update('description', event.target.value)}
             />
           </label>
 
@@ -269,9 +242,7 @@ export function ProductFormPage() {
             <select
               className="form-input"
               value={form.category}
-              onChange={(event) =>
-                update('category', event.target.value)
-              }
+              onChange={(event) => update('category', event.target.value)}
             >
               <option value="padaria">Padaria</option>
               <option value="frios">Frios</option>
@@ -285,9 +256,7 @@ export function ProductFormPage() {
             <select
               className="form-input"
               value={form.product_type}
-              onChange={(event) =>
-                update('product_type', event.target.value)
-              }
+              onChange={(event) => update('product_type', event.target.value)}
             >
               <option value="resale">Revenda</option>
               <option value="manufactured">Fabricado</option>
@@ -299,9 +268,7 @@ export function ProductFormPage() {
             <select
               className="form-input"
               value={form.unit_of_measure}
-              onChange={(event) =>
-                update('unit_of_measure', event.target.value)
-              }
+              onChange={(event) => update('unit_of_measure', event.target.value)}
             >
               <option value="unit">Unidade</option>
               <option value="kg">Quilograma</option>
@@ -313,9 +280,7 @@ export function ProductFormPage() {
             <input
               type="checkbox"
               checked={form.perishable}
-              onChange={(event) =>
-                update('perishable', event.target.checked)
-              }
+              onChange={(event) => update('perishable', event.target.checked)}
             />
             Produto perecível
           </label>
@@ -328,9 +293,7 @@ export function ProductFormPage() {
                 type="number"
                 min="1"
                 value={form.shelf_life_days}
-                onChange={(event) =>
-                  update('shelf_life_days', event.target.value)
-                }
+                onChange={(event) => update('shelf_life_days', event.target.value)}
                 required
               />
             </label>
@@ -338,140 +301,80 @@ export function ProductFormPage() {
         </div>
 
         <div className="grid gap-4 border-t border-line pt-5 md:grid-cols-2 lg:grid-cols-4">
-          <p className="eyebrow md:col-span-2 lg:col-span-4">
-            Identificação fiscal
-          </p>
+          <p className="eyebrow md:col-span-2 lg:col-span-4">Identificação fiscal</p>
 
           <label className="form-label">
             Código de barras
             <input
               className="form-input"
               value={form.barcode}
-              onChange={(event) =>
-                update('barcode', event.target.value)
-              }
+              onChange={(event) => update('barcode', event.target.value)}
             />
-            <small className="text-muted">
-              Código comercial do produto, quando houver.
-            </small>
+            <small className="text-muted">Código comercial do produto, quando houver.</small>
           </label>
 
           <label className="form-label">
             NCM
             <input
-              className={`form-input ${fieldErrors.ncm_code ? 'border-[#d84f62]' : ''
-                }`}
+              className={`form-input ${fieldErrors.ncm_code ? 'border-[#d84f62]' : ''}`}
               inputMode="numeric"
               maxLength={8}
               value={form.ncm_code}
-              onChange={(event) =>
-                updateFiscal('ncm_code', event.target.value, 8)
-              }
+              onChange={(event) => updateFiscal('ncm_code', event.target.value, 8)}
               aria-invalid={Boolean(fieldErrors.ncm_code)}
               aria-describedby="ncm-help"
             />
-            <small
-              id="ncm-help"
-              className={
-                fieldErrors.ncm_code
-                  ? 'text-[#d84f62]'
-                  : 'text-muted'
-              }
-            >
-              {fieldErrors.ncm_code ||
-                'Informe exatamente 8 números, sem pontos.'}
+            <small id="ncm-help" className={fieldErrors.ncm_code ? 'text-[#d84f62]' : 'text-muted'}>
+              {fieldErrors.ncm_code || 'Informe exatamente 8 números, sem pontos.'}
             </small>
           </label>
 
           <label className="form-label">
             CEST
             <input
-              className={`form-input ${fieldErrors.cest_code ? 'border-[#d84f62]' : ''
-                }`}
+              className={`form-input ${fieldErrors.cest_code ? 'border-[#d84f62]' : ''}`}
               inputMode="numeric"
               maxLength={7}
               value={form.cest_code}
-              onChange={(event) =>
-                updateFiscal('cest_code', event.target.value, 7)
-              }
+              onChange={(event) => updateFiscal('cest_code', event.target.value, 7)}
               aria-invalid={Boolean(fieldErrors.cest_code)}
               aria-describedby="cest-help"
             />
             <small
               id="cest-help"
-              className={
-                fieldErrors.cest_code
-                  ? 'text-[#d84f62]'
-                  : 'text-muted'
-              }
+              className={fieldErrors.cest_code ? 'text-[#d84f62]' : 'text-muted'}
             >
-              {fieldErrors.cest_code ||
-                'Informe exatamente 7 números, sem pontos.'}
+              {fieldErrors.cest_code || 'Informe exatamente 7 números, sem pontos.'}
             </small>
           </label>
 
           <label className="form-label">
             Origem fiscal
             <select
-              className={`form-input ${fieldErrors.fiscal_origin
-                  ? 'border-[#d84f62]'
-                  : ''
-                }`}
+              className={`form-input ${fieldErrors.fiscal_origin ? 'border-[#d84f62]' : ''}`}
               value={form.fiscal_origin}
-              onChange={(event) =>
-                updateFiscal(
-                  'fiscal_origin',
-                  event.target.value,
-                  1,
-                )
-              }
+              onChange={(event) => updateFiscal('fiscal_origin', event.target.value, 1)}
               aria-invalid={Boolean(fieldErrors.fiscal_origin)}
               aria-describedby="fiscal-origin-help"
             >
               <option value="">Selecione a origem</option>
-              <option value="0">
-                0 — Nacional, exceto códigos 3, 4, 5 e 8
-              </option>
-              <option value="1">
-                1 — Estrangeira, importação direta
-              </option>
-              <option value="2">
-                2 — Estrangeira, adquirida no mercado interno
-              </option>
-              <option value="3">
-                3 — Nacional, conteúdo importado acima de 40% até 70%
-              </option>
-              <option value="4">
-                4 — Nacional, produzida conforme processo produtivo básico
-              </option>
-              <option value="5">
-                5 — Nacional, conteúdo importado de até 40%
-              </option>
-              <option value="6">
-                6 — Estrangeira, importação direta sem similar nacional
-              </option>
-              <option value="7">
-                7 — Estrangeira, mercado interno sem similar nacional
-              </option>
-              <option value="8">
-                8 — Nacional, conteúdo importado acima de 70%
-              </option>
+              <option value="0">0 — Nacional, exceto códigos 3, 4, 5 e 8</option>
+              <option value="1">1 — Estrangeira, importação direta</option>
+              <option value="2">2 — Estrangeira, adquirida no mercado interno</option>
+              <option value="3">3 — Nacional, conteúdo importado acima de 40% até 70%</option>
+              <option value="4">4 — Nacional, produzida conforme processo produtivo básico</option>
+              <option value="5">5 — Nacional, conteúdo importado de até 40%</option>
+              <option value="6">6 — Estrangeira, importação direta sem similar nacional</option>
+              <option value="7">7 — Estrangeira, mercado interno sem similar nacional</option>
+              <option value="8">8 — Nacional, conteúdo importado acima de 70%</option>
             </select>
-
             <small
               id="fiscal-origin-help"
-              className={
-                fieldErrors.fiscal_origin
-                  ? 'text-[#d84f62]'
-                  : 'text-muted'
-              }
+              className={fieldErrors.fiscal_origin ? 'text-[#d84f62]' : 'text-muted'}
             >
-              {fieldErrors.fiscal_origin ||
-                'Selecione a classificação correspondente ao produto.'}
+              {fieldErrors.fiscal_origin || 'Selecione a classificação correspondente ao produto.'}
             </small>
           </label>
-
-
         </div>
 
         {status && (

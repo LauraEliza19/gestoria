@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
-import {
-  Link,
-  useLocation,
-  useSearchParams,
-} from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { apiFetch } from '../../services/api'
+import { getErrorMessage } from '../../utils/errors'
 
 type OrderItem = {
   product_name: string
@@ -42,10 +39,8 @@ export function OrdersPage() {
   const location = useLocation()
   const pageState = location.state as PageState | null
   const [searchParams] = useSearchParams()
-  const highlightedOrderId =
-    searchParams.get('order_id')
-  const fromProduction =
-    searchParams.get('from') === 'production'
+  const highlightedOrderId = searchParams.get('order_id')
+  const fromProduction = searchParams.get('from') === 'production'
 
   const [orders, setOrders] = useState<Order[]>([])
   const [status, setStatus] = useState('Carregando pedidos...')
@@ -59,11 +54,7 @@ export function OrdersPage() {
         setStatus('')
       })
       .catch((error) => {
-        setStatus(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar os pedidos.',
-        )
+        setStatus(getErrorMessage(error, 'Não foi possível carregar os pedidos.'))
       })
   }, [])
 
@@ -72,9 +63,7 @@ export function OrdersPage() {
       return
     }
 
-    const highlightedOrder = document.getElementById(
-      `order-${highlightedOrderId}`,
-    )
+    const highlightedOrder = document.getElementById(`order-${highlightedOrderId}`)
 
     highlightedOrder?.scrollIntoView({
       behavior: 'smooth',
@@ -93,15 +82,9 @@ export function OrdersPage() {
         body: JSON.stringify({ status: nextStatus }),
       })
 
-      setOrders((current) =>
-        current.map((item) => (item.id === order.id ? updated : item)),
-      )
+      setOrders((current) => current.map((item) => (item.id === order.id ? updated : item)))
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível atualizar o pedido.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível atualizar o pedido.'))
     }
   }
 
@@ -115,22 +98,14 @@ export function OrdersPage() {
         method: 'DELETE',
       })
 
-      setOrders((current) =>
-        current.filter((item) => item.id !== order.id),
-      )
+      setOrders((current) => current.filter((item) => item.id !== order.id))
     } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível excluir o pedido.',
-      )
+      setStatus(getErrorMessage(error, 'Não foi possível excluir o pedido.'))
     }
   }
 
   const visibleOrders =
-    filter === 'all'
-      ? orders
-      : orders.filter((order) => order.status === filter)
+    filter === 'all' ? orders : orders.filter((order) => order.status === filter)
 
   return (
     <div className="page-wrap">
@@ -143,10 +118,7 @@ export function OrdersPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {fromProduction && (
-            <Link
-              className="secondary-button"
-              to="/modo-fabrica"
-            >
+            <Link className="secondary-button" to="/modo-fabrica">
               Voltar à produção
             </Link>
           )}
@@ -178,8 +150,8 @@ export function OrdersPage() {
 
       <section className="page-card">
         <p className="info-note">
-          A criação manual utiliza uma revisão protegida antes de registrar o
-          pedido e descontar o estoque.
+          A criação manual utiliza uma revisão protegida antes de registrar o pedido e descontar o
+          estoque.
         </p>
 
         {!status && (
@@ -196,7 +168,7 @@ export function OrdersPage() {
               <div
                 className={`data-table-row ${
                   order.id === highlightedOrderId
-                    ?'scroll-mt-24 rounded-lg border-t-transparent bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5] lg:-mx-3 lg:px-3'
+                    ? 'scroll-mt-24 rounded-lg border-t-transparent bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5] lg:-mx-3 lg:px-3'
                     : ''
                 }`}
                 id={`order-${order.id}`}
@@ -204,77 +176,48 @@ export function OrdersPage() {
               >
                 <span>
                   <strong>{order.customer_name}</strong>
-                  <small>
-                    {new Date(order.created_at).toLocaleDateString('pt-BR')}
-                  </small>
+                  <small>{new Date(order.created_at).toLocaleDateString('pt-BR')}</small>
                 </span>
 
                 <span>
-                  {order.items.length === 1
-                    ? '1 item'
-                    : `${order.items.length} itens`}
+                  {order.items.length === 1 ? '1 item' : `${order.items.length} itens`}
                   <small>
                     {order.items
-                      .map(
-                        (item) =>
-                          `${item.quantity}x ${item.product_name}`,
-                      )
+                      .map((item) => `${item.quantity}x ${item.product_name}`)
                       .join(' · ')}
                   </small>
                 </span>
 
-                <span>
-                  R${' '}
-                  {Number(order.total_amount)
-                    .toFixed(2)
-                    .replace('.', ',')}
-                </span>
+                <span>R$ {Number(order.total_amount).toFixed(2).replace('.', ',')}</span>
 
                 <span>
                   <select
                     className="inline-status"
                     value={order.status}
-                    onChange={(event) =>
-                      void updateStatus(order, event.target.value)
-                    }
+                    onChange={(event) => void updateStatus(order, event.target.value)}
                   >
-                    {(statusTransitions[order.status] ?? [order.status]).map(
-                      (availableStatus) => (
-                        <option
-                          key={availableStatus}
-                          value={availableStatus}
-                        >
-                          {statusLabels[availableStatus] ?? availableStatus}
-                        </option>
-                      ),
-                    )}
+                    {(statusTransitions[order.status] ?? [order.status]).map((availableStatus) => (
+                      <option key={availableStatus} value={availableStatus}>
+                        {statusLabels[availableStatus] ?? availableStatus}
+                      </option>
+                    ))}
                   </select>
                 </span>
 
                 <span className="row-actions">
                   {order.status === 'in_preparation' && (
-                    <Link
-                      to={`/modo-fabrica?order_id=${order.id}`}
-                    >
-                      Ver na produção
-                    </Link>
+                    <Link to={`/modo-fabrica?order_id=${order.id}`}>Ver na produção</Link>
                   )}
 
                   <Link
                     to={`/notas-fiscais?order_id=${order.id}${
-                      fromProduction
-                        ? '&from=production'
-                        : ''
+                      fromProduction ? '&from=production' : ''
                     }`}
                   >
                     Notas fiscais
                   </Link>
 
-                  <button
-                    onClick={() => void removeOrder(order)}
-                  >
-                    Excluir
-                  </button>
+                  <button onClick={() => void removeOrder(order)}>Excluir</button>
                 </span>
               </div>
             ))}
