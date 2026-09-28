@@ -1,75 +1,230 @@
-[Plano de Negocios GestorIA.md](https://github.com/user-attachments/files/32687183/Plano.de.Negocios.GestorIA.md)# GestorIA
+<div align="center">
 
-Plataforma de gestão empresarial com uma experiência orientada por inteligência artificial. O projeto está em desenvolvimento acadêmico com estrutura de aplicação real, backend em camadas, persistência PostgreSQL e isolamento dos dados de cada empresa.
+<img src="docs/images/logo.png" alt="Logo GestorIA" width="220"/>
+
+# GestorIA
+
+### A inteligência que organiza.
+
+Plataforma de gestão empresarial com experiência orientada por inteligência artificial, desenvolvida para centralizar operações, automatizar processos e oferecer mais controle para empresas em crescimento.
+
+<br>
+
+<a href="Documento%20de%20Contexto.md">
+  <img src="https://img.shields.io/badge/PROJETO-ESPECIFICAÇÃO-2563eb?style=for-the-badge" />
+</a>
+
+<a href="Documentação%20de%20Contexto/Tributos%20e%20Precificacao%20GestorIA.md">
+  <img src="https://img.shields.io/badge/FISCAL-DOCUMENTAÇÕES-ea580c?style=for-the-badge" />
+</a>
+
+<br><br>
+
+<img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=000000" />
+<img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=ffffff" />
+<img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=ffffff" />
+<img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=ffffff" />
+<img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=ffffff" />
+
+</div>
+
+---
+
+## Sobre o GestorIA
+
+O **GestorIA** é uma plataforma de gestão empresarial com foco em organização, produtividade e adaptabilidade. O sistema foi idealizado para reunir em um único ambiente recursos como:
+
+- Gestão de clientes;
+- Gestão de produtos;
+- Controle de estoque;
+- Pedidos e orçamentos;
+- Operações fiscais;
+- Indicadores e dashboards;
+- Controle de usuários e permissões;
+- Recursos de Inteligência Artificial.
+
+O projeto está em desenvolvimento acadêmico com estrutura de aplicação real, backend em camadas, persistência em **PostgreSQL** e isolamento de dados por empresa com arquitetura **multi-tenant**.
+
+> **Mais do que um sistema isolado, o GestorIA foi pensado como um ERP completo.**
+
+---
+
+## Visão do produto
+
+O GestorIA está sendo desenvolvido com base em quatro pilares principais:
+
+| Pilar | Objetivo |
+|---|---|
+| **Gestão centralizada** | Reunir as principais operações da empresa em uma única plataforma |
+| **Inteligência Artificial** | Tornar a interação com o sistema mais natural e eficiente |
+| **Segurança** | Proteger dados, operações e histórico das ações realizadas |
+| **Adaptabilidade** | Permitir que o sistema acompanhe diferentes modelos de negócio |
+
+---
 
 ## Estado atual do MVP
 
-- Autenticação com senha protegida por Argon2 e sessão JWT.
-- Usuários vinculados a empresas por papéis (`owner`, `admin` e `member`).
-- CRUD manual de produtos com catálogo completo, custo, estoque, validade e dados fiscais.
-- CRUD manual de clientes com dados pessoais, contato, endereço, desconto e telefone normalizado.
-- Pedidos com múltiplos produtos, preço histórico, baixa transacional e recomposição de estoque em cancelamentos/exclusões.
-- Total gasto do cliente calculado a partir dos pedidos concluídos.
-- Isolamento multi-tenant em todas as consultas de negócio.
-- Migrations versionadas com Alembic e testes automatizados da API.
-- Radar operacional com prioridades e indicadores calculados a partir de clientes, produtos, pedidos e orçamentos; página do Copiloto migrada para React.
+Atualmente, o MVP já conta com os seguintes recursos implementados:
 
-Orçamentos e dados cadastrais da empresa já usam a API. Relatórios e interpretação por IA ainda têm partes simuladas. O histórico visual antigo permanece local; os eventos de segurança de pedidos agora são persistidos e consultáveis pela API.
+- Autenticação com senha protegida por **Argon2** e sessão **JWT**;
+- Usuários vinculados a empresas por papéis (`owner`, `admin` e `member`);
+- CRUD manual de produtos com catálogo completo, custo, estoque, validade e dados fiscais;
+- CRUD manual de clientes com dados pessoais, contato, endereço, desconto e telefone normalizado;
+- Pedidos com múltiplos produtos, preço histórico, baixa transacional e recomposição de estoque em cancelamentos e exclusões;
+- Total gasto do cliente calculado a partir dos pedidos concluídos;
+- Isolamento **multi-tenant** em todas as consultas de negócio;
+- Migrations versionadas com **Alembic**;
+- Testes automatizados da API;
+- Radar operacional com prioridades e indicadores;
+- Página do Copiloto migrada para React.
 
-A criação direta de pedidos exige proposta assinada e confirmação. Consulte [atualizações e teste/uso](docs/SEGURANCA_PEDIDOS.md) para o contrato, limites e resultados de validação.
+Orçamentos e dados cadastrais da empresa já utilizam a API. Relatórios e interpretação por IA ainda possuem partes simuladas.
 
-- HMAC-SHA256 com chave exclusiva do servidor, proposta com validade e idempotência.
-- Pedido, estoque, comprovante e auditoria confirmados na mesma transação.
-- Rota antiga de criação responde HTTP 428; conversão de orçamento mantém seu fluxo existente e está fora deste primeiro escopo criptográfico.
+---
+
+## Segurança das operações
+
+A criação direta de pedidos exige proposta assinada e confirmação. O fluxo de segurança inclui:
+
+- **HMAC-SHA256** com chave exclusiva do servidor;
+- Proposta com validade;
+- Idempotência;
+- Confirmação transacional;
+- Persistência de comprovante;
+- Auditoria de eventos.
+
+Pedido, estoque, comprovante e auditoria são confirmados dentro da mesma transação.
+
+> Consulte [`docs/SEGURANCA_PEDIDOS.md`](docs/SEGURANCA_PEDIDOS.md) para detalhes técnicos, contrato, limites e resultados de validação.
+
+---
 
 ## Atualização fiscal — setembro/2026
 
-Notas de saída agora exigem pedido da mesma empresa, com destinatário, itens e valores conferidos no servidor. Cancelamentos preservam o histórico; apenas uma saída ativa é permitida por pedido. Entradas usam fornecedor e recebimento de estoque explícito.
+Notas de saída agora exigem pedido da mesma empresa, com destinatário, itens e valores conferidos no servidor.
 
-Leia [o mapeamento, as regras, a migração e o roteiro de testes](docs/FISCAL_ATUALIZACOES_E_TESTES.md) antes de atualizar um banco existente. A nova revisão é `0006_fiscal_integrity`; o registro de eventos externos não constitui emissão ou autorização pela SEFAZ.
+Principais pontos da atualização fiscal:
+
+- Notas de saída vinculadas ao pedido;
+- Apenas uma saída ativa por pedido;
+- Cancelamentos preservam histórico;
+- Entradas com fornecedor e recebimento explícito de estoque;
+- Eventos fiscais persistidos e consultáveis pela API.
+
+> Leia [`docs/FISCAL_ATUALIZACOES_E_TESTES.md`](docs/FISCAL_ATUALIZACOES_E_TESTES.md) antes de atualizar um banco existente.
+
+Revisão atual do banco:
+
+```text
+0006_fiscal_integrity
+```
+
+> O registro de eventos externos não constitui emissão ou autorização oficial pela SEFAZ.
+
+---
 
 ## Tecnologias
 
 | Camada | Tecnologias |
 | --- | --- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 e Lucide React |
-| API | Python 3.12 e FastAPI |
-| Persistência | PostgreSQL 17 e SQLAlchemy 2 |
-| Migrations | Alembic |
-| Autenticação | JWT e Argon2 |
-| Ambiente | Docker Compose |
-| Qualidade | Pytest e Ruff |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4 e Lucide React |
+| **API** | Python 3.12 e FastAPI |
+| **Persistência** | PostgreSQL 17 e SQLAlchemy 2 |
+| **Migrations** | Alembic |
+| **Autenticação** | JWT e Argon2 |
+| **Ambiente** | Docker Compose |
+| **Qualidade** | Pytest e Ruff |
 
-## Executar com Docker
+---
 
-Requisito: Docker Desktop aberto.
+## Como executar o projeto
 
-No PowerShell:
+### Requisitos
+
+Antes de iniciar, tenha instalado em sua máquina:
+
+- **Docker Desktop** aberto e em execução;
+- **Git**;
+- Opcionalmente, **Node.js** e **Python**, caso queira rodar partes do projeto fora do Docker.
+
+---
+
+### 1. Clonar o repositório
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd <NOME_DO_REPOSITORIO>
+```
+
+---
+
+### 2. Criar o arquivo de ambiente
+
+#### No PowerShell
 
 ```powershell
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
-docker compose run --rm security-init
-docker compose up -d --build
 ```
 
-No Linux ou macOS:
+#### No Linux ou macOS
 
 ```bash
 test -f .env || cp .env.example .env
+```
+
+---
+
+### 3. Inicializar a camada de segurança
+
+```bash
 docker compose run --rm security-init
+```
+
+---
+
+### 4. Subir o projeto
+
+```bash
 docker compose up -d --build
 ```
 
-Na inicialização, o projeto aplica automaticamente todas as migrations e prepara o usuário de demonstração. Acesse:
+Esse comando irá:
 
-- Aplicação: `http://localhost:8000`
-- Documentação da API: `http://localhost:8000/docs`
-- E-mail: `admin@gestoria.dev`
-- Senha: `GestorIA@123`
+- construir os containers;
+- iniciar a aplicação;
+- iniciar o banco PostgreSQL;
+- aplicar as migrations automaticamente;
+- preparar o usuário de demonstração.
 
-As credenciais são exclusivas do ambiente de desenvolvimento e podem ser alteradas no `.env`.
+---
 
-> Não execute `docker compose down -v` se quiser preservar os registros do PostgreSQL local. A opção `-v` remove o volume do banco.
+### 5. Abrir o projeto
+
+Após a inicialização, acesse:
+
+- **Aplicação:** `http://localhost:8000`
+- **Documentação da API:** `http://localhost:8000/docs`
+
+Credenciais de demonstração:
+
+- **E-mail:** `admin@gestoria.dev`
+- **Senha:** `GestorIA@123`
+
+> Essas credenciais são exclusivas do ambiente de desenvolvimento e podem ser alteradas no arquivo `.env`.
+
+---
+
+### 6. Como parar o projeto
+
+Para parar os containers:
+
+```bash
+docker compose down
+```
+
+> **Atenção:** não utilize `docker compose down -v` se quiser preservar os dados locais do PostgreSQL, pois a opção `-v` remove o volume do banco.
+
+---
 
 ## Estrutura do banco
 
@@ -92,24 +247,68 @@ As credenciais são exclusivas do ambiente de desenvolvimento e podem ser altera
 
 O `organization_id` delimita os dados de cada empresa. Pedidos são gravados em uma única transação: se qualquer produto não existir ou não tiver estoque suficiente, nenhuma alteração é persistida.
 
-Os índices da migration `0003` otimizam as consultas mais usadas pelo painel: listagem cronológica, busca de clientes, pedidos por cliente e filtros por status.
+---
 
-## Conferir os clientes no PostgreSQL
+## Organização
+
+O backend segue arquitetura em camadas. O frontend utiliza React com TypeScript, React Router e Tailwind CSS.
+
+```text
+frontend/
+  src/
+    app/                  roteamento e composição da aplicação
+    layouts/              layouts autenticado e de navegação
+    pages/                telas React por domínio
+    services/             cliente HTTP e autenticação
+    styles/               entrada Tailwind e tokens visuais
+  dist/                   build de produção gerado pelo Vite
+
+backend/
+  alembic/                migrations versionadas do banco
+  app/
+    api/                  controllers HTTP (rotas)
+    models/               tabelas e relacionamentos SQLAlchemy
+    schemas/              validação de entrada e saída
+    repositories/         consultas e persistência
+    services/             autenticação e regras transacionais
+    security.py           senha e token
+    seed.py               dados iniciais de desenvolvimento
+  tests/                  testes de API, transações e isolamento
+```
+
+---
+
+## Testes e qualidade
 
 ```powershell
-docker compose exec db psql -U gestoria -d gestoria
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+pytest -q
+ruff check app tests alembic\versions
 ```
 
-No `psql`:
+Os testes locais usam SQLite temporário com chaves estrangeiras ativadas.
 
-```sql
-SELECT c.id, c.name, c.phone, c.created_at, o.name AS organization
-FROM customers AS c
-JOIN organizations AS o ON o.id = c.organization_id
-ORDER BY c.created_at DESC;
+Para validar também migrations e concorrência no PostgreSQL 17:
+
+```bash
+docker compose -p gestoria-fiscal-tests -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
 ```
 
-Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não existe uma lista fixa no frontend. Saia do terminal com `\q`.
+---
+
+## Evoluir o schema
+
+Depois de alterar os modelos, gere uma nova migration em vez de editar uma migration já aplicada:
+
+```powershell
+docker compose exec api alembic revision --autogenerate -m "descricao da alteracao"
+docker compose exec api alembic upgrade head
+```
+
+---
 
 ## Rotas implementadas
 
@@ -145,66 +344,31 @@ Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não exi
 | `PATCH` | `/api/fiscal-suppliers/{id}` | Ativar/desativar fornecedor |
 | `GET` | `/api/health` | Verificar a disponibilidade da API |
 
-## Organização
+---
 
-O backend segue arquitetura em camadas. O frontend usa React com TypeScript, React Router e Tailwind CSS.
-
-```text
-frontend/
-  src/
-    app/                  roteamento e composição da aplicação
-    layouts/              layouts autenticado e de navegação
-    pages/                telas React por domínio
-    services/             cliente HTTP e autenticação
-    styles/               entrada Tailwind e tokens visuais
-  dist/                   build de produção gerado pelo Vite
-
-backend/
-  alembic/               migrations versionadas do banco
-  app/
-    api/                 controllers HTTP (rotas)
-    models/              tabelas e relacionamentos SQLAlchemy
-    schemas/             validação de entrada e saída
-    repositories/        consultas e persistência
-    services/            autenticação e regras transacionais
-    security.py          senha e token
-    seed.py              dados iniciais de desenvolvimento
-  tests/                 testes de API, transações e isolamento
-```
-
-As regras transacionais ficam nos services e as consultas fiscais principais nos repositories. O frontend nunca recebe credenciais do banco.
-
-Para regenerar o build Tailwind/React depois de alterar componentes:
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-## Testes e qualidade
+## Conferir os clientes no PostgreSQL
 
 ```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-pytest -q
-ruff check app tests alembic\versions
+docker compose exec db psql -U gestoria -d gestoria
 ```
 
-Os testes locais usam SQLite temporário com chaves estrangeiras ativadas. Para validar também migrations e concorrência no PostgreSQL 17, use `docker compose -p gestoria-fiscal-tests -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests`. Consulte os resultados e limites no relatório fiscal.
+No `psql`:
 
-## Evoluir o schema
-
-Depois de alterar os modelos, gere uma nova migration em vez de editar uma migration que já foi aplicada:
-
-```powershell
-docker compose exec api alembic revision --autogenerate -m "descricao da alteracao"
-docker compose exec api alembic upgrade head
+```sql
+SELECT c.id, c.name, c.phone, c.created_at, o.name AS organization
+FROM customers AS c
+JOIN organizations AS o ON o.id = c.organization_id
+ORDER BY c.created_at DESC;
 ```
 
-Antes de qualquer implantação pública, altere `JWT_SECRET`, senha do PostgreSQL e credenciais de demonstração.
+Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não existe uma lista fixa no frontend. Saia do terminal com `\q`.
 
+---
 
+## Observações finais
 
+Antes de qualquer implantação pública, altere:
+
+- `JWT_SECRET`;
+- senha do PostgreSQL;
+- credenciais de demonstração.
