@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import OrganizationRepository

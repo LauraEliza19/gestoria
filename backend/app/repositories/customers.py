@@ -61,14 +61,14 @@ class CustomerRepository:
         )
 
         last_purchase_at = func.max(
-        case(
-            (
-                Order.status == "completed",
-                Order.created_at,
-            ),
-            else_=None,
+            case(
+                (
+                    Order.status == "completed",
+                    Order.created_at,
+                ),
+                else_=None,
+            )
         )
-    )
 
         query = (
             select(
@@ -76,7 +76,7 @@ class CustomerRepository:
                 completed_total,
                 func.count(Order.id),
                 last_purchase_at,
-                )
+            )
             .outerjoin(
                 Order,
                 and_(
@@ -123,7 +123,7 @@ class CustomerRepository:
                 total_spent,
                 orders_count,
                 last_purchase_at,
-                ) in db.execute(query)
+            ) in db.execute(query)
         ]
 
     @staticmethod

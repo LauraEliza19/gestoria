@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "lint": "oxlint",
+    "typecheck": "tsc --noEmit --project tsconfig.app.json",
+    "test": "node --test tests/ingredientSuggestions.test.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

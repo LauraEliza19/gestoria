@@ -214,7 +214,7 @@ def create_document(db: Session, current, payload: FiscalDocumentCreate):
         created_by_id=actor,
         updated_by_id=actor,
         status="Em processamento",
-        is_legacy=False
+        is_legacy=False,
     )
     if payload.document_type == "saida":
         order = lock_order(db, payload.order_id, org_id)

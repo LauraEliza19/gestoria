@@ -22,7 +22,9 @@ class CustomerCreate(BaseModel):
     email: EmailStr | None = None
 
     birth_date: date | None = None
-    category: str = Field(default="final_consumer", pattern="^(final_consumer|reseller|event)$")
+    category: str = Field(
+        default="final_consumer", pattern="^(final_consumer|reseller|event)$"
+    )
     default_discount_percent: Decimal | None = Field(default=None, ge=0, le=100)
     notes: str | None = Field(default=None, max_length=1000)
 
@@ -56,7 +58,9 @@ class CustomerUpdate(BaseModel):
     email: EmailStr | None = None
 
     birth_date: date | None = None
-    category: str | None = Field(default=None, pattern="^(final_consumer|reseller|event)$")
+    category: str | None = Field(
+        default=None, pattern="^(final_consumer|reseller|event)$"
+    )
     default_discount_percent: Decimal | None = Field(default=None, ge=0, le=100)
     notes: str | None = Field(default=None, max_length=1000)
 
@@ -111,6 +115,7 @@ class CustomerRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class CustomerProfileRead(CustomerRead):
     orders: list[OrderRead] = Field(default_factory=list)

@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app import main
 from app.config import settings
 from app.main import resolve_frontend_dir
-from fastapi.testclient import TestClient
 
 
 def test_resolve_frontend_dir_finds_project_frontend() -> None:

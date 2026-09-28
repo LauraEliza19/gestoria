@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.common import Money, ItemQuantity
+from app.schemas.common import ItemQuantity, Money
 
 
 class OrderItemCreate(BaseModel):

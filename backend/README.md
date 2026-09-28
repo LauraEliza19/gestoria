@@ -87,7 +87,8 @@ Os testes usam SQLite em memória (não precisam do Postgres). Com o venv ativo:
 ```bash
 source .venv/bin/activate
 pytest -q
-ruff check app tests alembic/versions
+ruff check --no-cache app tests alembic/versions
+ruff format --check --no-cache app tests alembic/versions
 ```
 
 Com o Compose no ar:

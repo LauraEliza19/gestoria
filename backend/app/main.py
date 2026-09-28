@@ -3,10 +3,18 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from app.api import auth, customers, organization, orders, products, quotes
-from app.api import order_operations
-from app.api import fiscal, production
 
+from app.api import (
+    auth,
+    customers,
+    fiscal,
+    order_operations,
+    orders,
+    organization,
+    production,
+    products,
+    quotes,
+)
 from app.config import settings
 
 project_root = Path(__file__).resolve().parents[2]
@@ -55,7 +63,9 @@ def react_root() -> FileResponse:
     return react_index()
 
 
-app.mount("/assets", StaticFiles(directory=frontend_dir / "dist" / "assets"), name="assets")
+app.mount(
+    "/assets", StaticFiles(directory=frontend_dir / "dist" / "assets"), name="assets"
+)
 
 
 @app.get("/{path:path}", include_in_schema=False)

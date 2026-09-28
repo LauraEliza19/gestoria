@@ -96,6 +96,7 @@ def test_customer_repository_aggregates_completed_orders_only(db: Session) -> No
     assert summaries[0].orders_count == 2
     assert summaries[0].last_purchase_at == completed.created_at
 
+
 def test_quote_repository_can_lock_quote_for_conversion() -> None:
     db = Mock(spec=Session)
 
@@ -110,6 +111,7 @@ def test_quote_repository_can_lock_quote_for_conversion() -> None:
     sql = str(query.compile(dialect=postgresql.dialect()))
 
     assert "FOR UPDATE OF quotes" in sql
+
 
 def test_order_repository_can_lock_order_for_status_update() -> None:
     db = Mock(spec=Session)

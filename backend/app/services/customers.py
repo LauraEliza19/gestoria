@@ -35,46 +35,26 @@ def get_customer_profile(
         customer_id,
     )
 
-    completed_orders = [
-        order
-        for order in orders
-        if order.status == "completed"
-    ]
+    completed_orders = [order for order in orders if order.status == "completed"]
 
     total_spent = sum(
-        (
-            order.total_amount
-            for order in completed_orders
-        ),
+        (order.total_amount for order in completed_orders),
         Decimal(0),
     )
 
     last_purchase_at = max(
-        (
-            order.created_at
-            for order in completed_orders
-        ),
+        (order.created_at for order in completed_orders),
         default=None,
     )
 
-    profile_data = CustomerRead.model_validate(
-        customer
-    ).model_dump()
+    profile_data = CustomerRead.model_validate(customer).model_dump()
 
     profile_data.update(
         total_spent=total_spent,
         orders_count=len(orders),
         last_purchase_at=last_purchase_at,
-        orders=[
-            order_to_read(order)
-            for order in orders
-        ],
-        quotes=[
-            quote_to_read(quote)
-            for quote in quotes
-        ],
+        orders=[order_to_read(order) for order in orders],
+        quotes=[quote_to_read(quote) for quote in quotes],
     )
 
-    return CustomerProfileRead.model_validate(
-        profile_data
-    )
+    return CustomerProfileRead.model_validate(profile_data)
