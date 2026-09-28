@@ -1,264 +1,162 @@
 # Tributos e Precificação — GestorIA
 
-## 1. Tributos
+## 1. Enquadramento Tributário
 
-### 1.1 Conceito
+Para fins deste plano de negócios, o **GestorIA** será considerado uma empresa de tecnologia que oferece software no modelo **SaaS (Software as a Service)**, disponibilizado por meio de aplicação web e aplicativo móvel.
 
-Tributos são pagamentos obrigatórios previstos em lei e relacionados a um fato gerador. As principais espécies tributárias consideradas neste planejamento são:
+Como enquadramento tributário inicial, será considerado o **Simples Nacional**, desde que a empresa atenda aos requisitos legais necessários para adesão ao regime.
 
-- Impostos;
-- Taxas;
-- Contribuições de melhoria;
-- Empréstimos compulsórios;
-- Contribuições especiais.
+O Simples Nacional permite que diferentes tributos sejam recolhidos de forma unificada por meio do **DAS — Documento de Arrecadação do Simples Nacional**, facilitando o controle tributário de micro e pequenas empresas.
 
-O regime tributário deve considerar fatores como faturamento anual, atividade econômica e características da empresa.
+Para atividades relacionadas ao desenvolvimento, licenciamento ou cessão de direito de uso de software, a tributação pode ocorrer pelo **Anexo III ou pelo Anexo V**, dependendo do chamado **Fator R**.
 
-### 1.2 Enquadramento adotado para o plano
+O Fator R relaciona os gastos com folha de pagamento da empresa com sua receita bruta.
 
-Para fins deste plano de negócios acadêmico, o GestorIA será considerado uma **empresa de tecnologia que presta serviço de software no modelo SaaS**, disponibilizado por aplicação web e aplicativo móvel.
+De forma simplificada:
 
-Como cenário-base de planejamento, será considerado o **Simples Nacional**, desde que a empresa atenda aos requisitos legais para esse enquadramento.
+```text
+Fator R = Folha de pagamento dos últimos 12 meses
+          -----------------------------------------
+          Receita bruta dos últimos 12 meses
+```
 
-> **Observação:** a escolha definitiva do regime tributário deve ser validada por profissional contábil considerando a natureza jurídica, atividade econômica, faturamento, folha de pagamento e legislação vigente no momento da abertura/operação.
+De maneira geral:
 
-### 1.3 Principais tributos a considerar
+- **Fator R igual ou superior a 28%:** possibilidade de enquadramento no Anexo III;
+- **Fator R inferior a 28%:** possibilidade de enquadramento no Anexo V.
 
-Para o planejamento do GestorIA devem ser considerados, conforme o enquadramento e a atividade efetivamente registrada:
+A definição definitiva dependerá da atividade registrada pela empresa, da estrutura financeira, da folha de pagamento e do faturamento no momento da operação.
 
-| Tributo/encargo | Esfera | Relação com o negócio |
-| :--- | :--- | :--- |
-| **ISS** | Municipal | Relacionado à prestação de serviços |
-| **IRPJ** | Federal | Imposto relacionado à renda da pessoa jurídica |
-| **CSLL** | Federal | Contribuição considerada na apuração do resultado tributável |
-| **PIS/PASEP** | Federal | Contribuição aplicável conforme regime e atividade |
-| **COFINS** | Federal | Contribuição aplicável conforme regime e atividade |
-| **Taxas municipais** | Municipal | Podem existir conforme atividade, cadastro e município |
-| **Outros encargos** | Conforme enquadramento | Devem ser avaliados pela contabilidade |
+### 1.1 Principais tributos envolvidos
 
-Para o GestorIA, por se tratar de uma empresa de tecnologia que presta serviços de software, o planejamento fiscal deve concentrar-se nos tributos compatíveis com a prestação de serviços, sem assumir que impostos ligados à circulação de mercadorias se aplicam automaticamente à operação.
+Considerando o modelo de negócio do GestorIA, os principais tributos relacionados à atividade são:
 
-O fato de o software também ser disponibilizado por aplicativo móvel não transforma, por si só, o modelo de negócio em venda de mercadorias. A natureza da operação continua relacionada ao serviço de software e ao modelo de assinatura definido pela empresa.
+| Tributo | Esfera | Descrição |
+|---|---|---|
+| **ISS** | Municipal | Imposto relacionado à prestação de serviços |
+| **IRPJ** | Federal | Imposto de Renda da Pessoa Jurídica |
+| **CSLL** | Federal | Contribuição Social sobre o Lucro Líquido |
+| **PIS/PASEP** | Federal | Contribuição incidente sobre as receitas da empresa |
+| **COFINS** | Federal | Contribuição destinada ao financiamento da seguridade social |
+| **CPP** | Federal | Contribuição Previdenciária Patronal, conforme o enquadramento |
 
-### 1.4 Política de planejamento tributário
+Como o GestorIA é uma solução de software oferecida como serviço, o **ISS** possui relação direta com a atividade exercida.
 
-O GestorIA deve:
+No Simples Nacional, os tributos aplicáveis são reunidos dentro da sistemática de recolhimento do regime, simplificando o pagamento e a administração das obrigações tributárias.
 
-1. Manter os dados cadastrais da empresa atualizados;
-2. Registrar corretamente as receitas;
-3. Classificar as operações;
-4. Armazenar documentos fiscais;
-5. Acompanhar o faturamento acumulado;
-6. Acompanhar o enquadramento tributário;
-7. Utilizar apoio contábil para apuração e obrigações;
-8. Considerar os valores pagos a plataformas e serviços de distribuição de aplicativos na organização financeira;
-9. Não utilizar a IA como substituta de orientação contábil ou fiscal profissional.
+A disponibilização do GestorIA também por aplicativo móvel não representa, por si só, uma atividade comercial diferente. O aplicativo funciona como outro meio de acesso ao mesmo serviço contratado pelo cliente.
+
+> **Observação:** o enquadramento apresentado neste trabalho é utilizado como premissa acadêmica. Na operação real da empresa, o regime tributário, os CNAEs e as demais obrigações fiscais deverão ser definidos com acompanhamento de um profissional contábil e considerando a legislação vigente.
 
 ---
 
-# 2. Modelo de precificação
+## 2. Modelo de Precificação
 
-O GestorIA será precificado como SaaS, utilizando cobrança recorrente.
+O GestorIA utilizará um modelo de precificação baseado em **assinatura recorrente**, característica comum de soluções oferecidas no modelo SaaS.
 
-O preço deve considerar o valor entregue ao usuário, a capacidade de pagamento do público, os custos de operação e o posicionamento comercial do produto.
+O cliente pagará uma mensalidade para utilizar o sistema, tendo acesso aos recursos contratados tanto pela aplicação web quanto pelo aplicativo móvel.
 
-Como o GestorIA atende pequenas e médias empresas, o preço deve permanecer compatível com a realidade financeira desse público e, ao mesmo tempo, cobrir os custos da operação.
-
-O acesso por **web e aplicativo móvel será considerado parte do mesmo serviço**, evitando a cobrança de uma assinatura separada somente pelo uso do aplicativo.
-
-## 2.1 Estratégia adotada
-
-Será utilizado um modelo de **planos por funcionalidades e quantidade de usuários**, com cobrança mensal e possibilidade de contratação anual.
-
-O cliente poderá acessar os recursos contratados pelo navegador ou pelo aplicativo, respeitando as funcionalidades disponibilizadas em cada canal.
-
-A diferenciação dos planos poderá ocorrer por:
+A estratégia de precificação será baseada principalmente em:
 
 - Quantidade de usuários;
-- Funcionalidades;
-- Volume de operações;
-- Recursos de Inteligência Artificial;
+- Funcionalidades disponíveis;
 - Recursos fiscais;
-- Capacidade de armazenamento;
+- Recursos de Inteligência Artificial;
+- Capacidade operacional;
 - Nível de suporte.
 
-## 2.2 Planos propostos
+A proposta é oferecer diferentes planos para atender empresas com níveis distintos de necessidade, permitindo que o cliente escolha a opção mais adequada à sua operação.
+
+### 2.1 Planos propostos
+
+| Plano | Valor mensal | Público-alvo | Usuários |
+|---|---:|---|---:|
+| **Essencial** | **R$ 79/mês** | Pequenas empresas com operações básicas | Até 2 |
+| **Gestão** | **R$ 149/mês** | Empresas que necessitam de maior controle e recursos | Até 5 |
+| **Gestão+** | **R$ 249/mês** | Empresas com operações mais estruturadas | Até 10 |
+
+---
 
 ### Plano Essencial — R$ 79/mês
 
-Indicado para empresas pequenas que precisam organizar a operação básica.
+Voltado principalmente para pequenas empresas que precisam organizar suas operações básicas utilizando uma única plataforma.
 
-Inclui:
+**Inclui:**
 
-- Clientes;
-- Produtos;
-- Estoque;
+- Cadastro de clientes;
+- Cadastro de produtos;
+- Controle de estoque;
 - Pedidos;
 - Orçamentos;
 - Dashboard;
-- 2 usuários;
 - Relatórios básicos;
-- Acesso web;
-- Aplicativo móvel com recursos essenciais.
+- Até **2 usuários**;
+- Acesso pela aplicação web;
+- Acesso pelo aplicativo móvel.
+
+---
 
 ### Plano Gestão — R$ 149/mês
 
-Indicado para empresas que precisam de uma gestão mais completa.
+Voltado para empresas que precisam de maior controle sobre suas operações e acesso a ferramentas mais completas de gestão.
 
-Inclui:
+**Inclui todos os recursos do plano Essencial, além de:**
 
-- Todos os recursos do Essencial;
-- Até 5 usuários;
+- Até **5 usuários**;
 - Relatórios avançados;
-- Indicadores;
+- Indicadores gerenciais;
 - Modo Fábrica;
 - Recursos fiscais;
 - Histórico operacional;
-- Recursos avançados do dashboard;
-- Acesso completo aos recursos móveis previstos para o plano.
+- Dashboard avançado;
+- Recursos adicionais no aplicativo móvel.
+
+---
 
 ### Plano Gestão+ — R$ 249/mês
 
-Indicado para empresas com operação mais estruturada.
+Voltado para empresas com operações mais estruturadas e maior necessidade de automação, controle e análise.
 
-Inclui:
+**Inclui todos os recursos do plano Gestão, além de:**
 
-- Todos os recursos do Gestão;
-- Até 10 usuários;
-- Recursos avançados de relatórios;
-- Copiloto IA com limites de utilização;
+- Até **10 usuários**;
+- Copiloto com Inteligência Artificial;
 - Recursos fiscais avançados;
-- Suporte prioritário;
+- Relatórios avançados;
 - Maior capacidade operacional;
-- Recursos móveis avançados.
-
-### Add-ons
-
-| Recurso | Preço proposto |
-| :--- | ---: |
-| Usuário adicional | R$ 20/mês |
-| Copiloto IA adicional | R$ 30/mês |
-| Integração fiscal avançada | R$ 50/mês |
-| Pacote adicional de capacidade | Conforme consumo |
-
-Os valores são preços iniciais para o plano acadêmico e devem ser validados posteriormente com clientes reais e concorrentes.
+- Recursos móveis avançados;
+- Suporte prioritário.
 
 ---
 
-## 3. Recorrência
+### 2.2 Recursos adicionais
 
-O modelo principal será a assinatura mensal.
+Além dos planos principais, alguns recursos poderão ser contratados separadamente.
 
-| Modalidade | Proposta |
-| :--- | :--- |
-| Mensal | Preço integral, cancelamento conforme contrato |
-| Trimestral | Desconto moderado para estimular permanência |
-| Anual | Desconto maior em troca de pagamento antecipado |
-
-A recorrência mensal permite maior flexibilidade para o cliente e acompanhamento frequente da utilização do sistema, enquanto a recorrência anual pode melhorar a previsibilidade de receita e fluxo de caixa.
-
-O acesso web e mobile estará vinculado à mesma assinatura. A contratação do plano não exigirá uma assinatura separada para cada plataforma.
-
-Por isso, a estratégia inicial será:
-
-- Priorizar contratação mensal;
-- Oferecer plano anual com desconto;
-- Avaliar retenção antes de ampliar descontos.
+| Recurso adicional | Valor proposto |
+|---|---:|
+| Usuário adicional | **R$ 20/mês** |
+| Capacidade adicional de IA | **R$ 30/mês** |
+| Integração fiscal avançada | **R$ 50/mês** |
 
 ---
 
-## 4. Relação entre preço e custos
+### 2.3 Justificativa da precificação
 
-Considerando os planos propostos, pode-se estimar a receita recorrente mensal:
+Os valores apresentados representam uma **proposta inicial de precificação** para o GestorIA.
 
-| Quantidade de clientes | Plano médio | Receita mensal |
-| :---: | :---: | ---: |
-| 20 | R$ 100 | R$ 2.000 |
-| 50 | R$ 100 | R$ 5.000 |
-| 100 | R$ 100 | R$ 10.000 |
-| 200 | R$ 100 | R$ 20.000 |
-| 300 | R$ 100 | R$ 30.000 |
+A definição dos preços busca equilibrar três aspectos principais:
 
-O valor médio de R$ 100 é utilizado como premissa para os cálculos deste plano.
+1. **Acessibilidade para o público-alvo**, formado principalmente por pequenas e médias empresas;
+2. **Quantidade de recursos disponibilizados em cada plano**;
+3. **Capacidade de geração de receita suficiente para sustentar a operação do sistema**.
 
-No cenário Lean, considerando aproximadamente R$ 1.450 de custos e despesas mensais antes da equipe, seriam necessários cerca de:
+O modelo por planos permite que empresas menores iniciem utilizando uma versão mais acessível e migrem para planos superiores conforme sua operação cresça.
 
-```text
-R$ 1.450 ÷ R$ 100 = 14,5 clientes
-```
+Essa estratégia também possibilita que o GestorIA aumente sua receita conforme o cliente passe a utilizar mais usuários, funcionalidades e recursos.
 
-ou aproximadamente **15 clientes** para cobrir esse bloco de gastos.
+O acesso pela **web e pelo aplicativo móvel fará parte da mesma assinatura**, sem necessidade de pagamento separado para cada plataforma.
 
-No cenário Ideal, considerando aproximadamente R$ 25.100 mensais:
+Dessa forma, o cliente contrata o **GestorIA como um único produto**, escolhendo apenas o nível de recursos adequado às necessidades da empresa.
 
-```text
-R$ 25.100 ÷ R$ 100 = 251 clientes
-```
-
-seriam necessários aproximadamente **251 clientes** para cobrir os gastos considerados no modelo.
-
-Esses cálculos **não representam o ponto de equilíbrio contábil definitivo**, pois não consideram integralmente tributos, inadimplência, descontos, custos variáveis por cliente e remuneração real da equipe. Servem como estimativa inicial para planejamento.
-
-Os custos adicionais relacionados ao aplicativo devem ser acompanhados separadamente, principalmente serviços de distribuição, notificações, monitoramento, armazenamento e manutenção.
-
----
-
-## 5. Métricas de negócio
-
-O GestorIA deverá acompanhar métricas específicas do modelo SaaS e, com a expansão para aplicativo, também métricas de utilização por canal.
-
-## CAC — Custo de Aquisição de Cliente
-
-```text
-CAC = Gastos de Marketing e Vendas / Novos Clientes
-```
-
-O CAC representa quanto a empresa gasta, em média, para conquistar um novo cliente.
-
-## ARPU — Receita Média por Cliente
-
-```text
-ARPU = Receita Recorrente / Número de Clientes
-```
-
-No contexto do GestorIA, essa métrica permite acompanhar o valor médio recebido por cliente.
-
-## LTV — Lifetime Value
-
-O LTV representa quanto um cliente gera de receita durante seu relacionamento com a plataforma.
-
-Para o acompanhamento inicial, pode-se utilizar uma aproximação:
-
-```text
-LTV ≈ ARPU × tempo médio de permanência
-```
-
-Além dessas métricas, a empresa deverá acompanhar:
-
-- Taxa de cancelamento;
-- Número de clientes ativos;
-- Receita recorrente mensal;
-- Receita recorrente anual;
-- Conversão de testes/demonstrações;
-- Uso do sistema;
-- Custo de infraestrutura por cliente;
-- Usuários ativos no aplicativo;
-- Usuários ativos na aplicação web;
-- Frequência de utilização por canal;
-- Retenção de usuários móveis;
-- Falhas ou indisponibilidade do aplicativo.
-
-Esses indicadores permitirão avaliar não apenas a quantidade de clientes, mas também como o produto está sendo utilizado em cada canal.
-
----
-
-# 6. Estratégia de acesso multiplataforma
-
-O modelo comercial considera web e aplicativo como partes do mesmo produto.
-
-A aplicação web continuará sendo importante para operações administrativas e telas que exigem maior área de visualização. O aplicativo terá foco em mobilidade, consulta rápida e operações que façam sentido em dispositivos móveis.
-
-A existência do aplicativo não altera o modelo básico de assinatura. O cliente contrata o GestorIA e utiliza os canais disponíveis conforme o plano.
-
-A estratégia permite que a empresa mantenha uma única proposta comercial enquanto amplia as formas de acesso ao sistema.
-
+> **Observação:** os valores utilizados neste plano são estimativas iniciais e poderão ser ajustados futuramente de acordo com os custos reais da operação, análise de concorrentes, comportamento do mercado e validação com potenciais clientes.
