@@ -1,9 +1,9 @@
-from order_helpers import secure_order
 from datetime import timedelta
 from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from order_helpers import secure_order
 
 from app.repositories import OrderRepository
 from app.services.quotes import business_today
@@ -143,6 +143,7 @@ def test_customer_flow_normalizes_phone_and_checks_permissions(
         == 204
     )
 
+
 def test_customer_profile_returns_order_history_and_is_tenant_scoped(
     client: TestClient,
 ) -> None:
@@ -207,9 +208,7 @@ def test_customer_profile_returns_order_history_and_is_tenant_scoped(
         headers=owner_headers,
         json={
             "customer_id": customer["id"],
-            "valid_until": (
-                business_today() + timedelta(days=7)
-            ).isoformat(),
+            "valid_until": (business_today() + timedelta(days=7)).isoformat(),
             "items": [
                 {
                     "product_id": product["id"],
@@ -240,20 +239,14 @@ def test_customer_profile_returns_order_history_and_is_tenant_scoped(
     assert profile["orders"][0]["status"] == "completed"
     assert profile["orders"][0]["total_amount"] == "50.00"
     assert len(profile["orders"][0]["items"]) == 1
-    assert (
-        profile["orders"][0]["items"][0]["product_name"]
-        == "Produto Perfil 360"
-    )
+    assert profile["orders"][0]["items"][0]["product_name"] == "Produto Perfil 360"
 
     assert len(profile["quotes"]) == 1
     assert profile["quotes"][0]["id"] == quote["id"]
     assert profile["quotes"][0]["status"] == "pending"
     assert profile["quotes"][0]["total_amount"] == "25.00"
     assert len(profile["quotes"][0]["items"]) == 1
-    assert (
-        profile["quotes"][0]["items"][0]["product_name"]
-        == "Produto Perfil 360"
-    )
+    assert profile["quotes"][0]["items"][0]["product_name"] == "Produto Perfil 360"
 
     member_response = client.get(
         f"/api/customers/{customer['id']}",
@@ -273,6 +266,7 @@ def test_customer_profile_returns_order_history_and_is_tenant_scoped(
     )
     assert cross_organization_response.status_code == 404
 
+
 def test_order_flow_updates_stock_status_and_customer_total(
     client: TestClient,
 ) -> None:
@@ -288,7 +282,8 @@ def test_order_flow_updates_stock_status_and_customer_total(
         json={"name": "Café", "price": "12.50", "stock_quantity": 5},
     ).json()
 
-    created = secure_order(client,
+    created = secure_order(
+        client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -302,10 +297,10 @@ def test_order_flow_updates_stock_status_and_customer_total(
     order = created.json()
     assert order["total_amount"] == "37.50"
     assert len(order["items"]) == 1
-    assert Decimal(order["items"][0]["quantity"]) == Decimal("3")
+    assert Decimal(order["items"][0]["quantity"]) == Decimal(3)
 
     products = client.get("/api/products", headers=headers).json()
-    assert Decimal(products[0]["stock_quantity"]) == Decimal("2")
+    assert Decimal(products[0]["stock_quantity"]) == Decimal(2)
 
     completed = client.patch(
         f"/api/orders/{order['id']}",
@@ -332,16 +327,14 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert cancelled.status_code == 200
     assert Decimal(
         client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
-    ) == Decimal("5")
+    ) == Decimal(5)
 
     customers_after_cancellation = client.get(
         "/api/customers",
         headers=headers,
     ).json()
 
-    assert Decimal(
-        customers_after_cancellation[0]["total_spent"]
-    ) == Decimal(0)
+    assert Decimal(customers_after_cancellation[0]["total_spent"]) == Decimal(0)
     assert customers_after_cancellation[0]["last_purchase_at"] is None
 
     reactivated = client.patch(
@@ -353,7 +346,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert reactivated.json()["status"] == "in_preparation"
     assert Decimal(
         client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
-    ) == Decimal("2")
+    ) == Decimal(2)
 
     assert (
         client.delete(f"/api/customers/{customer['id']}", headers=headers).status_code
@@ -369,7 +362,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     )
     assert Decimal(
         client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
-    ) == Decimal("5")
+    ) == Decimal(5)
     assert (
         client.delete(f"/api/customers/{customer['id']}", headers=headers).status_code
         == 204
@@ -395,7 +388,8 @@ def test_order_with_insufficient_stock_rolls_back_everything(
         json={"name": "Última unidade", "price": "9.90", "stock_quantity": 1},
     ).json()
 
-    response = secure_order(client,
+    response = secure_order(
+        client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -406,7 +400,7 @@ def test_order_with_insufficient_stock_rolls_back_everything(
     assert client.get("/api/orders", headers=headers).json() == []
     assert Decimal(
         client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
-    ) == Decimal("1")
+    ) == Decimal(1)
 
 
 def test_customer_and_product_are_isolated_between_organizations(
@@ -851,6 +845,7 @@ def test_quote_conversion_with_insufficient_stock_returns_conflict(
     assert quotes[0]["status"] == "approved"
     assert quotes[0]["converted_order_id"] is None
 
+
 def test_cancelling_order_twice_restores_stock_only_once(
     client: TestClient,
 ) -> None:
@@ -875,7 +870,8 @@ def test_cancelling_order_twice_restores_stock_only_once(
         },
     ).json()
 
-    order_response = secure_order(client,
+    order_response = secure_order(
+        client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -919,6 +915,7 @@ def test_cancelling_order_twice_restores_stock_only_once(
     assert len(orders) == 1
     assert orders[0]["status"] == "cancelled"
 
+
 def test_deleting_order_twice_restores_stock_only_once(
     client: TestClient,
 ) -> None:
@@ -943,7 +940,8 @@ def test_deleting_order_twice_restores_stock_only_once(
         },
     ).json()
 
-    order_response = secure_order(client,
+    order_response = secure_order(
+        client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -981,6 +979,7 @@ def test_deleting_order_twice_restores_stock_only_once(
 
     assert client.get("/api/orders", headers=headers).json() == []
 
+
 def test_order_update_and_delete_request_row_lock(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -1006,7 +1005,8 @@ def test_order_update_and_delete_request_row_lock(
         },
     ).json()
 
-    order = secure_order(client,
+    order = secure_order(
+        client,
         headers=headers,
         json={
             "customer_id": customer["id"],
@@ -1060,6 +1060,7 @@ def test_order_update_and_delete_request_row_lock(
     assert deletion.status_code == 204
     assert requested_locks == [True]
 
+
 def test_order_api_rejects_invalid_status_transitions(
     client: TestClient,
 ) -> None:
@@ -1084,7 +1085,8 @@ def test_order_api_rejects_invalid_status_transitions(
         },
     ).json()
 
-    order = secure_order(client,
+    order = secure_order(
+        client,
         headers=headers,
         json={
             "customer_id": customer["id"],

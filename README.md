@@ -19,7 +19,7 @@ Plataforma de gestão empresarial com experiência orientada por inteligência a
 </a>
 
 <a href="docs/pdf/lean-canvas.pdf">
-  <img src="https://img.shields.io/badge/DOC-LEANS CANVAS-7c3aed?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/DOC-LEAN%20CANVAS-7c3aed?style=for-the-badge" />
 </a>
 
 <br><br>
@@ -45,7 +45,7 @@ O **GestorIA** é uma plataforma de gestão empresarial com foco em organizaçã
 - Operações fiscais;
 - Indicadores e dashboards;
 - Controle de usuários e permissões;
-- Recursos de Inteligência Artificial.
+- Recursos de inteligência artificial.
 
 O projeto está em desenvolvimento acadêmico com estrutura de aplicação real, backend em camadas, persistência em **PostgreSQL** e isolamento de dados por empresa com arquitetura **multi-tenant**.
 
@@ -58,10 +58,10 @@ O projeto está em desenvolvimento acadêmico com estrutura de aplicação real,
 O GestorIA está sendo desenvolvido com base em quatro pilares principais:
 
 | Pilar | Objetivo |
-|---|---|
+| --- | --- |
 | **Gestão centralizada** | Reunir as principais operações da empresa em uma única plataforma |
-| **Inteligência Artificial** | Tornar a interação com o sistema mais natural e eficiente |
-| **Segurança** | Proteger dados, operações e histórico das ações realizadas |
+| **Inteligência artificial** | Tornar a interação com o sistema mais natural e eficiente |
+| **Segurança** | Proteger dados, operações e o histórico das ações realizadas |
 | **Adaptabilidade** | Permitir que o sistema acompanhe diferentes modelos de negócio |
 
 ---
@@ -103,7 +103,7 @@ Pedido, estoque, comprovante e auditoria são confirmados dentro da mesma transa
 
 ---
 
-## Atualização fiscal — setembro/2026
+## Atualização fiscal — setembro de 2026
 
 Notas de saída agora exigem pedido da mesma empresa, com destinatário, itens e valores conferidos no servidor.
 
@@ -111,7 +111,7 @@ Principais pontos da atualização fiscal:
 
 - Notas de saída vinculadas ao pedido;
 - Apenas uma saída ativa por pedido;
-- Cancelamentos preservam histórico;
+- Cancelamentos preservam o histórico;
 - Entradas com fornecedor e recebimento explícito de estoque;
 - Eventos fiscais persistidos e consultáveis pela API.
 
@@ -137,7 +137,7 @@ Revisão atual do banco:
 | **Migrations** | Alembic |
 | **Autenticação** | JWT e Argon2 |
 | **Ambiente** | Docker Compose |
-| **Qualidade** | Pytest e Ruff |
+| **Qualidade** | Pytest, Ruff, Oxlint e Prettier |
 
 ---
 
@@ -149,7 +149,7 @@ Antes de iniciar, tenha instalado em sua máquina:
 
 - **Docker Desktop** aberto e em execução;
 - **Git**;
-- Opcionalmente, **Node.js** e **Python**, caso queira rodar partes do projeto fora do Docker.
+- Opcionalmente, **Node.js** e **Python**, caso queira executar partes do projeto fora do Docker.
 
 ---
 
@@ -194,11 +194,11 @@ docker compose up -d --build
 
 Esse comando irá:
 
-- construir os containers;
-- iniciar a aplicação;
-- iniciar o banco PostgreSQL;
-- aplicar as migrations automaticamente;
-- preparar o usuário de demonstração.
+- Construir os containers;
+- Iniciar a aplicação;
+- Iniciar o banco PostgreSQL;
+- Aplicar as migrations automaticamente;
+- Preparar o usuário de demonstração.
 
 ---
 
@@ -255,22 +255,23 @@ O `organization_id` delimita os dados de cada empresa. Pedidos são gravados em 
 
 ## Organização
 
-O backend segue arquitetura em camadas. O frontend utiliza React com TypeScript, React Router e Tailwind CSS.
+O backend segue uma arquitetura em camadas. O frontend utiliza React com TypeScript, React Router e Tailwind CSS.
 
 ```text
 frontend/
   src/
     app/                  roteamento e composição da aplicação
-    layouts/              layouts autenticado e de navegação
-    pages/                telas React por domínio
+    layouts/              layouts autenticados e de navegação
+    pages/                telas React organizadas por domínio
     services/             cliente HTTP e autenticação
     styles/               entrada Tailwind e tokens visuais
+    utils/                utilitários compartilhados
   dist/                   build de produção gerado pelo Vite
 
 backend/
   alembic/                migrations versionadas do banco
   app/
-    api/                  controllers HTTP (rotas)
+    api/                  controllers HTTP e rotas
     models/               tabelas e relacionamentos SQLAlchemy
     schemas/              validação de entrada e saída
     repositories/         consultas e persistência
@@ -280,20 +281,38 @@ backend/
   tests/                  testes de API, transações e isolamento
 ```
 
+As regras transacionais permanecem nos serviços, enquanto consultas e operações de persistência ficam nos repositórios. O frontend não recebe credenciais do banco de dados.
+
 ---
 
 ## Testes e qualidade
 
+### Backend
+
+No PowerShell:
+
 ```powershell
 cd backend
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-pytest -q
-ruff check app tests alembic\versions
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check --no-cache app tests alembic\versions
+.\.venv\Scripts\python.exe -m ruff format --check --no-cache app tests alembic\versions
 ```
 
-Os testes locais usam SQLite temporário com chaves estrangeiras ativadas.
+### Frontend
+
+No PowerShell:
+
+```powershell
+cd frontend
+npm ci
+npm run check
+```
+
+O comando `npm run check` executa as verificações de lint, tipos, testes, formatação e build de produção.
+
+Os testes locais do backend utilizam SQLite temporário com chaves estrangeiras ativadas.
 
 Para validar também migrations e concorrência no PostgreSQL 17:
 
@@ -330,22 +349,22 @@ docker compose exec api alembic upgrade head
 | `DELETE` | `/api/customers/{id}` | Excluir cliente sem pedidos |
 | `GET` | `/api/orders` | Listar pedidos com seus itens |
 | `POST` | `/api/orders` | Criação antiga bloqueada com HTTP 428 |
-| `POST` | `/api/orders/proposals` | Preparar proposta assinada, sem alterar estoque |
-| `POST` | `/api/orders/proposals/{id}/confirm` | Confirmar proposta e registrar pedido uma única vez |
+| `POST` | `/api/orders/proposals` | Preparar proposta assinada sem alterar o estoque |
+| `POST` | `/api/orders/proposals/{id}/confirm` | Confirmar proposta e registrar o pedido uma única vez |
 | `POST` | `/api/orders/proposals/{id}/cancel` | Descartar proposta pendente |
 | `GET` | `/api/orders/proposals/{id}/receipt` | Consultar comprovante verificado |
 | `GET` | `/api/orders/security/events` | Consultar eventos autorizados e sua integridade |
 | `PATCH` | `/api/orders/{id}` | Atualizar o status do pedido |
 | `DELETE` | `/api/orders/{id}` | Excluir pedido sem histórico fiscal e recompor estoque como owner/admin |
 | `GET` | `/api/fiscal-documents` | Listar e filtrar documentos fiscais |
-| `POST` | `/api/fiscal-documents` | Registrar saída por pedido ou entrada por fornecedor/itens |
+| `POST` | `/api/fiscal-documents` | Registrar saída por pedido ou entrada por fornecedor e itens |
 | `PATCH` | `/api/fiscal-documents/{id}` | Registrar transição permitida com evidência externa |
-| `DELETE` | `/api/fiscal-documents/{id}` | Exclusão bloqueada (409), histórico preservado |
+| `DELETE` | `/api/fiscal-documents/{id}` | Exclusão bloqueada com HTTP 409 e histórico preservado |
 | `GET` | `/api/fiscal-documents/{id}` | Consultar detalhes e eventos |
 | `POST` | `/api/fiscal-documents/{id}/link-order` | Conciliar saída histórica |
-| `POST` | `/api/fiscal-documents/{id}/receive` | Confirmar recebimento de entrada uma única vez |
-| `GET/POST` | `/api/fiscal-suppliers` | Listar/cadastrar fornecedores |
-| `PATCH` | `/api/fiscal-suppliers/{id}` | Ativar/desativar fornecedor |
+| `POST` | `/api/fiscal-documents/{id}/receive` | Confirmar o recebimento de entrada uma única vez |
+| `GET/POST` | `/api/fiscal-suppliers` | Listar ou cadastrar fornecedores |
+| `PATCH` | `/api/fiscal-suppliers/{id}` | Ativar ou desativar fornecedor |
 | `GET` | `/api/health` | Verificar a disponibilidade da API |
 
 ---
@@ -365,7 +384,13 @@ JOIN organizations AS o ON o.id = c.organization_id
 ORDER BY c.created_at DESC;
 ```
 
-Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não existe uma lista fixa no frontend. Saia do terminal com `\q`.
+Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não existe uma lista fixa no frontend.
+
+Para sair do terminal do PostgreSQL, utilize:
+
+```text
+\q
+```
 
 ---
 
@@ -374,5 +399,5 @@ Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não exi
 Antes de qualquer implantação pública, altere:
 
 - `JWT_SECRET`;
-- senha do PostgreSQL;
-- credenciais de demonstração.
+- Senha do PostgreSQL;
+- Credenciais de demonstração.

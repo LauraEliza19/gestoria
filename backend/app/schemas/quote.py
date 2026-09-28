@@ -3,7 +3,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.common import Money, ItemQuantity
+from app.schemas.common import ItemQuantity, Money
+
 
 class QuoteItemCreate(BaseModel):
     product_id: uuid.UUID
@@ -23,7 +24,7 @@ class QuoteStatusUpdate(BaseModel):
 class QuoteItemRead(BaseModel):
     id: uuid.UUID
     product_id: uuid.UUID
-    product_name: str 
+    product_name: str
     quantity: ItemQuantity
     unit_price: Money
 

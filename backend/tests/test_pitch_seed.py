@@ -113,8 +113,7 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
         db.scalars(
             select(Product).where(
                 Product.organization_id == organization.id,
-                Product.stock_quantity
-                <= Product.min_stock_quantity,
+                Product.stock_quantity <= Product.min_stock_quantity,
             )
         )
     )
@@ -128,14 +127,8 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
             )
         )
     )
-    assert sum(
-        order.status == "in_preparation"
-        for order in orders
-    ) == 1
-    assert sum(
-        order.status == "completed"
-        for order in orders
-    ) == 2
+    assert sum(order.status == "in_preparation" for order in orders) == 1
+    assert sum(order.status == "completed" for order in orders) == 2
 
     quotes = list(
         db.scalars(
@@ -144,11 +137,5 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
             )
         )
     )
-    assert sum(
-        quote.status == "pending"
-        for quote in quotes
-    ) == 2
-    assert sum(
-        quote.status == "approved"
-        for quote in quotes
-    ) == 1
+    assert sum(quote.status == "pending" for quote in quotes) == 2
+    assert sum(quote.status == "approved" for quote in quotes) == 1

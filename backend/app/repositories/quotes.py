@@ -15,11 +15,11 @@ class QuoteRepository:
             .options(
                 joinedload(Quote.customer),
                 selectinload(Quote.items).joinedload(QuoteItem.product),
+            )
+            .where(Quote.organization_id == organization_id)
+            .order_by(Quote.created_at.desc())
         )
-        .where(Quote.organization_id == organization_id)
-        .order_by(Quote.created_at.desc())
-        )
-        return list (db.scalars(query).unique())
+        return list(db.scalars(query).unique())
 
     @staticmethod
     def list_for_customer(
@@ -31,9 +31,7 @@ class QuoteRepository:
             select(Quote)
             .options(
                 joinedload(Quote.customer),
-                selectinload(Quote.items).joinedload(
-                    QuoteItem.product
-                ),
+                selectinload(Quote.items).joinedload(QuoteItem.product),
             )
             .where(
                 Quote.organization_id == organization_id,
@@ -69,24 +67,23 @@ class QuoteRepository:
 
         return db.scalar(query)
 
-
     @staticmethod
     def create(
-         db: Session,
-         organization_id: uuid.UUID,
-         customer_id: uuid.UUID,
-         valid_until,
+        db: Session,
+        organization_id: uuid.UUID,
+        customer_id: uuid.UUID,
+        valid_until,
     ) -> Quote:
-         quote = Quote(
-              organization_id=organization_id,
-              customer_id=customer_id,
-              status="pending",
-              valid_until=valid_until,
-              total_amount=0,
-         )
-         db.add(quote)
-         db.flush()
-         return quote
+        quote = Quote(
+            organization_id=organization_id,
+            customer_id=customer_id,
+            status="pending",
+            valid_until=valid_until,
+            total_amount=0,
+        )
+        db.add(quote)
+        db.flush()
+        return quote
 
     @staticmethod
     def update_status(db: Session, quote: Quote, status: str) -> Quote:
@@ -97,11 +94,11 @@ class QuoteRepository:
 
     @staticmethod
     def mark_converted(
-         db: Session,
-         quote: Quote,
-         order_id: uuid.UUID,
-         *,
-         commit: bool = True,
+        db: Session,
+        quote: Quote,
+        order_id: uuid.UUID,
+        *,
+        commit: bool = True,
     ) -> Quote:
         quote.status = "converted"
         quote.converted_order_id = order_id

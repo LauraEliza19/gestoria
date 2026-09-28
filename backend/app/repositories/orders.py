@@ -31,9 +31,7 @@ class OrderRepository:
             select(Order)
             .options(
                 joinedload(Order.customer),
-                selectinload(Order.items).joinedload(
-                    OrderItem.product
-                ),
+                selectinload(Order.items).joinedload(OrderItem.product),
             )
             .where(
                 Order.organization_id == organization_id,
@@ -65,10 +63,11 @@ class OrderRepository:
         )
 
         if for_update:
-            query = query.with_for_update(of=Order).execution_options(populate_existing=True)
+            query = query.with_for_update(of=Order).execution_options(
+                populate_existing=True
+            )
 
         return db.scalar(query)
-
 
     @staticmethod
     def create(

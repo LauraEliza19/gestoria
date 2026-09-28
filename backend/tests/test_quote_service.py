@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Organization
 
-#from app.repositories import CustomerRepository, ProductRepository
+# from app.repositories import CustomerRepository, ProductRepository
 from app.repositories import (
     CustomerRepository,
     OrderRepository,
@@ -70,6 +70,7 @@ def test_pending_quote_cannot_be_converted(db: Session) -> None:
 
     assert captured.value.current_status == "pending"
     assert "status atual: 'pending'" in str(captured.value)
+
 
 def test_create_quote_freezes_price_without_changing_stock(db: Session) -> None:
     organization = db.scalar(
@@ -195,10 +196,11 @@ def test_quote_conversion_uses_frozen_price(db: Session) -> None:
     db.refresh(product)
     assert product.stock_quantity == Decimal(3)
 
+
 def test_quote_conversion_rolls_back_if_marking_fails(
     db: Session,
     monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
+) -> None:
     organization = db.scalar(
         select(Organization).where(Organization.slug == "empresa-a")
     )

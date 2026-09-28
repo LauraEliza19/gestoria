@@ -7,12 +7,12 @@ from decimal import Decimal
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    DateTime,
     Date,
+    DateTime,
     ForeignKey,
-    SmallInteger,
     Index,
     Numeric,
+    SmallInteger,
     String,
     UniqueConstraint,
     Uuid,
@@ -24,23 +24,23 @@ from app.database import Base
 from app.models.order_operation import OrderAuditEvent, OrderOperation
 
 __all__ = [
-    "OrderAuditEvent",
-    "OrderOperation",
-    "TimestampMixin",
-    "Organization",
-    "User",
-    "OrganizationMember",
-    "Product",
     "Customer",
-    "Order",
-    "OrderItem",
-    "Quote",
-    "QuoteItem",
     "FiscalDocument",
     "FiscalDocumentItem",
     "FiscalEvent",
     "FiscalStockMovement",
+    "Order",
+    "OrderAuditEvent",
+    "OrderItem",
+    "OrderOperation",
+    "Organization",
+    "OrganizationMember",
+    "Product",
+    "Quote",
+    "QuoteItem",
     "Supplier",
+    "TimestampMixin",
+    "User",
 ]
 
 
@@ -60,7 +60,7 @@ class Organization(Base):
     __tablename__ = "organizations"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    name: Mapped[str]  = mapped_column(String(120), nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -68,14 +68,18 @@ class Organization(Base):
 
     # ---- Identificação fiscal ----
     document: Mapped[str | None] = mapped_column(String(18))  # CNPJ
-    state_registration: Mapped[str | None] = mapped_column(String(30))  # Inscrição Estadual
-    municipal_registration: Mapped[str | None] = mapped_column(String(30))  # Código Municipal
+    state_registration: Mapped[str | None] = mapped_column(
+        String(30)
+    )  # Inscrição Estadual
+    municipal_registration: Mapped[str | None] = mapped_column(
+        String(30)
+    )  # Código Municipal
 
     # ---- Contato ----
     phone: Mapped[str | None] = mapped_column(String(30))
 
     # ---- Endereço estruturado ----
-    postal_code: Mapped[str | None] = mapped_column(String(9))   # CEP
+    postal_code: Mapped[str | None] = mapped_column(String(9))  # CEP
     street: Mapped[str | None] = mapped_column(String(160))
     number: Mapped[str | None] = mapped_column(String(20))
     complement: Mapped[str | None] = mapped_column(String(80))
@@ -130,7 +134,7 @@ class Product(Base, TimestampMixin):
             name="ck_product_cost_price_nonnegative",
         ),
         CheckConstraint(
-            "min_stock_quantity >= 0", 
+            "min_stock_quantity >= 0",
             name="ck_product_min_stock_nonnegative",
         ),
         CheckConstraint(
@@ -163,46 +167,45 @@ class Product(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid,
-        ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    stock_quantity: Mapped[Decimal] = mapped_column(Numeric(10,3), default=0, nullable=False)
+    stock_quantity: Mapped[Decimal] = mapped_column(
+        Numeric(10, 3), default=0, nullable=False
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    
-     #classificacao de produto 
+    # classificacao de produto
     category: Mapped[str] = mapped_column(String(20), default="outros", nullable=False)
     product_type: Mapped[str] = mapped_column(
-        String(20), default="resale", nullable=False 
+        String(20), default="resale", nullable=False
     )
     unit_of_measure: Mapped[str] = mapped_column(
         String(10), default="unit", nullable=False
     )
 
-    #estoque e custo
+    # estoque e custo
     cost_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     min_stock_quantity: Mapped[Decimal] = mapped_column(
         Numeric(10, 3), default="5", nullable=False
     )
 
-    #perecibilidade
+    # perecibilidade
     perishable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     shelf_life_days: Mapped[int | None] = mapped_column()
 
-    #identificação
+    # identificação
     barcode: Mapped[str | None] = mapped_column(String(50))
 
-    #fiscal (sem logica de calculo ainda)
+    # fiscal (sem logica de calculo ainda)
     ncm_code: Mapped[str | None] = mapped_column(String(8))
     cest_code: Mapped[str | None] = mapped_column(String(7))
     fiscal_origin: Mapped[int | None] = mapped_column(SmallInteger)
 
     order_items: Mapped[list[OrderItem]] = relationship(back_populates="product")
-    quote_items: Mapped[list[QuoteItem]] = relationship(back_populates="product") 
+    quote_items: Mapped[list[QuoteItem]] = relationship(back_populates="product")
 
     @property
     def status(self) -> str:
@@ -217,6 +220,7 @@ class Product(Base, TimestampMixin):
             return "Estoque baixo"
         return "Disponível"
 
+
 class Customer(Base, TimestampMixin):
     __tablename__ = "customers"
     __table_args__ = (
@@ -225,8 +229,7 @@ class Customer(Base, TimestampMixin):
         Index("ix_customers_org_created_at", "organization_id", "created_at"),
         Index("ix_customers_org_name", "organization_id", "name"),
         CheckConstraint(
-            "person_type IN ('individual', 'company')",
-            name="ck_customer_person_type"
+            "person_type IN ('individual', 'company')", name="ck_customer_person_type"
         ),
         CheckConstraint(
             "category IN ('final_consumer', 'reseller', 'event')",
@@ -240,43 +243,43 @@ class Customer(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid,
-        ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     phone: Mapped[int] = mapped_column(String(30), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    
+
     person_type: Mapped[str] = mapped_column(
         String(10), default="individual", nullable=False
     )
 
-    document: Mapped[str | None] = mapped_column(String(18)) #cpf or cnpj
-    trade_name: Mapped[str| None] = mapped_column(String(120)) #nome fantasia
-    state_registration: Mapped[str | None] = mapped_column(String(30)) #inscrição estadual
+    document: Mapped[str | None] = mapped_column(String(18))  # cpf or cnpj
+    trade_name: Mapped[str | None] = mapped_column(String(120))  # nome fantasia
+    state_registration: Mapped[str | None] = mapped_column(
+        String(30)
+    )  # inscrição estadual
 
-    #contato
-    whatsapp: Mapped[str| None] = mapped_column(String(30))
-    email: Mapped[str| None] = mapped_column(String(255))
+    # contato
+    whatsapp: Mapped[str | None] = mapped_column(String(30))
+    email: Mapped[str | None] = mapped_column(String(255))
 
-    #relacionamento comercial 
+    # relacionamento comercial
 
     birth_date: Mapped[date | None] = mapped_column(Date)
     category: Mapped[str] = mapped_column(
         String(20), default="final_consumer", nullable=False
     )
     default_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
-    notes: Mapped[str| None] = mapped_column(String(1000))
+    notes: Mapped[str | None] = mapped_column(String(1000))
 
-    #endereço estruturado
+    # endereço estruturado
 
-    postal_code: Mapped[str| None] = mapped_column(String(9)) #cep
-    street: Mapped[str | None] = mapped_column(String(160)) #rua
+    postal_code: Mapped[str | None] = mapped_column(String(9))  # cep
+    street: Mapped[str | None] = mapped_column(String(160))  # rua
     number: Mapped[str | None] = mapped_column(String(20))
     complement: Mapped[str | None] = mapped_column(String(80))
     neighborhood: Mapped[str | None] = mapped_column(String(80))
-    city: Mapped[str| None] = mapped_column(String(80))
+    city: Mapped[str | None] = mapped_column(String(80))
     state: Mapped[str | None] = mapped_column(String(2))
 
     orders: Mapped[list[Order]] = relationship(back_populates="customer")
@@ -345,10 +348,11 @@ class OrderItem(Base, TimestampMixin):
         ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[Decimal] = mapped_column(Numeric(10,3 ), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     order: Mapped[Order] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="order_items")
+
 
 class Quote(Base, TimestampMixin):
     __tablename__ = "quotes"
@@ -421,8 +425,15 @@ class QuoteItem(Base, TimestampMixin):
     product: Mapped[Product] = relationship(back_populates="quote_items")
 
 
-from app.models.fiscal import (  # noqa: E402
-    FiscalDocument, FiscalDocumentItem, FiscalEvent, FiscalStockMovement, Supplier,
+from app.models.fiscal import (
+    FiscalDocument,
+    FiscalDocumentItem,
+    FiscalEvent,
+    FiscalStockMovement,
+    Supplier,
 )
-
-from app.models.production import Ingredient, Recipe, RecipeIngredient  # noqa: E402, F401
+from app.models.production import (  # noqa: F401
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+)

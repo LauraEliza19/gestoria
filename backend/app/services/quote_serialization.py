@@ -6,11 +6,7 @@ def quote_to_read(quote) -> QuoteRead:
         id=quote.id,
         organization_id=quote.organization_id,
         customer_id=quote.customer_id,
-        customer_name=(
-            quote.customer.name
-            if quote.customer
-            else "Cliente removido"
-        ),
+        customer_name=(quote.customer.name if quote.customer else "Cliente removido"),
         status=quote.status,
         valid_until=quote.valid_until,
         total_amount=quote.total_amount,
@@ -20,9 +16,7 @@ def quote_to_read(quote) -> QuoteRead:
                 id=item.id,
                 product_id=item.product_id,
                 product_name=(
-                    item.product.name
-                    if item.product
-                    else "Produto removido"
+                    item.product.name if item.product else "Produto removido"
                 ),
                 quantity=item.quantity,
                 unit_price=item.unit_price,

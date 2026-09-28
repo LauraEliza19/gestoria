@@ -22,14 +22,17 @@ from app.services.orders import (
 def business_today() -> date:
     return datetime.now(ZoneInfo(settings.business_timezone)).date()
 
+
 class QuoteServiceError(Exception):
     """Erro de regra de negócio ao criar/atualizar um orçamento."""
+
 
 class QuoteExpiredError(QuoteServiceError):
     def __init__(self):
         super().__init__(
             "Este orçamento está vencido e não pode ser aprovado ou convertido"
         )
+
 
 class QuoteNotConvertibleError(QuoteServiceError):
     def __init__(self, current_status: str):
@@ -39,22 +42,22 @@ class QuoteNotConvertibleError(QuoteServiceError):
             f"(status atual: '{current_status}')"
         )
 
+
 class QuoteStatusTransitionError(QuoteServiceError):
     def __init__(self, current_status: str, requested_status: str):
         self.current_status = current_status
         self.requested_status = requested_status
-        super().__init__(
-            "Não é possível alterar o status de um orçamento convertido."
-        )
+        super().__init__("Não é possível alterar o status de um orçamento convertido.")
+
 
 def create_quote(
-        db: Session, organization_id, customer_id, valid_until: date, items: list
-) -> Quote: 
-    """Cria um orçamento com múltiplos itens. Diferente do Pedido, o Orçamento NÂO desconta estoque - é apenas 
+    db: Session, organization_id, customer_id, valid_until: date, items: list
+) -> Quote:
+    """Cria um orçamento com múltiplos itens. Diferente do Pedido, o Orçamento NÂO desconta estoque - é apenas
     uma proposta, sem compromisso.  O preço de cada item é "congelado" no momento da criação, igual fazemos no Pedido.
     """
 
-    try: 
+    try:
         customer = CustomerRepository.get_for_organization(
             db, customer_id, organization_id
         )
@@ -79,10 +82,11 @@ def create_quote(
         quote.total_amount = total
         db.commit()
         db.refresh(quote)
-        return quote 
+        return quote
     except Exception:
         db.rollback()
         raise
+
 
 def update_quote_status(db: Session, quote: Quote, status: str) -> Quote:
     if quote.status == "converted":
@@ -92,6 +96,7 @@ def update_quote_status(db: Session, quote: Quote, status: str) -> Quote:
         raise QuoteExpiredError()
 
     return QuoteRepository.update_status(db, quote, status)
+
 
 def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
     """
@@ -104,14 +109,10 @@ def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
         raise QuoteExpiredError()
 
     order_items = [
-        _QuoteItemAsOrderItem(item.product_id, item.quantity)
-        for item in quote.items
+        _QuoteItemAsOrderItem(item.product_id, item.quantity) for item in quote.items
     ]
 
-    unit_prices = {
-        item.product_id: item.unit_price
-        for item in quote.items
-    }
+    unit_prices = {item.product_id: item.unit_price for item in quote.items}
 
     try:
         order = create_order(
@@ -137,6 +138,7 @@ def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
     except Exception:
         db.rollback()
         raise
+
 
 class _QuoteItemAsOrderItem:
     """

@@ -8,7 +8,10 @@ Frontend React do GestorIA, usando TypeScript, Vite, Tailwind CSS 4 e Lucide Rea
 npm install
 npm run dev
 npm run lint
+npm run typecheck
+npm test
 npm run build
+npm run check
 npm run preview
 ```
 

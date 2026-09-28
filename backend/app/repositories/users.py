@@ -14,7 +14,6 @@ class UserRepository:
     @staticmethod
     def get_by_id(db: Session, user_id: uuid.UUID) -> User | None:
         return db.get(User, user_id)
-    
 
     @staticmethod
     def get_membership(

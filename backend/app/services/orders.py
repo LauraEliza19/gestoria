@@ -4,9 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import FiscalDocument
-
-from app.models import Order, Product
+from app.models import FiscalDocument, Order, Product
 from app.repositories import (
     CustomerRepository,
     OrderItemRepository,
@@ -40,6 +38,7 @@ class InsufficientStockError(OrderServiceError):
             f"disponível {available}, solicitado {requested}."
         )
 
+
 class OrderStatusTransitionError(OrderServiceError):
     def __init__(self, current_status: str, requested_status: str):
         self.current_status = current_status
@@ -49,11 +48,13 @@ class OrderStatusTransitionError(OrderServiceError):
             f"de '{current_status}' para '{requested_status}'."
         )
 
+
 _ALLOWED_ORDER_STATUS_TRANSITIONS = {
     "in_preparation": {"completed", "cancelled"},
     "completed": {"cancelled"},
     "cancelled": {"in_preparation"},
 }
+
 
 def create_order(
     db: Session,
@@ -121,9 +122,7 @@ def create_order(
             product.stock_quantity -= quantity
 
             unit_price = (
-                unit_prices[product.id]
-                if unit_prices is not None
-                else product.price
+                unit_prices[product.id] if unit_prices is not None else product.price
             )
 
             OrderItemRepository.create(
@@ -161,11 +160,14 @@ def check_fiscal_documents(db, order, *, deleting=False):
         FiscalDocument.order_id == order.id,
     )
     if not deleting:
-        query = query.where(FiscalDocument.status.in_(("Autorizada", "Em processamento")))
+        query = query.where(
+            FiscalDocument.status.in_(("Autorizada", "Em processamento"))
+        )
     if db.scalar(query.limit(1)):
         raise OrderFiscalConflictError(
             "Pedido possui histórico fiscal e não pode ser excluído."
-            if deleting else "Resolva a nota fiscal ativa antes de cancelar o pedido."
+            if deleting
+            else "Resolva a nota fiscal ativa antes de cancelar o pedido."
         )
 
 

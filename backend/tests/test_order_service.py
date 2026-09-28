@@ -232,6 +232,7 @@ def test_delete_order_restores_stock_unless_already_cancelled(db: Session) -> No
     db.refresh(product)
     assert product.stock_quantity == 4
 
+
 def test_cancelling_order_rolls_back_stock_if_status_update_fails(
     db: Session,
     monkeypatch: pytest.MonkeyPatch,
@@ -288,6 +289,7 @@ def test_cancelling_order_rolls_back_stock_if_status_update_fails(
 
     assert product.stock_quantity == Decimal(3)
     assert order.status == "in_preparation"
+
 
 def test_deleting_order_rolls_back_stock_if_deletion_fails(
     db: Session,

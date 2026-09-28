@@ -47,7 +47,9 @@ class ProductUpdate(BaseModel):
     stock_quantity: StockQuantity | None = None
     is_active: bool | None = None
 
-    category: str | None = Field(default=None, pattern="^(padaria|frios|bebidas|outros)$")
+    category: str | None = Field(
+        default=None, pattern="^(padaria|frios|bebidas|outros)$"
+    )
     product_type: str | None = Field(default=None, pattern="^(manufactured|resale)$")
     unit_of_measure: str | None = Field(default=None, pattern="^(unit|kg|g)$")
 
