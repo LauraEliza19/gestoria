@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { useSession } from '../../contexts/SessionContext'
 
 type Customer = {
   id: string
@@ -57,6 +58,7 @@ function formatDate(value: string): string {
 }
 
 export function QuotesPage() {
+  const { can } = useSession()
   const [searchParams] = useSearchParams()
   const selectedCustomerId = searchParams.get('customer_id') ?? ''
 
@@ -301,9 +303,11 @@ export function QuotesPage() {
                   <Link to={`/pedidos?order_id=${quote.converted_order_id}`}>Ver pedido</Link>
                 )}
 
-                <button type="button" onClick={() => void remove(quote)}>
-                  Excluir
-                </button>
+                {can('quote:delete') && (
+                  <button type="button" onClick={() => void remove(quote)}>
+                    Excluir
+                  </button>
+                )}
               </span>
             </div>
           ))}

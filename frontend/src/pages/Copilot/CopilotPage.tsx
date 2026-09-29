@@ -42,6 +42,10 @@ export function CopilotPage() {
     setInput('')
     setStatus('')
   }
+  function clearHistory() {
+    setHistory([])
+    sessionStorage.removeItem('gestoria_copilot_history')
+  }
   async function sendMessage(event?: FormEvent, prompt?: string) {
     event?.preventDefault()
     const text = (prompt ?? input).trim()
@@ -191,7 +195,11 @@ export function CopilotPage() {
           <section className="page-card">
             <div className="flex items-center justify-between">
               <p className="eyebrow">Histórico</p>
-              <button className="text-xs font-bold text-signal" onClick={newConversation}>
+              <button
+                className="text-xs font-bold text-signal"
+                type="button"
+                onClick={clearHistory}
+              >
                 Limpar
               </button>
             </div>

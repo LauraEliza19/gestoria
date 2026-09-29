@@ -140,7 +140,9 @@ export function LoginPage() {
                 />{' '}
                 Manter conectado
               </label>
-              <a href="#forgot-password">Esqueci minha senha</a>
+              <span className="text-xs text-muted">
+                Recuperação de senha: solicite ajuda ao administrador.
+              </span>
             </div>
 
             <p className="form-status" role="alert" aria-live="polite">
@@ -155,7 +157,7 @@ export function LoginPage() {
             <span>novo por aqui</span>
           </div>
           <p className="signup-copy">
-            Ainda não é cliente GIA? <a href="#contact">Fale com a gente</a>
+            Novos acessos são cadastrados pelo administrador da organização.
           </p>
         </div>
       </section>

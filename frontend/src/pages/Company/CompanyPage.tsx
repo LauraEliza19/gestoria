@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
-import { getSession } from '../../services/auth.service'
 import { getErrorMessage } from '../../utils/errors'
+import { useSession } from '../../contexts/SessionContext'
 
 const fields = [
   'name',
@@ -38,43 +38,26 @@ const fieldLabels: Record<CompanyField, string> = {
   state: 'Estado',
 }
 
-function createEmptyCompany(): Company {
-  return Object.fromEntries(fields.map((field) => [field, ''])) as Company
+function createCompanyFromOrganization(organization: Record<string, string | null>): Company {
+  const company = Object.fromEntries(
+    fields.map((field) => [field, organization[field] ?? '']),
+  ) as Company
+
+  if (company.name === 'Empresa Demo GestorIA') {
+    company.name = ''
+  }
+
+  return company
 }
 
 export function CompanyPage() {
   const navigate = useNavigate()
-  const [data, setData] = useState<Company>(createEmptyCompany)
+  const { session } = useSession()
+
+  const [data, setData] = useState<Company>(() =>
+    createCompanyFromOrganization(session.organization),
+  )
   const [status, setStatus] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-
-    getSession()
-      .then((session) => {
-        if (cancelled) {
-          return
-        }
-
-        const organizationName =
-          session.organization.name === 'Empresa Demo GestorIA' ? '' : session.organization.name
-
-        setData((current) => ({
-          ...current,
-          ...session.organization,
-          name: organizationName,
-        }))
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setStatus(getErrorMessage(error, 'Não foi possível carregar os dados da empresa.'))
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   function update(field: CompanyField, value: string) {
     setData((current) => ({

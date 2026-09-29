@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { useSession } from '../../contexts/SessionContext'
+
+import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
 
 type OrderItem = {
   product_name: string
@@ -36,6 +39,7 @@ const statusTransitions: Record<string, string[]> = {
 }
 
 export function OrdersPage() {
+  const { can } = useSession()
   const location = useLocation()
   const pageState = location.state as PageState | null
   const [searchParams] = useSearchParams()
@@ -43,20 +47,32 @@ export function OrdersPage() {
   const fromProduction = searchParams.get('from') === 'production'
 
   const [orders, setOrders] = useState<Order[]>([])
-  const [status, setStatus] = useState('Carregando pedidos...')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [actionNotice, setActionNotice] = useState('')
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const [filter, setFilter] = useState('all')
 
-  useEffect(() => {
-    apiFetch<Order[]>('/api/orders')
-      .then((list) => {
-        setOrders(list)
-        setStatus('')
-      })
-      .catch((error) => {
-        setStatus(getErrorMessage(error, 'Não foi possível carregar os pedidos.'))
-      })
+  const loadOrders = useCallback(async () => {
+    setLoading(true)
+    setLoadError('')
+
+    try {
+      const list = await apiFetch<Order[]>('/api/orders')
+      setOrders(list)
+    } catch (error) {
+      setLoadError(getErrorMessage(error, 'Não foi possível carregar os pedidos.'))
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void loadOrders()
+  }, [loadOrders])
 
   useEffect(() => {
     if (!highlightedOrderId || orders.length === 0) {
@@ -72,35 +88,51 @@ export function OrdersPage() {
   }, [highlightedOrderId, orders])
 
   async function updateStatus(order: Order, nextStatus: string) {
-    if (nextStatus === order.status) return
+    if (nextStatus === order.status) {
+      return
+    }
+
+    setUpdatingId(order.id)
+    setActionError('')
+    setActionNotice('')
 
     try {
-      setStatus('')
-
       const updated = await apiFetch<Order>(`/api/orders/${order.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: nextStatus }),
       })
 
       setOrders((current) => current.map((item) => (item.id === order.id ? updated : item)))
+
+      setActionNotice('Status do pedido atualizado.')
     } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível atualizar o pedido.'))
+      setActionError(getErrorMessage(error, 'Não foi possível atualizar o pedido.'))
+    } finally {
+      setUpdatingId(null)
     }
   }
 
   async function removeOrder(order: Order) {
-    if (!window.confirm(`Excluir o pedido de ${order.customer_name}?`)) return
+    if (!window.confirm(`Excluir o pedido de ${order.customer_name}?`)) {
+      return
+    }
+
+    setDeletingId(order.id)
+    setActionError('')
+    setActionNotice('')
 
     try {
-      setStatus('')
-
       await apiFetch(`/api/orders/${order.id}`, {
         method: 'DELETE',
       })
 
       setOrders((current) => current.filter((item) => item.id !== order.id))
+
+      setActionNotice('Pedido excluído.')
     } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível excluir o pedido.'))
+      setActionError(getErrorMessage(error, 'Não foi possível excluir o pedido.'))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -141,12 +173,29 @@ export function OrdersPage() {
       </header>
 
       {pageState?.notice && (
-        <div className="mb-5 rounded-lg border border-[#bfe8d8] bg-[#effbf6] px-4 py-3 text-sm text-[#28745b]">
+        <div
+          className="mb-5 rounded-lg border border-[#bfe8d8] bg-[#effbf6] px-4 py-3 text-sm text-[#28745b]"
+          role="status"
+          aria-live="polite"
+        >
           {pageState.notice}
         </div>
       )}
+      {actionError && (
+        <p className="error-banner mb-5" role="alert">
+          {actionError}
+        </p>
+      )}
 
-      {status && <p className="error-banner mb-5">{status}</p>}
+      {actionNotice && (
+        <p
+          className="mb-5 rounded-lg border border-[#bfe8d8] bg-[#effbf6] px-4 py-3 text-sm text-[#28745b]"
+          role="status"
+          aria-live="polite"
+        >
+          {actionNotice}
+        </p>
+      )}
 
       <section className="page-card">
         <p className="info-note">
@@ -154,7 +203,24 @@ export function OrdersPage() {
           estoque.
         </p>
 
-        {!status && (
+        {loading && <LoadingState message="Carregando pedidos..." />}
+
+        {!loading && loadError && (
+          <ErrorState message={loadError} onRetry={() => void loadOrders()} />
+        )}
+
+        {!loading && !loadError && visibleOrders.length === 0 && (
+          <EmptyState
+            title="Nenhum pedido encontrado"
+            description={
+              filter === 'all'
+                ? 'Crie o primeiro pedido para iniciar a operação.'
+                : 'Não existem pedidos com o status selecionado.'
+            }
+          />
+        )}
+
+        {!loading && !loadError && visibleOrders.length > 0 && (
           <div className="data-table order-table lg:overflow-x-visible">
             <div className="data-table-row data-table-head">
               <span>Cliente</span>
@@ -194,6 +260,8 @@ export function OrdersPage() {
                   <select
                     className="inline-status"
                     value={order.status}
+                    disabled={updatingId === order.id || deletingId === order.id}
+                    aria-label={`Status do pedido de ${order.customer_name}`}
                     onChange={(event) => void updateStatus(order, event.target.value)}
                   >
                     {(statusTransitions[order.status] ?? [order.status]).map((availableStatus) => (
@@ -217,14 +285,18 @@ export function OrdersPage() {
                     Notas fiscais
                   </Link>
 
-                  <button onClick={() => void removeOrder(order)}>Excluir</button>
+                  {can('order:delete') && (
+                    <button
+                      type="button"
+                      disabled={deletingId === order.id || updatingId === order.id}
+                      onClick={() => void removeOrder(order)}
+                    >
+                      {deletingId === order.id ? 'Excluindo...' : 'Excluir'}
+                    </button>
+                  )}
                 </span>
               </div>
             ))}
-
-            {visibleOrders.length === 0 && (
-              <p className="table-status">Nenhum pedido encontrado.</p>
-            )}
           </div>
         )}
       </section>

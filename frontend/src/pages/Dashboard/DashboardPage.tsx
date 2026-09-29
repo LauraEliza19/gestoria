@@ -11,7 +11,7 @@ import {
   Trophy,
   Users,
 } from 'lucide-react'
-import { getSession, type Session } from '../../services/auth.service'
+import { useSession } from '../../contexts/SessionContext'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
@@ -77,7 +77,7 @@ function formatCountMessage(count: number, singularMessage: string, pluralMessag
 }
 
 export function DashboardPage() {
-  const [session, setSession] = useState<Session | null>(null)
+  const { session } = useSession()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
@@ -86,14 +86,12 @@ export function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      getSession(),
       apiFetch<Customer[]>('/api/customers'),
       apiFetch<Product[]>('/api/products'),
       apiFetch<Order[]>('/api/orders'),
       apiFetch<Quote[]>('/api/quotes'),
     ])
-      .then(([currentSession, customerList, productList, orderList, quoteList]) => {
-        setSession(currentSession)
+      .then(([customerList, productList, orderList, quoteList]) => {
         setCustomers(customerList)
         setProducts(productList)
         setOrders(orderList)
@@ -104,7 +102,7 @@ export function DashboardPage() {
       })
   }, [])
 
-  const firstName = session?.full_name.split(' ')[0] || 'gestor'
+  const firstName = session.full_name.split(' ')[0] || 'gestor'
 
   const radar = useMemo(() => {
     const criticalProducts = products.filter((product) => {

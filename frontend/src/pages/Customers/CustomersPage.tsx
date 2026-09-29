@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
+import { useSession } from '../../contexts/SessionContext'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
@@ -46,11 +48,15 @@ function getCategoryLabel(category?: string) {
 }
 
 export function CustomersPage() {
+  const { can } = useSession()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('Carregando clientes...')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const categoryParameter = searchParams.get('category')
   const opportunityParameter = searchParams.get('opportunity')
@@ -61,21 +67,33 @@ export function CustomersPage() {
     ? opportunityParameter
     : null
 
-  useEffect(() => {
-    apiFetch<Customer[]>('/api/customers')
-      .then((list) => {
-        setCustomers(list)
-        setStatus('')
-      })
-      .catch((error) => {
-        setStatus(getErrorMessage(error, 'Não foi possível carregar clientes.'))
-      })
+  const loadCustomers = useCallback(async () => {
+    setLoading(true)
+    setLoadError('')
+
+    try {
+      const list = await apiFetch<Customer[]>('/api/customers')
+      setCustomers(list)
+    } catch (error) {
+      setLoadError(getErrorMessage(error, 'Não foi possível carregar os clientes.'))
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void loadCustomers()
+  }, [loadCustomers])
 
   async function removeCustomer(customer: Customer) {
     const confirmed = window.confirm(`Excluir o cliente "${customer.name}"?`)
 
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingId(customer.id)
+    setActionError('')
 
     try {
       await apiFetch(`/api/customers/${customer.id}`, {
@@ -84,7 +102,9 @@ export function CustomersPage() {
 
       setCustomers((current) => current.filter((item) => item.id !== customer.id))
     } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível excluir o cliente.'))
+      setActionError(getErrorMessage(error, 'Não foi possível excluir o cliente.'))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -155,6 +175,7 @@ export function CustomersPage() {
       <section className="page-card">
         <input
           className="search-input"
+          aria-label="Buscar clientes"
           placeholder="Buscar por nome, telefone, e-mail ou categoria"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -166,6 +187,7 @@ export function CustomersPage() {
               <small className="block text-[10px] font-bold uppercase tracking-wide text-muted">
                 Filtro aplicado pelo Radar
               </small>
+
               <strong className="mt-1 block text-sm text-ink">{activeFilterLabel}</strong>
             </div>
 
@@ -175,15 +197,32 @@ export function CustomersPage() {
           </div>
         )}
 
-        {status && (
-          <p className="table-status" role="status">
-            {status}
+        {actionError && (
+          <p className="error-banner my-5" role="alert">
+            {actionError}
           </p>
         )}
 
-        {!status && (
+        {loading && <LoadingState message="Carregando clientes..." />}
+
+        {!loading && loadError && (
+          <ErrorState message={loadError} onRetry={() => void loadCustomers()} />
+        )}
+
+        {!loading && !loadError && filteredCustomers.length === 0 && (
+          <EmptyState
+            title="Nenhum cliente encontrado"
+            description={
+              search || activeFilterLabel
+                ? 'Tente limpar os filtros ou utilizar outra busca.'
+                : 'Cadastre o primeiro cliente para iniciar sua base.'
+            }
+          />
+        )}
+
+        {!loading && !loadError && filteredCustomers.length > 0 && (
           <>
-            <p className="mt-4 text-xs text-muted">
+            <p className="mt-4 text-xs text-muted" role="status">
               {filteredCustomers.length}{' '}
               {filteredCustomers.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
             </p>
@@ -212,14 +251,18 @@ export function CustomersPage() {
 
                     <Link to={`/clientes/novo?id=${customer.id}`}>Editar</Link>
 
-                    <button onClick={() => void removeCustomer(customer)}>Excluir</button>
+                    {can('customer:delete') && (
+                      <button
+                        type="button"
+                        disabled={deletingId === customer.id}
+                        onClick={() => void removeCustomer(customer)}
+                      >
+                        {deletingId === customer.id ? 'Excluindo...' : 'Excluir'}
+                      </button>
+                    )}
                   </span>
                 </div>
               ))}
-
-              {filteredCustomers.length === 0 && (
-                <p className="table-status">Nenhum cliente corresponde aos filtros.</p>
-              )}
             </div>
           </>
         )}
