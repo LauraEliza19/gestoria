@@ -16,10 +16,19 @@ import { FiscalDocumentsPage } from '../pages/Fiscal/FiscalDocumentsPage'
 import { LoginPage } from '../pages/Login/LoginPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, getAccessToken } from '../services/session'
+import { SessionProvider } from '../contexts/SessionContext'
+import { PermissionGate } from '../components/PermissionGate'
 
 function ProtectedLayout() {
-  if (!getAccessToken()) return <Navigate to="/login" replace />
-  return <DashboardLayout />
+  if (!getAccessToken()) {
+    return <Navigate to="/login" replace />
+  }
+
+  return (
+    <SessionProvider>
+      <DashboardLayout />
+    </SessionProvider>
+  )
 }
 
 function LogoutPage() {
@@ -42,6 +51,8 @@ function PageTitle() {
       '/modo-fabrica': 'GestorIA — Produção',
       '/notas-fiscais': 'GestorIA — Notas fiscais',
       '/empresa/editar': 'GestorIA — Empresa',
+      '/clientes/novo': 'GestorIA — Cadastro de cliente',
+      '/produtos/novo': 'GestorIA — Cadastro de produto',
     }
     const isCustomerProfile =
       /^\/clientes\/[^/]+$/.test(location.pathname) && location.pathname !== '/clientes/novo'
@@ -67,7 +78,14 @@ export function AppRouter() {
           <Route path="/clientes/:customerId" element={<CustomerProfilePage />} />
           <Route path="/produtos" element={<ProductsPage />} />
           <Route path="/produtos/novo" element={<ProductFormPage />} />
-          <Route path="/empresa/editar" element={<CompanyPage />} />
+          <Route
+            path="/empresa/editar"
+            element={
+              <PermissionGate permission="organization:update">
+                <CompanyPage />
+              </PermissionGate>
+            }
+          />
           <Route path="/pedidos" element={<OrdersPage />} />
           <Route path="/pedidos/novo" element={<OrderFormPage />} />
           <Route path="/orcamentos" element={<QuotesPage />} />

@@ -12,8 +12,10 @@ import {
   Users,
 } from 'lucide-react'
 import { clearSession } from '../services/session'
+import { useSession } from '../contexts/SessionContext'
 
 export function DashboardLayout() {
+  const { can } = useSession()
   const links = [
     { to: '/dashboard', label: 'Visão geral', icon: LayoutDashboard },
     { to: '/clientes', label: 'Clientes', icon: Users },
@@ -23,10 +25,24 @@ export function DashboardLayout() {
     { to: '/copiloto', label: 'Copiloto', icon: Sparkles },
     { to: '/modo-fabrica', label: 'Produção', icon: ChefHat },
     { to: '/notas-fiscais', label: 'Notas fiscais', icon: ReceiptText },
-    { to: '/empresa/editar', label: 'Empresa', icon: Building2 },
   ]
+
+  if (can('organization:update')) {
+    links.push({
+      to: '/empresa/editar',
+      label: 'Empresa',
+      icon: Building2,
+    })
+  }
+
   return (
     <div className="app-shell min-h-screen bg-paper text-ink md:flex">
+      <a
+        className="fixed left-4 top-4 z-50 -translate-y-[200%] rounded-lg border border-line bg-white px-4 py-3 font-bold text-signal shadow-lg transition-transform focus:translate-y-0"
+        href="#main-content"
+      >
+        Pular para o conteúdo principal
+      </a>
       <aside className="sidebar flex w-full flex-col bg-[#111936] px-4 py-5 text-[#dce4ff] md:min-h-screen md:w-[230px] md:flex-none md:px-[18px] md:py-7">
         <div className="brand mb-5 flex items-center gap-3 px-3 text-[23px] font-bold tracking-[-.04em] md:mb-11">
           <span className="brand-mark">
@@ -54,6 +70,7 @@ export function DashboardLayout() {
         </nav>
         <button
           className="logout-link mt-5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] text-[#aeb9dd] transition-colors hover:bg-[#293a89] hover:text-white md:mt-auto"
+          type="button"
           onClick={() => {
             clearSession()
             window.location.href = '/login'
@@ -63,7 +80,7 @@ export function DashboardLayout() {
           <span>Sair</span>
         </button>
       </aside>
-      <main className="app-content min-w-0 flex-1">
+      <main className="app-content min-w-0 flex-1" id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
     </div>

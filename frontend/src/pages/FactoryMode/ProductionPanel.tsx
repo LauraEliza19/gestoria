@@ -5,10 +5,12 @@ import { RecipeForm, StockForm } from './ProductionForms'
 import { formatQuantity as format } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 import type { Recipe, Snapshot, StockItem } from './productionTypes'
+import { useSession } from '../../contexts/SessionContext'
 
 type View = 'ingredients' | 'recipes' | 'available'
 
 export function ProductionPanel() {
+  const { can } = useSession()
   const [view, setView] = useState<View>('available')
   const [data, setData] = useState<Snapshot>({ ingredients: [], stock_items: [], recipes: [] })
   const [loaded, setLoaded] = useState(false)
@@ -224,22 +226,25 @@ export function ProductionPanel() {
                     >
                       Editar item
                     </button>
-                    <button
-                      type="button"
-                      className="secondary-button !text-[#a52c42]"
-                      disabled={busy}
-                      aria-label={`Excluir item ${ingredient.name}`}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Excluir o item ${ingredient.name} do estoque? As receitas serão mantidas.`,
-                          )
-                        )
-                          void mutate('/api/production/stock-items/' + ingredient.id, 'DELETE')
-                      }}
-                    >
-                      Excluir
-                    </button>
+                    {can('production:delete') && (
+                      <button
+                        type="button"
+                        className="secondary-button !text-[#a52c42]"
+                        disabled={busy}
+                        aria-label={`Excluir item ${ingredient.name}`}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Excluir o item ${ingredient.name} do estoque? As receitas serão mantidas.`,
+                            )
+                          ) {
+                            void mutate(`/api/production/stock-items/${ingredient.id}`, 'DELETE')
+                          }
+                        }}
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -369,17 +374,20 @@ export function ProductionPanel() {
                     >
                       Editar receita
                     </button>
-                    <button
-                      type="button"
-                      className="secondary-button !text-[#a52c42]"
-                      disabled={busy}
-                      onClick={() => {
-                        if (window.confirm(`Excluir a receita ${recipe.name}?`))
-                          void mutate('/api/production/recipes/' + recipe.id, 'DELETE')
-                      }}
-                    >
-                      Excluir
-                    </button>
+                    {can('production:delete') && (
+                      <button
+                        type="button"
+                        className="secondary-button !text-[#a52c42]"
+                        disabled={busy}
+                        onClick={() => {
+                          if (window.confirm(`Excluir a receita ${recipe.name}?`)) {
+                            void mutate(`/api/production/recipes/${recipe.id}`, 'DELETE')
+                          }
+                        }}
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </div>
                 )}
               </article>

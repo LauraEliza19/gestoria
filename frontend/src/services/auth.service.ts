@@ -1,5 +1,7 @@
 import { apiFetch } from './api'
 
+import type { UserRole } from '../utils/permissions'
+
 export type LoginResponse = {
   access_token: string
 }
@@ -8,7 +10,7 @@ export type Session = {
   id: string
   full_name: string
   email: string
-  role: string
+  role: UserRole
   organization: Record<string, string | null>
 }
 

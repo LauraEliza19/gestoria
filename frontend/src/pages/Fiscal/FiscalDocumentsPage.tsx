@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { useSession } from '../../contexts/SessionContext'
 
 type Item = {
   product_id: string
@@ -107,6 +108,9 @@ function Items({ items }: { items: Item[] }) {
 }
 
 export function FiscalDocumentsPage() {
+  const { can } = useSession()
+  const canEdit = can('fiscal:manage')
+
   const [params] = useSearchParams()
   const orderFilter = params.get('order_id') || ''
   const fromProduction = params.get('from') === 'production'
@@ -114,7 +118,6 @@ export function FiscalDocumentsPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [canEdit, setCanEdit] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -141,15 +144,13 @@ export function FiscalDocumentsPage() {
       apiFetch<Order[]>('/api/orders'),
       apiFetch<Product[]>('/api/products'),
       apiFetch<Supplier[]>('/api/fiscal-suppliers'),
-      apiFetch<{ role: string }>('/api/auth/me'),
     ])
-      .then(([docs, orderList, productList, supplierList, user]) => {
+      .then(([docs, orderList, productList, supplierList]) => {
         if (cancelled) return
         setDocuments(docs)
         setOrders(orderList)
         setProducts(productList)
         setSuppliers(supplierList)
-        setCanEdit(['owner', 'admin'].includes(user.role))
         setLoading(false)
       })
       .catch((e: unknown) => {
@@ -732,7 +733,9 @@ export function FiscalDocumentsPage() {
               <strong>{selected.access_key || 'Não informada'}</strong>
             </span>
           </div>
-          {selected.order_id && <Link to="/pedidos">Consultar pedidos</Link>}
+          {selected.order_id && (
+            <Link to={`/pedidos?order_id=${selected.order_id}`}>Consultar pedido</Link>
+          )}
           {selected.cancellation_reason && (
             <p>Motivo do cancelamento: {selected.cancellation_reason}</p>
           )}
