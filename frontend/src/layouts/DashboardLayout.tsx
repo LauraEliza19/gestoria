@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { clearSession } from '../services/session'
 import { useSession } from '../contexts/SessionContext'
+import logoGestoria from '../assets/logo-gestoria.png'
 
 export function DashboardLayout() {
   const { can } = useSession()
@@ -44,11 +45,15 @@ export function DashboardLayout() {
         Pular para o conteúdo principal
       </a>
       <aside className="sidebar flex w-full flex-col bg-[#111936] px-4 py-5 text-[#dce4ff] md:min-h-screen md:w-[230px] md:flex-none md:px-[18px] md:py-7">
-        <div className="brand mb-5 flex items-center gap-3 px-3 text-[23px] font-bold tracking-[-.04em] md:mb-11">
-          <span className="brand-mark">
-            <span />
-          </span>
-          Gestor<span className="brand-accent">IA</span>
+        <div className="mb-5 w-fit max-w-full p-2 md:mb-11">
+          <div className="relative h-[52px] w-[176px] overflow-hidden">
+            <img
+              src={logoGestoria}
+              alt="GestorIA"
+              className="absolute left-[-40px] top-[-50px] h-auto w-[260px] max-w-none"
+              draggable={false}
+            />
+          </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto md:grid" aria-label="Navegação principal">
           {links.map(({ to, label, icon: Icon }) => (

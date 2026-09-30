@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { login } from '../../services/auth.service'
 import { getErrorMessage } from '../../utils/errors'
+import logoGestoria from '../../assets/logo-gestoria.png'
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -47,16 +48,16 @@ export function LoginPage() {
     <main className="login-shell">
       <section className="login-intro" aria-label="Sobre o GestorIA">
         <div>
-          <div className="brand" aria-label="GestorIA">
-            <span className="brand-mark" aria-hidden="true">
-              <span />
-            </span>
-            <span>
-              Gestor<span className="brand-accent">IA</span>
-            </span>
+          <div className="relative h-[52px] w-[176px] overflow-hidden">
+            <img
+              src={logoGestoria}
+              alt="GestorIA"
+              className="absolute left-[-40px] top-[-50px] h-auto w-[260px] max-w-none"
+              draggable={false}
+            />
           </div>
           <div className="intro-copy">
-            <p className="eyebrow">Gestão com clareza</p>
+            <p className="eyebrow">Gestoria Sistemas & Soluções</p>
             <h1>Inteligência que organiza.</h1>
             <p className="intro-description">
               Transforme a gestão da sua empresa com uma experiência simples, rápida e orientada
@@ -80,7 +81,7 @@ export function LoginPage() {
             </div>
           </div>
         </div>
-        <p className="copyright">GestorIA © 2026 — Plataforma de gestão empresarial</p>
+        <p className="copyright">Gestoria Sistemas © 2026 — Plataforma de gestão empresarial</p>
       </section>
 
       <section className="login-panel">
