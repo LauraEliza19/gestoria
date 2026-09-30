@@ -66,7 +66,7 @@
   }
 
   .page-wrap {
-    @apply mx-auto min-h-screen w-full max-w-[1280px] p-5 sm:p-7 lg:p-10 xl:p-14;
+    @apply w-full min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8;
   }
 
   .page-header {
@@ -284,7 +284,7 @@
     @apply min-w-[760px] grid-cols-[1fr_1.6fr_.6fr_1fr_1fr_1.2fr_.7fr];
   }
 
-  .fiscal-table .data-table-row > span {
+  .fiscal-table .data-table-row>span {
     min-width: 0;
     overflow-wrap: anywhere;
   }
@@ -531,7 +531,7 @@
     @apply flex items-center gap-3.5 py-3;
   }
 
-  .workflow-item > span {
+  .workflow-item>span {
     @apply grid h-[23px] w-[23px] shrink-0 place-items-center rounded-full border border-[#8fb4ff] font-mono text-[10px] text-[#9cb6ff];
   }
 
@@ -622,6 +622,7 @@
 }
 
 @media (max-width: 760px) {
+
   .metric-grid,
   .quick-grid,
   .form-card.form-grid,
@@ -644,5 +645,20 @@
 
   .copilot-action form {
     @apply grid-cols-1;
+  }
+}
+
+/* Barra de rolagem principal */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #737b98 #f7f8fc;
+  scrollbar-gutter: stable;
+}
+
+/* Preserva as preferências de alto contraste */
+@media (forced-colors: active) {
+  html {
+    scrollbar-color: auto;
+    scrollbar-width: auto;
   }
 }
