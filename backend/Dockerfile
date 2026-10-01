@@ -18,7 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt -c constraints-tested.txt
 
 COPY backend/ .
 COPY --from=frontend /frontend/dist /frontend/dist
+RUN useradd --create-home --uid 10001 gestoria
+USER gestoria
 
-ENV FRONTEND_DIR=/frontend
+ENV FRONTEND_DIR=/frontend APP_ENV=production COOKIE_SECURE=true
 
-CMD ["sh", "-c", "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.production_setup && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

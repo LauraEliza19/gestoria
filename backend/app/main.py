@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import (
     auth,
@@ -16,6 +17,7 @@ from app.api import (
     quotes,
 )
 from app.config import settings
+from app.http_security import SecurityMiddleware
 
 project_root = Path(__file__).resolve().parents[2]
 
@@ -36,7 +38,14 @@ def resolve_frontend_dir() -> Path:
 
 frontend_dir = resolve_frontend_dir()
 
-app = FastAPI(title=settings.app_name, version="0.3.0-fiscal.1")
+app = FastAPI(
+    title=settings.app_name,
+    version="0.4.0-security",
+    docs_url=None if settings.app_env == "production" else "/docs",
+    redoc_url=None if settings.app_env == "production" else "/redoc",
+    openapi_url=None if settings.app_env == "production" else "/openapi.json",
+)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 app.include_router(auth.router)
 app.include_router(order_operations.router)
 app.include_router(products.router)
@@ -72,10 +81,16 @@ app.mount(
 def react_route(path: str) -> FileResponse:
     reserved_root = path.split("/", maxsplit=1)[0]
 
-    if reserved_root in {"api", "assets", "static"}:
+    if reserved_root in {"api", "assets", "static"} or (
+        settings.app_env == "production"
+        and reserved_root in {"docs", "redoc", "openapi.json"}
+    ):
         raise HTTPException(
             status_code=404,
             detail="Recurso não encontrado.",
         )
 
     return react_index()
+
+
+app = SecurityMiddleware(app)

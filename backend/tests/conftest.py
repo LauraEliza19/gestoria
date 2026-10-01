@@ -59,7 +59,7 @@ def client(database) -> TestClient:
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
+    with TestClient(app, headers={"X-CSRF-Protection": "1"}) as test_client:
         yield test_client
     app.dependency_overrides.clear()
 
