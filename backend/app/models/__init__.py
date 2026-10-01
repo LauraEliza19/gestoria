@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.auth_session import AuthSession, LoginRateLimit  # noqa: F401
 from app.models.order_operation import OrderAuditEvent, OrderOperation
 
 __all__ = [

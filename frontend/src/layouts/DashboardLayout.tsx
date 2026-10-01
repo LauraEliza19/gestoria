@@ -16,7 +16,6 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { clearSession } from '../services/session'
 import { useSession } from '../contexts/SessionContext'
 import logoGestoria from '../assets/logo-gestoria-topo.png'
 
@@ -269,8 +268,7 @@ function TopNavigation() {
                 type="button"
                 className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-[#dce4ff] hover:bg-white/10"
                 onClick={() => {
-                  clearSession()
-                  window.location.href = '/login'
+                  window.location.href = '/logout'
                 }}
               >
                 <LogOut size={18} aria-hidden="true" />

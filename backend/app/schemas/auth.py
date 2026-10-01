@@ -5,13 +5,14 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
+    remember: bool = False
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
 
-class TokenRead(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class SessionRead(BaseModel):
+    access_expires_at: datetime
+    expires_at: datetime
 
 
 class OrganizationRead(BaseModel):

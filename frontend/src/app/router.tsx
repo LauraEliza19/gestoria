@@ -1,5 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { DashboardPage } from '../pages/Dashboard/DashboardPage'
 import { CustomerFormPage } from '../pages/Customers/CustomerFormPage'
 import { CustomerProfilePage } from '../pages/Customers/CustomerProfilePage'
@@ -15,15 +15,11 @@ import { FactoryModePage } from '../pages/FactoryMode/FactoryModePage'
 import { FiscalDocumentsPage } from '../pages/Fiscal/FiscalDocumentsPage'
 import { LoginPage } from '../pages/Login/LoginPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
-import { clearSession, getAccessToken } from '../services/session'
+import { clearSession, logoutSession } from '../services/session'
 import { SessionProvider } from '../contexts/SessionContext'
 import { PermissionGate } from '../components/PermissionGate'
 
 function ProtectedLayout() {
-  if (!getAccessToken()) {
-    return <Navigate to="/login" replace />
-  }
-
   return (
     <SessionProvider>
       <DashboardLayout />
@@ -32,8 +28,29 @@ function ProtectedLayout() {
 }
 
 function LogoutPage() {
-  clearSession()
-  return <Navigate to="/login" replace />
+  const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    logoutSession().catch((err: Error) => setError(err.message))
+  }, [attempt])
+  return (
+    <main className="grid min-h-screen place-items-center bg-paper p-6">
+      <div>
+        <p role="status">{error || 'Encerrando sessão...'}</p>
+        {error && (
+          <button
+            className="primary-button mt-4"
+            onClick={() => {
+              setError('')
+              setAttempt((value) => value + 1)
+            }}
+          >
+            Tentar novamente
+          </button>
+        )}
+      </div>
+    </main>
+  )
 }
 
 function PageTitle() {
@@ -65,6 +82,9 @@ function PageTitle() {
 }
 
 export function AppRouter() {
+  useEffect(() => {
+    clearSession()
+  }, [])
   return (
     <BrowserRouter>
       <PageTitle />
@@ -93,10 +113,7 @@ export function AppRouter() {
           <Route path="/modo-fabrica" element={<FactoryModePage />} />
           <Route path="/notas-fiscais" element={<FiscalDocumentsPage />} />
         </Route>
-        <Route
-          path="*"
-          element={<Navigate to={getAccessToken() ? '/dashboard' : '/login'} replace />}
-        />
+        <Route path="*" element={<Navigate to={'/dashboard'} replace />} />
       </Routes>
     </BrowserRouter>
   )

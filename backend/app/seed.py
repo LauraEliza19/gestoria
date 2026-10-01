@@ -13,7 +13,19 @@ def slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 
+def require_demo_enabled() -> None:
+    if (
+        settings.app_env == "production"
+        or not settings.demo_enabled
+        or not settings.demo_password
+    ):
+        raise RuntimeError(
+            "Demo exige ambiente local, DEMO_ENABLED=true e DEMO_PASSWORD explícita."
+        )
+
+
 def seed_demo_data(db: Session) -> None:
+    require_demo_enabled()
     slug = slugify(settings.demo_organization)
     organization = db.scalar(select(Organization).where(Organization.slug == slug))
     if not organization:
