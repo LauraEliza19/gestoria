@@ -22,6 +22,10 @@ Plataforma de gestão empresarial com experiência orientada por inteligência a
   <img src="https://img.shields.io/badge/DOC-LEAN%20CANVAS-7c3aed?style=for-the-badge" />
 </a>
 
+<a href="Documentação de Contexto/Plano de Negocios GestorIA.md">
+  <img src="https://img.shields.io/badge/DOC-PLANO DE NEGOCIOS-1c3fed?style=for-the-badge" />
+</a>
+
 <br><br>
 
 <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=000000" />
