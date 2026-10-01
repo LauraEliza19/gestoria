@@ -13,16 +13,15 @@ from time import perf_counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
-
 from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 from app.models import Customer, Organization, OrganizationMember, Product, User
-from app.security import create_access_token
+from app.security import hash_password
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 
 def main():
@@ -43,9 +42,9 @@ def main():
     with Session(engine) as db:
         org = Organization(name="Benchmark isolado", slug="benchmark")
         user = User(
-            email="benchmark@example.test",
+            email="benchmark@example.com",
             full_name="Benchmark",
-            password_hash="login-disabled",
+            password_hash=hash_password("Benchmark-only@123"),
         )
         db.add_all([org, user])
         db.flush()
@@ -63,7 +62,6 @@ def main():
         )
         db.add_all([customer, product])
         db.flush()
-        token = create_access_token(str(user.id), str(org.id))
         body = {
             "customer_id": str(customer.id),
             "items": [{"product_id": str(product.id), "quantity": "1.000"}],
@@ -76,10 +74,20 @@ def main():
 
     app.dependency_overrides[get_db] = sessions
     samples = {name: [] for name in ["prepare_ms", "confirm_ms", "replay_ms"]}
-    with TestClient(app) as client:
+    with TestClient(app, headers={"X-CSRF-Protection": "1"}) as client:
+        assert (
+            client.post(
+                "/api/auth/login",
+                json={
+                    "email": "benchmark@example.com",
+                    "password": "Benchmark-only@123",
+                },
+            ).status_code
+            == 200
+        )
         for i in range(args.iterations + 5):
             headers = {
-                "Authorization": "Bearer " + token,
+                "X-CSRF-Protection": "1",
                 "Idempotency-Key": str(uuid.uuid4()),
             }
             start = perf_counter()

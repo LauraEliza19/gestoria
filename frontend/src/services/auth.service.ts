@@ -3,7 +3,8 @@ import { apiFetch } from './api'
 import type { UserRole } from '../utils/permissions'
 
 export type LoginResponse = {
-  access_token: string
+  access_expires_at: string
+  expires_at: string
 }
 
 export type Session = {
@@ -14,13 +15,18 @@ export type Session = {
   organization: Record<string, string | null>
 }
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
+export async function login(
+  email: string,
+  password: string,
+  remember = false,
+): Promise<LoginResponse> {
   let response: Response
   try {
     response = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' },
+      body: JSON.stringify({ email, password, remember }),
     })
   } catch {
     throw new Error(

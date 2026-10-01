@@ -14,12 +14,17 @@ def login(
     email: str = "lucas@gestoria.dev",
     password: str = "SenhaForte@123",
 ) -> dict[str, str]:
+    client.cookies.clear()  # Each helper call models an independent browser.
     response = client.post(
         "/api/auth/login",
         json={"email": email, "password": password},
+        headers={"X-CSRF-Protection": "1"},
     )
     assert response.status_code == 200
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    from app.config import settings
+    token = client.cookies.get(settings.session_cookie_name)
+    client.cookies.clear()
+    return {"Cookie": f"{settings.session_cookie_name}={token}", "X-CSRF-Protection": "1"}
 
 
 def test_health_and_frontend_are_available(client: TestClient) -> None:
@@ -35,6 +40,7 @@ def test_health_and_frontend_are_available(client: TestClient) -> None:
 
 
 def test_login_rejects_invalid_password(client: TestClient) -> None:
+    client.cookies.clear()  # Each helper call models an independent browser.
     response = client.post(
         "/api/auth/login",
         json={"email": "lucas@gestoria.dev", "password": "senha-errada"},

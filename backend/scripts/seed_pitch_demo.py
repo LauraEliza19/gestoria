@@ -27,6 +27,7 @@ from app.models.production import (
     StockItem,
 )
 from app.security import hash_password
+from app.seed import require_demo_enabled
 from app.services.production import normalize_name
 
 DEMO_NAMESPACE = uuid.UUID(
@@ -50,6 +51,7 @@ def money(value: str) -> Decimal:
 
 
 def pitch_organization(db: Session) -> Organization:
+    require_demo_enabled()
     organization = db.scalar(
         select(Organization).where(
             Organization.slug == PITCH_ORGANIZATION_SLUG,
@@ -74,6 +76,7 @@ def pitch_user(
     db: Session,
     organization: Organization,
 ) -> User:
+    require_demo_enabled()
     user = db.scalar(
         select(User).where(
             User.email == PITCH_EMAIL,
@@ -122,6 +125,7 @@ def pitch_user(
 
 
 def seed_pitch_demo(db: Session) -> None:
+    require_demo_enabled()
     organization = pitch_organization(db)
     user = pitch_user(db, organization)
 
