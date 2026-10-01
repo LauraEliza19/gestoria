@@ -10,8 +10,9 @@ import getpass
 import json
 import os
 import uuid
+from http.cookiejar import CookieJar
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 
 def main():
@@ -25,12 +26,14 @@ def main():
     password = os.environ.get("GESTORIA_TEST_PASSWORD") or getpass.getpass(
         "Senha do usuário de teste: "
     )
-    token = None
+    opener = build_opener(HTTPCookieProcessor(CookieJar()))
 
     def request(method, path, body=None, *, headers=None, expected=200):
-        request_headers = {"Content-Type": "application/json", **(headers or {})}
-        if token:
-            request_headers["Authorization"] = "Bearer " + token
+        request_headers = {
+            "Content-Type": "application/json",
+            "X-CSRF-Protection": "1",
+            **(headers or {}),
+        }
         data = json.dumps(body).encode() if body is not None else None
         req = Request(
             args.base_url.rstrip("/") + path,
@@ -39,7 +42,7 @@ def main():
             method=method,
         )
         try:
-            response = urlopen(req, timeout=20)
+            response = opener.open(req, timeout=20)
         except HTTPError as exc:
             response = exc
         raw = response.read()
@@ -50,9 +53,7 @@ def main():
             )
         return value
 
-    token = request(
-        "POST", "/api/auth/login", {"email": args.email, "password": password}
-    )["access_token"]
+    request("POST", "/api/auth/login", {"email": args.email, "password": password})
     run_id = uuid.uuid4().hex[:8]
     customer = request(
         "POST",

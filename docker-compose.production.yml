@@ -1,0 +1,69 @@
+# Arquivo independente: não combinar com docker-compose.yml.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gestoria}
+      POSTGRES_USER: ${POSTGRES_USER:-gestoria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina uma senha exclusiva}
+    volumes:
+      - production_postgres:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: production
+      COOKIE_SECURE: "true"
+      DEMO_ENABLED: "false"
+      DEMO_PASSWORD: ""
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-gestoria}:${POSTGRES_PASSWORD:?Defina uma senha exclusiva}@db:5432/${POSTGRES_DB:-gestoria}
+      ALLOWED_HOSTS: '["${SITE_DOMAIN:?Defina o domínio público}"]'
+      ALLOWED_ORIGINS: '["https://${SITE_DOMAIN}"]'
+      OPERATION_SIGNING_KEYS: ${OPERATION_SIGNING_KEYS:?Gere a chave de operações}
+      OPERATION_ACTIVE_KEY_ID: ${OPERATION_ACTIVE_KEY_ID:-v1}
+      FRONTEND_DIR: /frontend
+    command: >-
+      sh -c "alembic upgrade head && python -m app.production_setup &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+      --proxy-headers --forwarded-allow-ips=172.30.0.10 --no-server-header"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend, edge]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Defina o domínio público}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      edge:
+        ipv4_address: 172.30.0.10
+    depends_on: [api]
+    restart: unless-stopped
+networks:
+  backend:
+    internal: true
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+volumes:
+  production_postgres:
+  caddy_data:
+  caddy_config:

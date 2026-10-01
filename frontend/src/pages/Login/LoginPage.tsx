@@ -31,11 +31,9 @@ export function LoginPage() {
 
     setIsSubmitting(true)
     try {
-      const response = await login(email.trim(), password)
-      const storage = remember ? localStorage : sessionStorage
+      await login(email.trim(), password, remember)
       localStorage.removeItem('gestoria_token')
       sessionStorage.removeItem('gestoria_token')
-      storage.setItem('gestoria_token', response.access_token)
       window.location.href = '/dashboard'
     } catch (requestError) {
       setError(getErrorMessage(requestError, 'Não foi possível entrar.'))
