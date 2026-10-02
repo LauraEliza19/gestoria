@@ -1,4 +1,7 @@
 import pytest
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models import (
     Customer,
@@ -22,8 +25,6 @@ from scripts.seed_pitch_demo import (
     PITCH_ORGANIZATION_SLUG,
     seed_pitch_demo,
 )
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 
 def count_for_organization(
@@ -140,7 +141,6 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
     )
     assert sum(quote.status == "pending" for quote in quotes) == 2
     assert sum(quote.status == "approved" for quote in quotes) == 1
-
 
 
 @pytest.fixture(autouse=True)

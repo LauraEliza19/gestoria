@@ -12,13 +12,15 @@ backend/
       products.py
       customers.py
       orders.py
-      dependencies.py    sessão JWT e papéis
-    models/              tabelas e relacionamentos
+      dependencies.py    sessão por cookie e papéis
+    models/              tabelas, relacionamentos e sessões persistidas
     schemas/             validação de entrada e saída (Pydantic)
     repositories/        consultas e persistência
-    services/            autenticação e regras transacionais
-    security.py          senha (Argon2) e token JWT
-    seed.py              usuário de demonstração
+    services/            autenticação, sessões e regras transacionais
+    security.py          hash de senhas e identificadores de sessão
+    create_admin.py      criação interativa do primeiro proprietário
+    production_setup.py  preparação segura do ambiente
+    seed.py              dados fictícios opcionais para desenvolvimento
     database.py
     config.py
     main.py              app FastAPI + páginas do frontend
@@ -43,17 +45,21 @@ cp .env.example .env          # só na primeira vez
 docker compose up --build
 ```
 
-Na subida: migrations (`alembic upgrade head`), seed e Uvicorn com reload.
+Na subida, o Compose aplica as migrations, prepara o ambiente e inicia o Uvicorn com reload.
 
-| Recurso | Endereço / valor |
+| Recurso | Endereço |
 | --- | --- |
 | API e frontend | http://localhost:8000 |
 | Swagger | http://localhost:8000/docs |
 | Health | http://localhost:8000/api/health |
-| E-mail demo | `admin@gestoria.dev` |
-| Senha demo | `GestorIA@123` |
 
-Credenciais só para desenvolvimento; altere-as no `.env` da raiz.
+Contas de demonstração ficam desabilitadas por padrão. Na primeira execução, crie um administrador:
+
+```bash
+docker compose exec api python -m app.create_admin
+```
+
+O comando solicita os dados da empresa e uma senha com pelo menos 12 caracteres, sem exibi-la no terminal.
 
 Para parar: `Ctrl+C` ou `docker compose down`. Evite `docker compose down -v` se quiser manter os dados do Postgres.
 
@@ -68,7 +74,8 @@ pip install -r requirements-dev.txt
 
 export DATABASE_URL=postgresql+psycopg://gestoria:gestoria_dev@localhost:5432/gestoria
 alembic upgrade head
-python -m app.seed
+python -m app.production_setup
+python -m app.create_admin
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -82,7 +89,7 @@ python3 -m venv --without-pip .venv
 
 ## Testes
 
-Os testes usam SQLite em memória (não precisam do Postgres). Com o venv ativo:
+A suíte local utiliza SQLite para a maioria dos testes. Os casos específicos de migrations e concorrência também devem ser validados no PostgreSQL descartável. Com o venv ativo:
 
 ```bash
 source .venv/bin/activate
@@ -91,7 +98,14 @@ ruff check --no-cache app tests alembic/versions
 ruff format --check --no-cache app tests alembic/versions
 ```
 
-Com o Compose no ar:
+Para executar a suíte completa com PostgreSQL temporário, a partir da raiz do repositório:
+
+```bash
+docker compose -p gestoria-tests -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
+docker compose -p gestoria-tests -f docker-compose.test.yml down --remove-orphans
+```
+
+Com o Compose local no ar:
 
 ```bash
 docker compose exec api pytest -q

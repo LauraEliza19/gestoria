@@ -74,7 +74,7 @@ O GestorIA está sendo desenvolvido com base em quatro pilares principais:
 
 Atualmente, o MVP já conta com os seguintes recursos implementados:
 
-- Autenticação com senha protegida por **Argon2** e sessão **JWT**;
+- Autenticação com senha protegida por **Argon2** e sessões revogáveis em cookies seguros;
 - Usuários vinculados a empresas por papéis (`owner`, `admin` e `member`);
 - CRUD manual de produtos com catálogo completo, custo, estoque, validade e dados fiscais;
 - CRUD manual de clientes com dados pessoais, contato, endereço, desconto e telefone normalizado;
@@ -139,7 +139,7 @@ Revisão atual do banco:
 | **API** | Python 3.12 e FastAPI |
 | **Persistência** | PostgreSQL 17 e SQLAlchemy 2 |
 | **Migrations** | Alembic |
-| **Autenticação** | JWT e Argon2 |
+| **Autenticação** | Sessões persistidas, cookies HttpOnly e Argon2 |
 | **Ambiente** | Docker Compose |
 | **Qualidade** | Pytest, Ruff, Oxlint e Prettier |
 
@@ -202,7 +202,7 @@ Esse comando irá:
 - Iniciar a aplicação;
 - Iniciar o banco PostgreSQL;
 - Aplicar as migrations automaticamente;
-- Preparar o usuário de demonstração.
+- Preparar as tabelas e configurações necessárias para as sessões.
 
 ---
 
@@ -213,12 +213,15 @@ Após a inicialização, acesse:
 - **Aplicação:** `http://localhost:8000`
 - **Documentação da API:** `http://localhost:8000/docs`
 
-Credenciais de demonstração:
+Na primeira execução, crie um administrador real:
 
-- **E-mail:** `admin@gestoria.dev`
-- **Senha:** `GestorIA@123`
+```bash
+docker compose exec api python -m app.create_admin
+```
 
-> Essas credenciais são exclusivas do ambiente de desenvolvimento e podem ser alteradas no arquivo `.env`.
+O comando solicitará nome, e-mail, empresa e uma senha com pelo menos 12 caracteres. A senha não é exibida no terminal.
+
+Contas de demonstração ficam desabilitadas por padrão. Para habilitar dados fictícios exclusivamente no ambiente local, consulte [`docs/SEGURANCA-SESSOES.md`](docs/SEGURANCA-SESSOES.md).
 
 ---
 
@@ -400,8 +403,13 @@ Para sair do terminal do PostgreSQL, utilize:
 
 ## Observações finais
 
-Antes de qualquer implantação pública, altere:
+Antes de qualquer implantação pública:
 
-- `JWT_SECRET`;
-- Senha do PostgreSQL;
-- Credenciais de demonstração.
+- Utilize apenas o Compose específico de produção;
+- Configure domínio e HTTPS;
+- Gere uma senha exclusiva para o PostgreSQL;
+- Gere e proteja as chaves de assinatura das operações;
+- Mantenha contas e dados de demonstração desabilitados;
+- Valide sessões, renovação, logout e restauração de backup em homologação.
+
+Consulte [`docs/SEGURANCA-SESSOES.md`](docs/SEGURANCA-SESSOES.md) para configuração e validação do ambiente produtivo.

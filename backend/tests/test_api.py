@@ -22,9 +22,13 @@ def login(
     )
     assert response.status_code == 200
     from app.config import settings
+
     token = client.cookies.get(settings.session_cookie_name)
     client.cookies.clear()
-    return {"Cookie": f"{settings.session_cookie_name}={token}", "X-CSRF-Protection": "1"}
+    return {
+        "Cookie": f"{settings.session_cookie_name}={token}",
+        "X-CSRF-Protection": "1",
+    }
 
 
 def test_health_and_frontend_are_available(client: TestClient) -> None:

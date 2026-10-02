@@ -1,8 +1,9 @@
 import pytest
-from app.api.dependencies import require_role
-from app.services import authenticate
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+
+from app.api.dependencies import require_role
+from app.services import authenticate
 
 
 def test_require_role_allows_owner_and_forbids_member(db: Session) -> None:

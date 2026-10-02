@@ -1,9 +1,10 @@
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models import Organization, OrganizationMember, User
 from app.seed import seed_demo_data, slugify
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 
 def test_slugify_normalizes_name() -> None:
@@ -26,7 +27,6 @@ def test_seed_demo_data_is_idempotent(db: Session) -> None:
     assert any(
         item.user_id == users[0].id and item.role == "owner" for item in memberships
     )
-
 
 
 @pytest.fixture(autouse=True)

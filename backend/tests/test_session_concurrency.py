@@ -1,11 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
-from app.config import settings
 from test_api import login
 from test_order_concurrency import (
     concurrent_client as concurrent_client,  # noqa: PLC0414
 )
+
+from app.config import settings
 
 
 def parallel(actions):
