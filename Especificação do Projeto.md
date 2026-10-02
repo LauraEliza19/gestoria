@@ -65,7 +65,7 @@ O tenant é resolvido pela **sessão autenticada**, nunca por um `organization_i
 
 ### RF-01 Autenticação
 
-O sistema deve autenticar o usuário por e-mail e senha, devolver um JWT e expor a sessão corrente em `/api/auth/me`. Senhas são armazenadas com Argon2.
+O sistema deve autenticar o usuário por e-mail e senha, estabelecer uma sessão revogável em cookie HttpOnly e expor a sessão corrente em `/api/auth/me`. Senhas são armazenadas com Argon2. A sessão deve permitir renovação controlada e encerramento no servidor.
 
 ### RF-02 Organização
 
@@ -124,7 +124,7 @@ O usuário deve recuperar o comprovante da operação executada. Eventos `prepar
 | --- | --- |
 | RNF-01 | Isolamento multi-tenant em todas as consultas de negócio |
 | RNF-02 | API sem SQL nas rotas; regras nos services; persistência nos repositories |
-| RNF-03 | Frontend sem credenciais de banco; autenticação só via Bearer token |
+| RNF-03 | Frontend sem credenciais de banco ou tokens acessíveis ao JavaScript; autenticação por cookie HttpOnly e mutações protegidas contra CSRF |
 | RNF-04 | Criação de pedido idempotente (mesma chave + mesmos dados = mesma operação) |
 | RNF-05 | HMAC-SHA256 do envelope; o cliente nunca calcula a assinatura nem recebe a chave |
 | RNF-06 | Falha em qualquer etapa da confirmação desfaz pedido e estoque (rollback) |
@@ -217,12 +217,15 @@ Identidade visual de referência: navy `#0B1330`, índigo `#131B4A`, azul `#3D63
 
 ## 10. API
 
-Autenticação: `Authorization: Bearer <token>`.
+Autenticação: sessão enviada automaticamente por cookie de mesma origem. Operações que alteram dados exigem o cabeçalho `X-CSRF-Protection: 1`.
 
 | Método | Rota | Uso |
 | --- | --- | --- |
-| `POST` | `/api/auth/login` | Autenticar |
-| `GET` | `/api/auth/me` | Sessão atual |
+| `POST` | `/api/auth/login` | Autenticar e criar a sessão |
+| `POST` | `/api/auth/refresh` | Renovar e rotacionar a sessão |
+| `POST` | `/api/auth/logout` | Revogar a sessão atual |
+| `POST` | `/api/auth/logout-all` | Revogar todas as sessões do usuário |
+| `GET` | `/api/auth/me` | Consultar a sessão atual |
 | `GET` / `PATCH` | `/api/organization` | Perfil da empresa |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/customers` | Clientes |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/products` | Produtos |
@@ -256,11 +259,11 @@ Detalhes, limites e roteiro de teste: [docs/SEGURANCA_PEDIDOS.md](docs/SEGURANCA
 
 | Camada | Tecnologia |
 | --- | --- |
-| Interface | HTML5, JavaScript (MVC), Tailwind CSS |
+| Interface | React 19, TypeScript, Vite e Tailwind CSS 4 |
 | API | Python 3.12, FastAPI |
 | Persistência | PostgreSQL 17, SQLAlchemy 2 |
 | Migrações | Alembic |
-| Autenticação | JWT, Argon2 |
+| Autenticação | Sessões persistidas, cookies HttpOnly, proteção CSRF e Argon2 |
 | Integridade operacional | HMAC-SHA256, idempotência, auditoria |
 | Infraestrutura | Docker, Docker Compose |
 | Qualidade | Pytest, Ruff |
@@ -281,7 +284,11 @@ docker compose up -d --build
 | Swagger | http://localhost:8000/docs |
 | Saúde | http://localhost:8000/api/health |
 
-Usuário de demonstração (somente desenvolvimento): `admin@gestoria.dev` / `GestorIA@123`.
+Contas de demonstração ficam desabilitadas por padrão. Após a primeira inicialização, crie o proprietário da instalação:
+
+```bash
+docker compose exec api python -m app.create_admin
+```
 
 Não usar `docker compose down -v` se for preciso preservar o volume do PostgreSQL.
 

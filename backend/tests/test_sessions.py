@@ -2,6 +2,11 @@ import secrets
 from datetime import timedelta
 
 import pytest
+from fastapi import HTTPException, Response
+from pydantic import ValidationError
+from sqlalchemy import select
+from starlette.requests import Request
+
 from app.api.dependencies import get_current_user
 from app.config import Settings, settings
 from app.models import OrganizationMember, User
@@ -11,11 +16,7 @@ from app.security import hash_session_token
 from app.seed import seed_demo_data
 from app.services import authenticate
 from app.services.sessions import create_session, now_utc
-from fastapi import HTTPException, Response
-from pydantic import ValidationError
 from scripts.seed_pitch_demo import seed_pitch_demo
-from sqlalchemy import select
-from starlette.requests import Request
 
 LOGIN = {"email": "lucas@gestoria.dev", "password": "SenhaForte@123"}
 
@@ -321,9 +322,10 @@ def test_production_disables_old_demo_and_revokes_sessions(db, monkeypatch):
 
 
 def test_unhandled_error_response_keeps_security_headers():
-    from app.http_security import SecurityMiddleware
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
+
+    from app.http_security import SecurityMiddleware
 
     app = FastAPI()
 

@@ -70,7 +70,7 @@ Enquanto o Copiloto não executa esse fluxo de ponta a ponta, a empresa já oper
 
 ## 7. O que já existe no produto
 
-- Autenticação com JWT, senha com Argon2 e papéis `owner`, `admin` e `member`.
+- Autenticação com sessões revogáveis em cookies HttpOnly, senha protegida por Argon2 e papéis `owner`, `admin` e `member`.
 - Isolamento dos dados por empresa (`organization_id` em toda tabela de negócio).
 - CRUD de clientes e produtos, com perfil comercial, endereço, estoque mínimo e status derivado.
 - Pedidos com baixa de estoque em transação única e recomposição ao cancelar.

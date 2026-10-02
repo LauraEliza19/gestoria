@@ -36,7 +36,14 @@ docker compose -p gestoria-security-preview up -d --build
 docker compose -p gestoria-security-preview ps
 ```
 
-Abra http://localhost:8001 e http://localhost:8001/docs. Com os valores padrão do ambiente de demonstração: e-mail admin@gestoria.dev e senha GestorIA@123. Se o .env definir outras credenciais, use essas credenciais. O banco da cópia de teste começa separado do banco atual; seus registros antigos não aparecerão automaticamente nele.
+Abra http://localhost:8001 e http://localhost:8001/docs. Nenhuma conta de demonstração é criada por padrão. Crie um administrador específico para esse ambiente:
+
+```powershell
+docker compose -p gestoria-security-preview exec api python -m app.create_admin
+```
+
+O banco da cópia de teste é separado do banco atual; os registros existentes no ambiente normal não aparecem automaticamente nele.
+
 
 O serviço security-init gera uma chave aleatória de 32 bytes e grava o chaveiro no .env. Não imprime a chave. Preserva configurações já existentes. É um serviço auxiliar com profile tools; não permanece executando junto da aplicação. Sem chave configurada, as operações protegidas retornam 503.
 
@@ -76,7 +83,7 @@ O comprovante representa o estado ORIGINAL da criação. Se o pedido for conclu�
 
 ## 4. Contrato da API
 
-As rotas exigem Authorization: Bearer <token>. O tenant é determinado pela sessão autenticada, não por um organization_id enviado no formulário de criação. A documentação interativa agrupa as novas rotas em protected orders.
+As rotas utilizam a sessão autenticada enviada por cookie de mesma origem. Requisições que alteram dados também exigem `X-CSRF-Protection: 1`. O tenant é determinado pela sessão, nunca por um `organization_id` enviado no formulário de criação. A documentação interativa agrupa as novas rotas em protected orders.
 
 | Método e rota | Entrada e resultado |
 | --- | --- |
@@ -201,7 +208,7 @@ O fluxo acrescenta uma requisição de preparação e a revisão humana. Os núm
 
 ## 8. Chaves, limites e próximos passos
 
-OPERATION_SIGNING_KEYS é um objeto JSON de key_id para chave hexadecimal de 64 caracteres. OPERATION_ACTIVE_KEY_ID seleciona a chave usada para assinar novos documentos. OPERATION_TTL_SECONDS define a validade (30 a 3600 segundos; padrão 300). A chave de operações é independente de JWT_SECRET.
+OPERATION_SIGNING_KEYS é um objeto JSON de key_id para chave hexadecimal de 64 caracteres. OPERATION_ACTIVE_KEY_ID seleciona a chave usada para assinar novos documentos. OPERATION_TTL_SECONDS define a validade (30 a 3600 segundos; padrão 300). A chave de operações é independente das credenciais e dos identificadores de sessão.
 
 Para rotacionar, adicione uma chave aleatória nova ao chaveiro, mantenha as antigas necessárias para verificar propostas/comprovantes e altere o key_id ativo. Recrie a API para carregar a configuração. Remover uma chave antiga impede verificações históricas correspondentes. Proteja e faça backup da configuração; ela não acompanha o ZIP entregue. O gerador não substitui uma chave existente automaticamente.
 

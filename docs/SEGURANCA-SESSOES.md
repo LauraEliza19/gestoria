@@ -1,6 +1,6 @@
 # Sessões seguras e implantação em produção
 
-Os READMEs existentes foram preservados. Este documento substitui os exemplos antigos de autenticação JWT e senha demo, sem modificar a apresentação do projeto.
+A documentação do projeto foi atualizada para refletir a autenticação por sessões seguras, a remoção das credenciais de demonstração padrão e os procedimentos atuais de desenvolvimento e produção.
 
 ## Mudanças
 
