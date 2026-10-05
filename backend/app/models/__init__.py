@@ -25,7 +25,10 @@ from app.models.auth_session import AuthSession, LoginRateLimit  # noqa: F401
 from app.models.order_operation import OrderAuditEvent, OrderOperation
 
 __all__ = [
+    "CostCenter",
     "Customer",
+    "Employee",
+    "Employment",
     "FiscalDocument",
     "FiscalDocumentItem",
     "FiscalEvent",
@@ -433,6 +436,7 @@ from app.models.fiscal import (
     FiscalStockMovement,
     Supplier,
 )
+from app.models.management import CostCenter, Employee, Employment
 from app.models.production import (  # noqa: F401
     Ingredient,
     Recipe,
