@@ -39,6 +39,14 @@ class StockItemInput(IngredientSelection):
     unit: Unit
 
 
+class StockConsumptionInput(ProductionInput):
+    quantity: Annotated[
+        Decimal, Field(gt=0, le=1_000_000_000, max_digits=13, decimal_places=3)
+    ]
+    expected_quantity: Quantity
+    unit: Unit
+
+
 class IngredientRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

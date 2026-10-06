@@ -9,7 +9,7 @@
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit --project tsconfig.app.json",
-    "test": "node --test tests/ingredientSuggestions.test.cjs tests/errorMessage.test.cjs tests/permissions.test.cjs tests/session.test.cjs",
+    "test": "node --test tests/stockUsage.test.cjs tests/ingredientSuggestions.test.cjs tests/errorMessage.test.cjs tests/permissions.test.cjs tests/session.test.cjs",
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.cjs\" package.json",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.cjs\" package.json"
