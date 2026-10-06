@@ -186,3 +186,18 @@ def save_recipe(db, organization_id, payload, recipe=None):
     )
     db.commit()
     return recipe
+
+
+def consume_stock_item(db, organization_id, stock, payload):
+    if not repository.consume_stock(db, organization_id, stock, payload):
+        raise ProductionError(
+            "Saldo insuficiente ou estoque alterado. Atualize e confira antes de registrar o uso."
+        )
+    db.commit()
+    db.refresh(stock)
+    ingredient = next(
+        item
+        for item in repository.list_ingredients(db, organization_id)
+        if item.id == stock.ingredient_id
+    )
+    return stock_read(stock, ingredient)
