@@ -1,12 +1,20 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import CostCenter, Employee, Employment, OrganizationMember
+from app.models import (
+    CostCenter,
+    Employee,
+    EmployeeRecord,
+    Employment,
+    OrganizationMember,
+)
 from app.repositories import (
     CostCenterRepository,
+    EmployeeRecordRepository,
     EmployeeRepository,
     EmploymentRepository,
 )
@@ -59,6 +67,20 @@ class InactiveEmployeeError(ManagementServiceError):
 class InvalidEmploymentStateError(ManagementServiceError):
     def __init__(self):
         super().__init__("Os dados informados para o vínculo são inválidos.")
+
+
+class EmployeeRecordNotOpenError(ManagementServiceError):
+    def __init__(self):
+        super().__init__(
+            "Somente registros abertos podem ser editados, resolvidos ou cancelados."
+        )
+
+
+class InvalidEmployeeRecordStateError(ManagementServiceError):
+    def __init__(self):
+        super().__init__(
+            "Não foi possível salvar o registro do funcionário com os dados informados."
+        )
 
 
 def _validate_employee_user(
@@ -298,3 +320,102 @@ def update_employment(
     except IntegrityError as exc:
         db.rollback()
         raise InvalidEmploymentStateError() from exc
+
+
+def _ensure_employee_record_is_open(
+    employee_record: EmployeeRecord,
+) -> None:
+    if employee_record.status != "open":
+        raise EmployeeRecordNotOpenError()
+
+
+def create_employee_record(
+    db: Session,
+    employee: Employee,
+    actor_id: uuid.UUID,
+    values: dict,
+) -> EmployeeRecord:
+    try:
+        return EmployeeRecordRepository.create(
+            db,
+            employee.organization_id,
+            employee.id,
+            actor_id,
+            values,
+        )
+    except IntegrityError as exc:
+        db.rollback()
+        raise InvalidEmployeeRecordStateError() from exc
+
+
+def update_employee_record(
+    db: Session,
+    employee_record: EmployeeRecord,
+    actor_id: uuid.UUID,
+    values: dict,
+) -> EmployeeRecord:
+    _ensure_employee_record_is_open(employee_record)
+
+    if not values:
+        return employee_record
+
+    try:
+        return EmployeeRecordRepository.update(
+            db,
+            employee_record,
+            actor_id,
+            values,
+        )
+    except IntegrityError as exc:
+        db.rollback()
+        raise InvalidEmployeeRecordStateError() from exc
+
+
+def resolve_employee_record(
+    db: Session,
+    employee_record: EmployeeRecord,
+    actor_id: uuid.UUID,
+    resolution_notes: str,
+) -> EmployeeRecord:
+    _ensure_employee_record_is_open(employee_record)
+
+    try:
+        return EmployeeRecordRepository.update(
+            db,
+            employee_record,
+            actor_id,
+            {
+                "status": "resolved",
+                "resolution_notes": resolution_notes,
+                "resolved_at": datetime.now(UTC),
+                "resolved_by_id": actor_id,
+            },
+        )
+    except IntegrityError as exc:
+        db.rollback()
+        raise InvalidEmployeeRecordStateError() from exc
+
+
+def cancel_employee_record(
+    db: Session,
+    employee_record: EmployeeRecord,
+    actor_id: uuid.UUID,
+    cancellation_reason: str,
+) -> EmployeeRecord:
+    _ensure_employee_record_is_open(employee_record)
+
+    try:
+        return EmployeeRecordRepository.update(
+            db,
+            employee_record,
+            actor_id,
+            {
+                "status": "cancelled",
+                "cancellation_reason": cancellation_reason,
+                "cancelled_at": datetime.now(UTC),
+                "cancelled_by_id": actor_id,
+            },
+        )
+    except IntegrityError as exc:
+        db.rollback()
+        raise InvalidEmployeeRecordStateError() from exc

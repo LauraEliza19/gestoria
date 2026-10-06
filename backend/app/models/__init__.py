@@ -28,6 +28,7 @@ __all__ = [
     "CostCenter",
     "Customer",
     "Employee",
+    "EmployeeRecord",
     "Employment",
     "FiscalDocument",
     "FiscalDocumentItem",
@@ -436,7 +437,12 @@ from app.models.fiscal import (
     FiscalStockMovement,
     Supplier,
 )
-from app.models.management import CostCenter, Employee, Employment
+from app.models.management import (
+    CostCenter,
+    Employee,
+    EmployeeRecord,
+    Employment,
+)
 from app.models.production import (  # noqa: F401
     Ingredient,
     Recipe,

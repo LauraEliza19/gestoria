@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import CostCenter, Employee, Employment
+from app.models import CostCenter, Employee, EmployeeRecord, Employment
 
 
 class CostCenterRepository:
@@ -219,6 +219,89 @@ class EmploymentRepository:
         db.commit()
         db.refresh(employment)
         return employment
+
+
+class EmployeeRecordRepository:
+    @staticmethod
+    def list_for_employee(
+        db: Session,
+        organization_id: uuid.UUID,
+        employee_id: uuid.UUID,
+        *,
+        status: str | None = None,
+        record_type: str | None = None,
+    ) -> list[EmployeeRecord]:
+        query = select(EmployeeRecord).where(
+            EmployeeRecord.organization_id == organization_id,
+            EmployeeRecord.employee_id == employee_id,
+        )
+
+        if status is not None:
+            query = query.where(EmployeeRecord.status == status)
+
+        if record_type is not None:
+            query = query.where(EmployeeRecord.record_type == record_type)
+
+        query = query.order_by(
+            EmployeeRecord.occurred_at.desc(),
+            EmployeeRecord.created_at.desc(),
+        )
+
+        return list(db.scalars(query))
+
+    @staticmethod
+    def get_for_organization(
+        db: Session,
+        record_id: uuid.UUID,
+        organization_id: uuid.UUID,
+        *,
+        for_update: bool = False,
+    ) -> EmployeeRecord | None:
+        query = select(EmployeeRecord).where(
+            EmployeeRecord.id == record_id,
+            EmployeeRecord.organization_id == organization_id,
+        )
+
+        if for_update:
+            query = query.with_for_update()
+
+        return db.scalar(query)
+
+    @staticmethod
+    def create(
+        db: Session,
+        organization_id: uuid.UUID,
+        employee_id: uuid.UUID,
+        actor_id: uuid.UUID,
+        values: dict,
+    ) -> EmployeeRecord:
+        employee_record = EmployeeRecord(
+            organization_id=organization_id,
+            employee_id=employee_id,
+            recorded_by_id=actor_id,
+            updated_by_id=actor_id,
+            **values,
+        )
+        db.add(employee_record)
+        db.commit()
+        db.refresh(employee_record)
+        return employee_record
+
+    @staticmethod
+    def update(
+        db: Session,
+        employee_record: EmployeeRecord,
+        actor_id: uuid.UUID,
+        values: dict,
+    ) -> EmployeeRecord:
+        for field, value in values.items():
+            setattr(employee_record, field, value)
+
+        employee_record.updated_by_id = actor_id
+
+        db.commit()
+        db.refresh(employee_record)
+        return employee_record
 
 
 class ManagementOverviewRepository:
