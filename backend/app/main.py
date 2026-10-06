@@ -10,6 +10,7 @@ from app.api import (
     customers,
     fiscal,
     management,
+    management_employee_records,
     management_employments,
     order_operations,
     orders,
@@ -59,6 +60,7 @@ app.include_router(fiscal.router)
 app.include_router(fiscal.supplier_router)
 app.include_router(production.router)
 app.include_router(management.router)
+app.include_router(management_employee_records.router)
 app.include_router(management_employments.router)
 
 
