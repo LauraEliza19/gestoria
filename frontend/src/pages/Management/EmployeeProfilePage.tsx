@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import { useSession } from '../../contexts/SessionContext'
+import { EmployeeRecordsPanel } from './EmployeeRecordsPanel'
 import {
   getEmployee,
   getEmploymentCompensation,
@@ -382,6 +383,8 @@ export function EmployeeProfilePage() {
           )}
         </article>
       </section>
+
+      <EmployeeRecordsPanel employeeId={employee.id} />
     </main>
   )
 }

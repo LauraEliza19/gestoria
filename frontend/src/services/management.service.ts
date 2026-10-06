@@ -8,6 +8,13 @@ import type {
   EmployeeSummary,
   EmployeeUpdatePayload,
   Employment,
+  EmployeeRecord,
+  EmployeeRecordCancelPayload,
+  EmployeeRecordCreatePayload,
+  EmployeeRecordFilters,
+  EmployeeRecordResolvePayload,
+  EmployeeRecordSummary,
+  EmployeeRecordUpdatePayload,
   EmploymentCompensation,
   EmploymentCreatePayload,
   EmploymentUpdatePayload,
@@ -102,4 +109,69 @@ export function getEmploymentCompensation(employmentId: string): Promise<Employm
   return apiFetch<EmploymentCompensation>(
     `${MANAGEMENT_URL}/employments/${employmentId}/compensation`,
   )
+}
+
+export function listEmployeeRecords(
+  employeeId: string,
+  filters: EmployeeRecordFilters = {},
+): Promise<EmployeeRecordSummary[]> {
+  const parameters = new URLSearchParams()
+
+  if (filters.status) {
+    parameters.set('status', filters.status)
+  }
+
+  if (filters.record_type) {
+    parameters.set('record_type', filters.record_type)
+  }
+
+  const query = parameters.toString()
+
+  return apiFetch<EmployeeRecordSummary[]>(
+    `${MANAGEMENT_URL}/employees/${employeeId}/records${query ? `?${query}` : ''}`,
+  )
+}
+
+export function getEmployeeRecord(recordId: string): Promise<EmployeeRecord> {
+  return apiFetch<EmployeeRecord>(`${MANAGEMENT_URL}/employee-records/${recordId}`)
+}
+
+export function createEmployeeRecord(
+  employeeId: string,
+  payload: EmployeeRecordCreatePayload,
+): Promise<EmployeeRecord> {
+  return apiFetch<EmployeeRecord>(`${MANAGEMENT_URL}/employees/${employeeId}/records`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateEmployeeRecord(
+  recordId: string,
+  payload: EmployeeRecordUpdatePayload,
+): Promise<EmployeeRecord> {
+  return apiFetch<EmployeeRecord>(`${MANAGEMENT_URL}/employee-records/${recordId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function resolveEmployeeRecord(
+  recordId: string,
+  payload: EmployeeRecordResolvePayload,
+): Promise<EmployeeRecord> {
+  return apiFetch<EmployeeRecord>(`${MANAGEMENT_URL}/employee-records/${recordId}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function cancelEmployeeRecord(
+  recordId: string,
+  payload: EmployeeRecordCancelPayload,
+): Promise<EmployeeRecord> {
+  return apiFetch<EmployeeRecord>(`${MANAGEMENT_URL}/employee-records/${recordId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }

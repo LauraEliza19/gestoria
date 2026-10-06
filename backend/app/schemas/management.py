@@ -246,6 +246,129 @@ class EmploymentCompensationRead(EmploymentRead):
     base_salary: Money | None
 
 
+EmployeeRecordType = Literal[
+    "warning",
+    "incident",
+    "commendation",
+    "note",
+]
+
+EmployeeRecordSeverity = Literal[
+    "informational",
+    "low",
+    "medium",
+    "high",
+]
+
+EmployeeRecordStatus = Literal[
+    "open",
+    "resolved",
+    "cancelled",
+]
+
+
+def normalize_employee_record_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("A data da ocorrência deve possuir fuso horário.")
+
+    normalized = value.astimezone(UTC)
+
+    if normalized > datetime.now(UTC):
+        raise ValueError("A data da ocorrência não pode estar no futuro.")
+
+    return normalized
+
+
+class EmployeeRecordCreate(BaseModel):
+    record_type: EmployeeRecordType
+    severity: EmployeeRecordSeverity = "informational"
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(min_length=1, max_length=4000)
+    occurred_at: datetime
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("occurred_at")
+    @classmethod
+    def validate_occurred_at(cls, value: datetime) -> datetime:
+        return normalize_employee_record_datetime(value)
+
+
+class EmployeeRecordUpdate(BaseModel):
+    record_type: EmployeeRecordType | None = None
+    severity: EmployeeRecordSeverity | None = None
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=160,
+    )
+    description: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=4000,
+    )
+    occurred_at: datetime | None = None
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("occurred_at")
+    @classmethod
+    def validate_occurred_at(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is None:
+            return None
+
+        return normalize_employee_record_datetime(value)
+
+    @model_validator(mode="after")
+    def validate_changes(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("Informe ao menos um campo para atualização.")
+
+        return self
+
+
+class EmployeeRecordResolve(BaseModel):
+    resolution_notes: str = Field(min_length=1, max_length=4000)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
+class EmployeeRecordCancel(BaseModel):
+    cancellation_reason: str = Field(min_length=3, max_length=500)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
+class EmployeeRecordSummaryRead(BaseModel):
+    id: uuid.UUID
+    employee_id: uuid.UUID
+    record_type: EmployeeRecordType
+    severity: EmployeeRecordSeverity
+    status: EmployeeRecordStatus
+    title: str
+    occurred_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmployeeRecordRead(EmployeeRecordSummaryRead):
+    organization_id: uuid.UUID
+    recorded_by_id: uuid.UUID
+    updated_by_id: uuid.UUID
+    resolved_by_id: uuid.UUID | None
+    cancelled_by_id: uuid.UUID | None
+    description: str
+    resolution_notes: str | None
+    cancellation_reason: str | None
+    resolved_at: datetime | None
+    cancelled_at: datetime | None
+
+
 class ManagementOverviewRead(BaseModel):
     total_employees: int = Field(ge=0)
     active_employees: int = Field(ge=0)

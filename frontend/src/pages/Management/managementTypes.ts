@@ -93,3 +93,57 @@ export type EmploymentCreatePayload = {
 }
 
 export type EmploymentUpdatePayload = Partial<EmploymentCreatePayload>
+
+export type EmployeeRecordType = 'warning' | 'incident' | 'commendation' | 'note'
+
+export type EmployeeRecordSeverity = 'informational' | 'low' | 'medium' | 'high'
+
+export type EmployeeRecordStatus = 'open' | 'resolved' | 'cancelled'
+
+export type EmployeeRecordSummary = {
+  id: string
+  employee_id: string
+  record_type: EmployeeRecordType
+  severity: EmployeeRecordSeverity
+  status: EmployeeRecordStatus
+  title: string
+  occurred_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type EmployeeRecord = EmployeeRecordSummary & {
+  organization_id: string
+  recorded_by_id: string
+  updated_by_id: string
+  resolved_by_id: string | null
+  cancelled_by_id: string | null
+  description: string
+  resolution_notes: string | null
+  cancellation_reason: string | null
+  resolved_at: string | null
+  cancelled_at: string | null
+}
+
+export type EmployeeRecordCreatePayload = {
+  record_type: EmployeeRecordType
+  severity?: EmployeeRecordSeverity
+  title: string
+  description: string
+  occurred_at: string
+}
+
+export type EmployeeRecordUpdatePayload = Partial<EmployeeRecordCreatePayload>
+
+export type EmployeeRecordResolvePayload = {
+  resolution_notes: string
+}
+
+export type EmployeeRecordCancelPayload = {
+  cancellation_reason: string
+}
+
+export type EmployeeRecordFilters = {
+  status?: EmployeeRecordStatus
+  record_type?: EmployeeRecordType
+}
