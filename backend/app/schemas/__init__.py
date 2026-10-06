@@ -17,6 +17,20 @@ from app.schemas.fiscal import (
     FiscalDocumentRead,
     FiscalDocumentStatusUpdate,
 )
+from app.schemas.management import (
+    CostCenterCreate,
+    CostCenterRead,
+    CostCenterUpdate,
+    EmployeeCreate,
+    EmployeeRead,
+    EmployeeSummaryRead,
+    EmployeeUpdate,
+    EmploymentCompensationRead,
+    EmploymentCreate,
+    EmploymentRead,
+    EmploymentUpdate,
+    ManagementOverviewRead,
+)
 from app.schemas.order import (
     OrderCreate,
     OrderItemCreate,
@@ -34,15 +48,27 @@ from app.schemas.quote import (
 )
 
 __all__ = [
+    "CostCenterCreate",
+    "CostCenterRead",
+    "CostCenterUpdate",
     "CurrentUserRead",
     "CustomerCreate",
     "CustomerProfileRead",
     "CustomerRead",
     "CustomerUpdate",
+    "EmployeeCreate",
+    "EmployeeRead",
+    "EmployeeSummaryRead",
+    "EmployeeUpdate",
+    "EmploymentCompensationRead",
+    "EmploymentCreate",
+    "EmploymentRead",
+    "EmploymentUpdate",
     "FiscalDocumentCreate",
     "FiscalDocumentRead",
     "FiscalDocumentStatusUpdate",
     "LoginRequest",
+    "ManagementOverviewRead",
     "Money",
     "OrderCreate",
     "OrderItemCreate",
