@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
+  BriefcaseBusiness,
   Building2,
   ChevronDown,
   ChefHat,
@@ -60,6 +61,8 @@ function TopNavigation() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const headerRef = useRef<HTMLElement>(null)
+  const managementActive = pathname === '/gestao' || pathname.startsWith('/gestao/')
+  const managementOpen = openGroup === 'gestao'
 
   function closeNavigation() {
     setOpenGroup(null)
@@ -214,6 +217,69 @@ function TopNavigation() {
               </div>
             )
           })}
+
+          {can('management:read') && (
+            <div className="relative">
+              <button
+                type="button"
+                data-navigation-group="gestao"
+                aria-expanded={managementOpen}
+                aria-controls="navigation-gestao"
+                className={topLinkClass(managementActive)}
+                onClick={() => toggleGroup('gestao')}
+              >
+                <BriefcaseBusiness size={17} aria-hidden="true" />
+                Gestão
+                <ChevronDown
+                  size={15}
+                  aria-hidden="true"
+                  className={`ml-auto transition-transform ${managementOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              <div id="navigation-gestao" hidden={!managementOpen} className={dropdownClass}>
+                <NavLink
+                  to="/gestao"
+                  end
+                  onClick={closeNavigation}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                      isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                    }`
+                  }
+                >
+                  <BriefcaseBusiness size={18} aria-hidden="true" />
+                  Visão geral
+                </NavLink>
+
+                <NavLink
+                  to="/gestao/funcionarios"
+                  onClick={closeNavigation}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                      isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                    }`
+                  }
+                >
+                  <Users size={18} aria-hidden="true" />
+                  Funcionários
+                </NavLink>
+
+                <NavLink
+                  to="/gestao/centros-de-custo"
+                  onClick={closeNavigation}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                      isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                    }`
+                  }
+                >
+                  <Building2 size={18} aria-hidden="true" />
+                  Centros de custo
+                </NavLink>
+              </div>
+            </div>
+          )}
 
           <NavLink
             to="/copiloto"

@@ -24,27 +24,34 @@ A Gestão Interna será dividida nos seguintes submódulos:
 
 Cada submódulo deve possuir responsabilidades próprias. O Módulo Gestor poderá consolidar informações de vendas, pedidos, produção e financeiro, mas não deverá duplicar regras pertencentes a esses domínios.
 
-## 3. Responsabilidades da primeira versão
+## 3. Entrega da primeira versão
 
-A primeira versão incluirá:
+A fundação da Gestão Interna foi concluída em 5 de outubro de 2026.
 
-- Entrada do Módulo Gestor na navegação;
-- Painel executivo inicial;
-- Cadastro e listagem de funcionários;
+Funcionalidades entregues:
+
+- Entrada da Gestão Interna na navegação superior;
+- Painel executivo com indicadores;
+- Cadastro, consulta, edição, ativação e desativação de funcionários;
+- Perfil individual do funcionário;
 - Histórico de vínculos profissionais;
-- Cadastro e listagem de centros de custo;
-- Permissões de acesso;
+- Cadastro e edição de vínculos profissionais;
+- Proteção específica das informações salariais;
+- Cadastro, consulta, edição, busca, filtro, ativação e desativação de centros de custo;
+- Páginas próprias e expansíveis para cadastro e edição;
+- Permissões visuais e validações obrigatórias no backend;
+- Isolamento dos dados por organização;
 - Estados de carregamento, erro e conteúdo vazio;
 - Interface responsiva;
 - Testes automatizados;
 - Documentação técnica.
 
-Não fazem parte da primeira versão:
+Não fazem parte desta primeira versão:
 
 - Cálculo de folha de pagamento;
 - Registro oficial de ponto;
 - Emissão de holerites;
-- Advertências;
+- Advertências e ocorrências;
 - Agenda completa;
 - Conciliação bancária;
 - Relatórios contábeis;
@@ -146,37 +153,33 @@ Regras:
 - Centros de custo inativos continuam disponíveis no histórico;
 - Movimentações financeiras poderão referenciar um centro de custo.
 
-## 6. Permissões
+## 6. Permissões implementadas
 
-Permissões planejadas:
+Permissões disponíveis:
 
 - `management:read`;
-- `employees:read`;
 - `employees:manage`;
 - `employee_compensation:read`;
-- `cost_centers:read`;
-- `cost_centers:manage`;
-- `finance:read`;
-- `finance:manage`.
+- `cost_centers:manage`.
 
-Matriz inicial:
+Matriz atual:
 
 | Ação | Owner | Admin | Member |
 | --- | --- | --- | --- |
-| Acessar o Módulo Gestor | Sim | Sim | Não |
+| Acessar a Gestão Interna | Sim | Sim | Não |
 | Consultar funcionários | Sim | Sim | Não |
 | Cadastrar e editar funcionários | Sim | Sim | Não |
 | Consultar salário-base | Sim | Não | Não |
 | Consultar centros de custo | Sim | Sim | Não |
 | Gerenciar centros de custo | Sim | Sim | Não |
-| Consultar financeiro | Sim | Sim | Não |
-| Gerenciar financeiro | Sim | Sim | Não |
 
-O frontend utilizará as permissões para controlar a experiência visual, mas o backend será a autoridade final.
+As futuras permissões financeiras serão adicionadas junto ao domínio financeiro, evitando regras antecipadas ou duplicadas.
 
-## 7. API planejada
+O frontend controla a experiência visual, mas o backend permanece como autoridade final das permissões.
 
-Rotas iniciais:
+## 7. API implementada
+
+Rotas disponíveis:
 
 - `GET /api/management/overview`;
 - `GET /api/management/employees`;
@@ -186,34 +189,43 @@ Rotas iniciais:
 - `GET /api/management/employees/{employee_id}/employments`;
 - `POST /api/management/employees/{employee_id}/employments`;
 - `PATCH /api/management/employments/{employment_id}`;
+- `GET /api/management/employments/{employment_id}/compensation`;
 - `GET /api/management/cost-centers`;
+- `GET /api/management/cost-centers/{cost_center_id}`;
 - `POST /api/management/cost-centers`;
 - `PATCH /api/management/cost-centers/{cost_center_id}`.
 
-Todas as consultas deverão utilizar o `organization_id` da sessão autenticada. O cliente nunca escolherá livremente a organização da operação.
+Todas as consultas utilizam o `organization_id` da sessão autenticada. O cliente não escolhe livremente a organização da operação.
 
-## 8. Frontend planejado
+## 8. Frontend implementado
 
-Rotas iniciais:
+Rotas disponíveis:
 
 - `/gestao`;
 - `/gestao/funcionarios`;
 - `/gestao/funcionarios/novo`;
 - `/gestao/funcionarios/:employeeId`;
-- `/gestao/centros-de-custo`.
+- `/gestao/funcionarios/:employeeId/editar`;
+- `/gestao/funcionarios/:employeeId/vinculos/novo`;
+- `/gestao/funcionarios/:employeeId/vinculos/:employmentId/editar`;
+- `/gestao/centros-de-custo`;
+- `/gestao/centros-de-custo/novo`;
+- `/gestao/centros-de-custo/:costCenterId/editar`.
 
-Estrutura sugerida:
+Principais componentes:
 
 - `ManagementPage`;
-- `ManagementOverview`;
 - `EmployeesPage`;
 - `EmployeeFormPage`;
 - `EmployeeProfilePage`;
+- `EmploymentFormPage`;
 - `CostCentersPage`;
+- `CostCenterFormPage`;
 - `managementTypes`;
-- `useManagement`.
+- `useManagement`;
+- `management.service`.
 
-A navegação deverá funcionar em desktop e dispositivos móveis.
+A navegação e as páginas foram preparadas para desktop, tablet e dispositivos móveis.
 
 ## 9. Painel executivo inicial
 
@@ -241,23 +253,42 @@ O painel não deverá apresentar movimentação financeira como lucro contábil 
 
 ## 11. Critérios de aceite da primeira versão
 
-- [ ] O módulo aparece na navegação;
-- [ ] O painel inicial pode ser acessado;
-- [ ] Funcionários podem ser cadastrados e listados;
-- [ ] Um funcionário pode possuir vínculo profissional;
-- [ ] Centros de custo podem ser cadastrados;
-- [ ] Papéis e permissões são respeitados;
-- [ ] Dados não vazam entre empresas;
-- [ ] Salários não aparecem sem autorização;
-- [ ] A interface funciona em desktop e celular;
-- [ ] Existem estados de carregamento, erro e lista vazia;
-- [ ] Testes de backend e frontend foram adicionados;
-- [ ] Ruff e o formatador foram aprovados;
-- [ ] Pytest foi aprovado;
-- [ ] Lint, typecheck, testes e build do frontend foram aprovados;
-- [ ] A documentação foi atualizada.
+- [x] O módulo aparece na navegação;
+- [x] O painel inicial pode ser acessado;
+- [x] Funcionários podem ser cadastrados e listados;
+- [x] Um funcionário pode possuir vínculo profissional;
+- [x] Centros de custo podem ser cadastrados;
+- [x] Papéis e permissões são respeitados;
+- [x] Dados não vazam entre empresas;
+- [x] Salários não aparecem sem autorização;
+- [x] A interface funciona em desktop e celular;
+- [x] Existem estados de carregamento, erro e lista vazia;
+- [x] Testes de backend e frontend foram adicionados;
+- [x] Ruff e o formatador foram aprovados;
+- [x] Pytest foi aprovado;
+- [x] Lint, typecheck, testes e build do frontend foram aprovados;
+- [x] A documentação foi atualizada.
 
-## 12. Evoluções posteriores
+## 12. Validação técnica
+
+Resultados registrados em 5 de outubro de 2026:
+
+- Prettier aprovado;
+- TypeScript aprovado;
+- 20 testes do frontend aprovados;
+- Build de produção do frontend concluído;
+- Lint sem erros e com cinco avisos preexistentes;
+- Ruff aprovado em `app`, `tests` e migrations;
+- 110 arquivos Python formatados;
+- 240 testes do backend aprovados;
+- 14 testes ignorados conforme configuração da suíte;
+- Fluxo integrado de funcionário, vínculo e centro de custo aprovado no navegador;
+- Remuneração do funcionário protegida por permissão;
+- Nenhum erro encontrado no console durante a validação da Gestão Interna.
+
+Avisos conhecidos do frontend permanecem registrados em `SessionContext`, `ProductsPage`, `OrdersPage` e `CustomersPage`. Eles não foram introduzidos por esta entrega.
+
+## 13. Evoluções posteriores
 
 Após a primeira versão:
 

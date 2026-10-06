@@ -42,6 +42,21 @@ def test_cost_center_api_flow_and_permissions(
     assert cost_center["name"] == "Administrativo"
     assert cost_center["is_active"] is True
 
+    detail = client.get(
+        f"{COST_CENTERS_URL}/{cost_center['id']}",
+        headers=owner_headers,
+    )
+    assert detail.status_code == 200
+    assert detail.json()["id"] == cost_center["id"]
+    assert detail.json()["code"] == "ADM"
+    assert detail.json()["name"] == "Administrativo"
+
+    member_detail = client.get(
+        f"{COST_CENTERS_URL}/{cost_center['id']}",
+        headers=member_headers,
+    )
+    assert member_detail.status_code == 403
+
     duplicate = client.post(
         COST_CENTERS_URL,
         headers=owner_headers,

@@ -105,6 +105,29 @@ def list_cost_centers(
     )
 
 
+@router.get(
+    "/cost-centers/{cost_center_id}",
+    response_model=CostCenterRead,
+)
+def get_cost_center(
+    cost_center_id: uuid.UUID,
+    db: DatabaseSession,
+    current: CurrentUser,
+) -> CostCenterRead:
+    require_role(current, {"owner", "admin"})
+
+    cost_center = CostCenterRepository.get_for_organization(
+        db,
+        cost_center_id,
+        current.organization.id,
+    )
+
+    if cost_center is None:
+        raise cost_center_not_found()
+
+    return cost_center
+
+
 @router.post(
     "/cost-centers",
     response_model=CostCenterRead,
