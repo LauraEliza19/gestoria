@@ -1,4 +1,4 @@
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 from app.models.production import Ingredient, Recipe, RecipeIngredient, StockItem
 
@@ -66,3 +66,20 @@ def clear_recipe_items(db, organization_id, recipe_id):
             RecipeIngredient.recipe_id == recipe_id,
         )
     )
+
+
+def consume_stock(db, organization_id, stock, payload):
+    result = db.execute(
+        update(StockItem)
+        .where(
+            StockItem.organization_id == organization_id,
+            StockItem.id == stock.id,
+            StockItem.ingredient_id == stock.ingredient_id,
+            StockItem.unit == payload.unit,
+            StockItem.quantity == payload.expected_quantity,
+            StockItem.quantity >= payload.quantity,
+        )
+        .values(quantity=StockItem.quantity - payload.quantity)
+        .execution_options(synchronize_session=False)
+    )
+    return result.rowcount == 1
