@@ -10,13 +10,17 @@ export const PERMISSIONS = [
   'quote:delete',
   'fiscal:manage',
   'production:delete',
+  'management:read',
+  'employees:manage',
+  'employee_compensation:read',
+  'cost_centers:manage',
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
 
 const permissionsByRole: Record<UserRole, ReadonlySet<Permission>> = {
   owner: new Set(PERMISSIONS),
-  admin: new Set(PERMISSIONS),
+  admin: new Set(PERMISSIONS.filter((permission) => permission !== 'employee_compensation:read')),
   member: new Set(),
 }
 
