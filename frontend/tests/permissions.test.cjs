@@ -27,10 +27,23 @@ test('owner can perform every restricted action', () => {
   }
 })
 
-test('admin can perform every restricted action', () => {
+test('admin can manage the internal module without reading compensation', () => {
   for (const permission of PERMISSIONS) {
-    assert.equal(hasPermission('admin', permission), true)
+    const expected = permission !== 'employee_compensation:read'
+    assert.equal(hasPermission('admin', permission), expected)
   }
+})
+
+test('management permissions follow the role matrix', () => {
+  assert.equal(hasPermission('owner', 'management:read'), true)
+  assert.equal(hasPermission('owner', 'employee_compensation:read'), true)
+
+  assert.equal(hasPermission('admin', 'management:read'), true)
+  assert.equal(hasPermission('admin', 'employees:manage'), true)
+  assert.equal(hasPermission('admin', 'cost_centers:manage'), true)
+  assert.equal(hasPermission('admin', 'employee_compensation:read'), false)
+
+  assert.equal(hasPermission('member', 'management:read'), false)
 })
 
 test('member cannot perform restricted actions', () => {
