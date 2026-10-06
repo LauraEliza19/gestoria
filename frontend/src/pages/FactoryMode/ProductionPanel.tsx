@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Boxes, ChefHat, Plus, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { RecipeForm, StockForm } from './ProductionForms'
+import { StockUsageForm } from './StockUsageForm'
+import { friendlyAmount } from './stockUsage'
 import { formatQuantity as format } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 import type { Recipe, Snapshot, StockItem } from './productionTypes'
@@ -20,6 +22,8 @@ export function ProductionPanel() {
   const [notice, setNotice] = useState('')
   const [ingredientEditor, setIngredientEditor] = useState<StockItem | null | undefined>()
   const [recipeEditor, setRecipeEditor] = useState<Recipe | null | undefined>()
+  const [usingStock, setUsingStock] = useState<string | null>(null)
+  const [usageNeedsRefresh, setUsageNeedsRefresh] = useState(false)
   const [onlyAvailable, setOnlyAvailable] = useState(false)
   const lock = useRef(true)
   const busy = loading || saving
@@ -55,6 +59,8 @@ export function ProductionPanel() {
       setData(await apiFetch<Snapshot>('/api/production'))
       setLoaded(true)
       setNotice('Estoque e receitas atualizados.')
+      setUsingStock(null)
+      setUsageNeedsRefresh(false)
     } catch (reason) {
       setError(getErrorMessage(reason))
     } finally {
@@ -88,6 +94,42 @@ export function ProductionPanel() {
         saved
           ? 'Cadastro salvo, mas não foi possível atualizar a consulta. Clique em Atualizar antes de conferir a disponibilidade.'
           : getErrorMessage(reason),
+      )
+    } finally {
+      lock.current = false
+      setSaving(false)
+    }
+  }
+
+  async function consume(stock: StockItem, quantity: string) {
+    if (lock.current || usageNeedsRefresh) return
+    lock.current = true
+    setSaving(true)
+    setError('')
+    setNotice('')
+    let saved = false
+    try {
+      const updated = await apiFetch<StockItem>(`/api/production/stock-items/${stock.id}/consume`, {
+        method: 'POST',
+        body: JSON.stringify({ quantity, unit: stock.unit, expected_quantity: stock.quantity }),
+      })
+      saved = true
+      setUsingStock(null)
+      setData((current) => ({
+        ...current,
+        stock_items: current.stock_items.map((item) => (item.id === updated.id ? updated : item)),
+      }))
+      setData(await apiFetch<Snapshot>('/api/production'))
+      setNotice(
+        `Você usou ${friendlyAmount(quantity, stock.unit)} de ${stock.name}. Estoque atualizado.`,
+      )
+    } catch (reason) {
+      setUsingStock(null)
+      setUsageNeedsRefresh(true)
+      setError(
+        saved
+          ? 'Uso registrado, mas a consulta não foi atualizada. Clique em Atualizar para conferir as receitas.'
+          : `${getErrorMessage(reason)} Atualize e confira o saldo antes de registrar outro uso.`,
       )
     } finally {
       lock.current = false
@@ -179,7 +221,7 @@ export function ProductionPanel() {
               <button
                 type="button"
                 className="primary-button gap-2"
-                disabled={busy || ingredientEditor !== undefined}
+                disabled={busy || ingredientEditor !== undefined || usingStock !== null}
                 onClick={() => setIngredientEditor(null)}
               >
                 <Plus size={16} aria-hidden="true" />
@@ -211,17 +253,32 @@ export function ProductionPanel() {
                   <div className="min-w-0">
                     <h3 className="break-words font-semibold">{ingredient.name}</h3>
                     <p className="mt-1 font-mono text-sm text-signal-dark">
-                      {format(ingredient.quantity)} {ingredient.unit}
+                      {friendlyAmount(ingredient.quantity, ingredient.unit)}
                     </p>
                     <p className="mt-1 text-xs text-muted">
                       Associado a: {ingredient.ingredient_name}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={
+                        busy ||
+                        usageNeedsRefresh ||
+                        ingredientEditor !== undefined ||
+                        usingStock !== null ||
+                        Number(ingredient.quantity) <= 0
+                      }
+                      aria-label={`Registrar uso de ${ingredient.name}`}
+                      onClick={() => setUsingStock(ingredient.id)}
+                    >
+                      Registrar uso
+                    </button>
                     <button
                       type="button"
                       className="secondary-button"
-                      disabled={busy || ingredientEditor !== undefined}
+                      disabled={busy || ingredientEditor !== undefined || usingStock !== null}
                       onClick={() => setIngredientEditor(ingredient)}
                     >
                       Editar item
@@ -230,7 +287,7 @@ export function ProductionPanel() {
                       <button
                         type="button"
                         className="secondary-button !text-[#a52c42]"
-                        disabled={busy}
+                        disabled={busy || usingStock !== null}
                         aria-label={`Excluir item ${ingredient.name}`}
                         onClick={() => {
                           if (
@@ -246,6 +303,14 @@ export function ProductionPanel() {
                       </button>
                     )}
                   </div>
+                  {usingStock === ingredient.id && (
+                    <StockUsageForm
+                      stock={ingredient}
+                      busy={busy}
+                      onCancel={() => setUsingStock(null)}
+                      onSave={(quantity) => void consume(ingredient, quantity)}
+                    />
+                  )}
                 </article>
               ))}
             </div>

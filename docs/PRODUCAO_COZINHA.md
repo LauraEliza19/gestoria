@@ -55,3 +55,11 @@ node --test tests/ingredientSuggestions.test.cjs
 npm run lint
 npm run build
 ```
+
+## Registrar uso de ingredientes
+
+Em **Estoque**, clique em **Registrar uso** no item utilizado. Escreva **800g**, **meio quilo**, **250 ml**, **2 unidades**, **metade** ou **tudo**. Sem unidade, o campo considera gramas, mililitros ou unidades, conforme o item. A conversão para a unidade cadastrada é automática: 800 g baixam 0,8 kg. Também é possível tocar nas quantidades rápidas, usar os botões de mais/menos ou arrastar a barra. Confira quanto usou e quanto vai sobrar e confirme em **Usei [quantidade]**. Medidas incompatíveis, acima do saldo ou que exigiriam arredondar o consumo são recusadas. A baixa atualiza o estoque e recalcula a disponibilidade das receitas. Um item zerado permanece cadastrado.
+
+`POST /api/production/stock-items/{id}/consume` recebe `quantity` (positiva, até três casas decimais), `unit` e `expected_quantity` (saldo exibido). Retorna o item atualizado. A baixa é atômica e isolada por empresa: saldo insuficiente, unidade alterada ou saldo diferente do informado retornam 409 sem baixar estoque. Dados inválidos retornam 422; item inexistente ou de outra empresa retorna 404.
+
+Se houver erro de comunicação, atualize e confira o saldo antes de tentar novamente. A interface bloqueia novos usos até essa atualização. Esta ação registra a baixa manual no saldo; ainda não mantém um histórico de movimentos nem cria demandas ou reservas.

@@ -8,6 +8,7 @@ from app.repositories import production as repository
 from app.schemas.production import (
     ProductionRead,
     RecipeInput,
+    StockConsumptionInput,
     StockItemInput,
     StockItemRead,
 )
@@ -84,6 +85,20 @@ def update_stock_item(
         payload,
         stock,
     )
+
+
+@router.post("/stock-items/{stock_id}/consume", response_model=StockItemRead)
+def consume_stock_item(
+    stock_id: uuid.UUID,
+    payload: StockConsumptionInput,
+    db: DatabaseSession,
+    current: CurrentUser,
+):
+    stock = found(repository.get_stock_item(db, current.organization.id, stock_id))
+    try:
+        return service.consume_stock_item(db, current.organization.id, stock, payload)
+    except service.ProductionError as exc:
+        conflict(db, str(exc), exc)
 
 
 def write_stock(
