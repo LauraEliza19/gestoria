@@ -16,7 +16,9 @@ import { FiscalDocumentsPage } from '../pages/Fiscal/FiscalDocumentsPage'
 import { LoginPage } from '../pages/Login/LoginPage'
 import { ManagementPage } from '../pages/Management/ManagementPage'
 import { EmployeesPage } from '../pages/Management/EmployeesPage'
+import { EmployeeRecordDetailPage } from '../pages/Management/EmployeeRecordDetailPage'
 import { EmployeeProfilePage } from '../pages/Management/EmployeeProfilePage'
+import { EmployeeRecordFormPage } from '../pages/Management/EmployeeRecordFormPage'
 import { EmploymentFormPage } from '../pages/Management/EmploymentFormPage'
 import { CostCentersPage } from '../pages/Management/CostCentersPage'
 import { EmployeeFormPage } from '../pages/Management/EmployeeFormPage'
@@ -94,6 +96,16 @@ function PageTitle() {
       /^\/gestao\/funcionarios\/[^/]+$/.test(location.pathname) &&
       location.pathname !== '/gestao/funcionarios/novo'
 
+    const isEmployeeRecordCreate = /^\/gestao\/funcionarios\/[^/]+\/registros\/novo$/.test(
+      location.pathname,
+    )
+
+    const isEmployeeRecordEdit = /^\/gestao\/funcionarios\/[^/]+\/registros\/[^/]+\/editar$/.test(
+      location.pathname,
+    )
+    const isEmployeeRecordDetail = /^\/gestao\/funcionarios\/[^/]+\/registros\/[^/]+$/.test(
+      location.pathname,
+    )
     const isEmploymentCreate = /^\/gestao\/funcionarios\/[^/]+\/vinculos\/novo$/.test(
       location.pathname,
     )
@@ -108,6 +120,12 @@ function PageTitle() {
 
     if (isCustomerProfile) {
       title = 'GestorIA — Perfil do cliente'
+    } else if (isEmployeeRecordCreate) {
+      title = 'GestorIA — Novo registro do funcionário'
+    } else if (isEmployeeRecordEdit) {
+      title = 'GestorIA — Editar registro do funcionário'
+    } else if (isEmployeeRecordDetail) {
+      title = 'GestorIA — Detalhes do registro'
     } else if (isEmploymentCreate) {
       title = 'GestorIA — Novo vínculo'
     } else if (isEmploymentEdit) {
@@ -168,6 +186,31 @@ export function AppRouter() {
             element={
               <PermissionGate permission="employees:manage">
                 <EmployeeFormPage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/gestao/funcionarios/:employeeId/registros/:recordId"
+            element={
+              <PermissionGate permission="employees:manage">
+                <EmployeeRecordDetailPage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/gestao/funcionarios/:employeeId/registros/novo"
+            element={
+              <PermissionGate permission="employees:manage">
+                <EmployeeRecordFormPage />
+              </PermissionGate>
+            }
+          />
+
+          <Route
+            path="/gestao/funcionarios/:employeeId/registros/:recordId/editar"
+            element={
+              <PermissionGate permission="employees:manage">
+                <EmployeeRecordFormPage />
               </PermissionGate>
             }
           />

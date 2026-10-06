@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
     Uuid,
 )
@@ -208,3 +210,176 @@ class Employment(Base, TimestampMixin):
     ended_at: Mapped[date | None] = mapped_column(Date)
     base_salary: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     notes: Mapped[str | None] = mapped_column(String(1000))
+
+
+class EmployeeRecord(Base, TimestampMixin):
+    __tablename__ = "management_employee_records"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_management_employee_record_org_id",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "employee_id"],
+            [
+                "management_employees.organization_id",
+                "management_employees.id",
+            ],
+            ondelete="RESTRICT",
+            name="fk_management_employee_record_employee",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "recorded_by_id"],
+            [
+                "organization_members.organization_id",
+                "organization_members.user_id",
+            ],
+            ondelete="RESTRICT",
+            name="fk_management_employee_record_recorded_by",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "updated_by_id"],
+            [
+                "organization_members.organization_id",
+                "organization_members.user_id",
+            ],
+            ondelete="RESTRICT",
+            name="fk_management_employee_record_updated_by",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "resolved_by_id"],
+            [
+                "organization_members.organization_id",
+                "organization_members.user_id",
+            ],
+            ondelete="RESTRICT",
+            name="fk_management_employee_record_resolved_by",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "cancelled_by_id"],
+            [
+                "organization_members.organization_id",
+                "organization_members.user_id",
+            ],
+            ondelete="RESTRICT",
+            name="fk_management_employee_record_cancelled_by",
+        ),
+        CheckConstraint(
+            "record_type IN ('warning', 'incident', 'commendation', 'note')",
+            name="ck_management_employee_record_type",
+        ),
+        CheckConstraint(
+            "severity IN ('informational', 'low', 'medium', 'high')",
+            name="ck_management_employee_record_severity",
+        ),
+        CheckConstraint(
+            "status IN ('open', 'resolved', 'cancelled')",
+            name="ck_management_employee_record_status",
+        ),
+        CheckConstraint(
+            "("
+            "status = 'resolved' "
+            "AND resolved_at IS NOT NULL "
+            "AND resolved_by_id IS NOT NULL"
+            ") OR ("
+            "status <> 'resolved' "
+            "AND resolved_at IS NULL "
+            "AND resolved_by_id IS NULL"
+            ")",
+            name="ck_management_employee_record_resolution",
+        ),
+        CheckConstraint(
+            "("
+            "status = 'cancelled' "
+            "AND cancelled_at IS NOT NULL "
+            "AND cancelled_by_id IS NOT NULL "
+            "AND cancellation_reason IS NOT NULL"
+            ") OR ("
+            "status <> 'cancelled' "
+            "AND cancelled_at IS NULL "
+            "AND cancelled_by_id IS NULL "
+            "AND cancellation_reason IS NULL"
+            ")",
+            name="ck_management_employee_record_cancellation",
+        ),
+        Index(
+            "ix_management_employee_records_org_employee_occurred",
+            "organization_id",
+            "employee_id",
+            "occurred_at",
+        ),
+        Index(
+            "ix_management_employee_records_org_status_occurred",
+            "organization_id",
+            "status",
+            "occurred_at",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+    )
+    recorded_by_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+    )
+    updated_by_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        nullable=False,
+    )
+    resolved_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        nullable=True,
+    )
+    cancelled_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        nullable=True,
+    )
+    record_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+    )
+    severity: Mapped[str] = mapped_column(
+        String(20),
+        default="informational",
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="open",
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(
+        String(160),
+        nullable=False,
+    )
+    description: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+    )
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    resolution_notes: Mapped[str | None] = mapped_column(Text)
+    cancellation_reason: Mapped[str | None] = mapped_column(
+        String(500),
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )

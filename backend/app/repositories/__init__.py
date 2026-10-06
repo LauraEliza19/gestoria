@@ -2,6 +2,7 @@ from app.repositories.customers import CustomerRepository, CustomerSummary
 from app.repositories.fiscal import FiscalDocumentRepository
 from app.repositories.management import (
     CostCenterRepository,
+    EmployeeRecordRepository,
     EmployeeRepository,
     EmploymentRepository,
     ManagementOverviewRepository,
@@ -15,6 +16,7 @@ __all__ = [
     "CostCenterRepository",
     "CustomerRepository",
     "CustomerSummary",
+    "EmployeeRecordRepository",
     "EmployeeRepository",
     "EmploymentRepository",
     "FiscalDocumentRepository",
