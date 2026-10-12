@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { login } from '../../services/auth.service'
 import { getErrorMessage } from '../../utils/errors'
-import logoGestoria from '../../assets/logo-gestoria.png'
+import logoGestoria from '../../assets/logo-gestoria-topo.png'
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)

@@ -298,7 +298,7 @@
   }
 
   .fiscal-detail {
-    @apply relative mt-5;
+    @apply relative mt-5 pt-12;
   }
 
   .detail-close {
@@ -662,3 +662,106 @@ html {
     scrollbar-width: auto;
   }
 }
+  .fiscal-feedback {
+    @apply mb-[18px] flex flex-col gap-1 rounded-lg border px-4 py-3 text-[13px];
+  }
+
+  .fiscal-feedback-success {
+    @apply border-[#b9e4cf] bg-[#f0fbf6] text-[#216b4b];
+  }
+
+  .fiscal-feedback-error {
+    @apply border-[#f1c3ca] bg-[#fff5f6] text-[#9d3041];
+  }
+
+  .fiscal-status-badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold whitespace-nowrap;
+  }
+
+  .fiscal-status-processing {
+    @apply border-[#c8d7ff] bg-[#eef3ff] text-[#3555b8];
+  }
+
+  .fiscal-status-success {
+    @apply border-[#b9e4cf] bg-[#eefaf4] text-[#23734f];
+  }
+
+  .fiscal-status-danger {
+    @apply border-[#f0c2c9] bg-[#fff3f5] text-[#a73547];
+  }
+
+  .fiscal-status-warning {
+    @apply border-[#ecd9a7] bg-[#fff9e9] text-[#8a6815];
+  }
+
+  .fiscal-status-neutral {
+    @apply border-[#dce1ec] bg-[#f5f6fa] text-[#59647e];
+  }
+
+  .fiscal-detail-title {
+    @apply mb-5 flex flex-col gap-4 border-b border-line pb-4 md:flex-row md:items-start md:justify-between md:pr-24;
+  }
+
+  .fiscal-detail-title h2 {
+    @apply mb-0;
+  }
+
+  .fiscal-status-context {
+    @apply max-w-[430px] text-right;
+  }
+
+  .fiscal-status-context p {
+    @apply mt-2 text-[12px] text-muted;
+  }
+
+  .fiscal-event-panel {
+    @apply rounded-lg border border-line bg-[#fbfcff] p-4;
+  }
+
+  .fiscal-section-heading {
+    @apply mb-4 flex flex-col gap-2 md:flex-row md:items-start md:justify-between;
+  }
+
+  .fiscal-section-heading h3 {
+    @apply font-display text-base font-semibold text-ink;
+  }
+
+  .fiscal-section-heading p {
+    @apply mt-1 text-xs text-muted;
+  }
+
+  .fiscal-current-state {
+    @apply inline-flex w-fit rounded-full bg-[#eef1f8] px-2.5 py-1 text-[11px] font-bold text-[#59647e];
+  }
+
+  .fiscal-event-feedback {
+    @apply flex min-h-full flex-col justify-center rounded-lg border border-[#dce4ff] bg-[#f5f7ff] p-3 text-xs text-[#536080];
+  }
+
+  .fiscal-event-feedback strong {
+    @apply text-[13px] text-ink;
+  }
+
+  .fiscal-event-feedback span {
+    @apply mt-1;
+  }
+
+  .fiscal-history {
+    @apply relative grid gap-3;
+  }
+
+  .fiscal-history li {
+    @apply relative flex gap-3 rounded-lg border border-line bg-[#fbfcff] p-3;
+  }
+
+  .fiscal-history-dot {
+    @apply mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-signal;
+  }
+
+  .fiscal-history strong {
+    @apply text-[13px] text-ink;
+  }
+
+  .fiscal-history p {
+    @apply mt-1 text-xs text-muted;
+  }

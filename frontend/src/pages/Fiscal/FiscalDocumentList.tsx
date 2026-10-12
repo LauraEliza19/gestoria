@@ -1,5 +1,5 @@
 import type { FiscalDocument, FiscalDocumentType } from './fiscalTypes'
-import { formatFiscalMoney } from './fiscalUtils'
+import { fiscalStatusClass, formatFiscalMoney } from './fiscalUtils'
 
 type FiscalDocumentListProps = {
   documents: FiscalDocument[]
@@ -59,7 +59,7 @@ export function FiscalDocumentList({
             <span>{document.issue_date.split('-').reverse().join('/')}</span>
 
             <span>{formatFiscalMoney(document.value)}</span>
-            <span>{document.status}</span>
+            <span><span className={fiscalStatusClass(document.status)}>{document.status}</span></span>
 
             <span className="row-actions">
               <button type="button" onClick={() => onSelect(document)}>

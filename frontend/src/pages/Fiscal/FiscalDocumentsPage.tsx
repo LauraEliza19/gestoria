@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../contexts/SessionContext'
 
@@ -16,6 +17,8 @@ import { useFiscalDocuments } from './useFiscalDocuments'
 
 export function FiscalDocumentsPage() {
   const { can } = useSession()
+  const detailRef = useRef<HTMLElement | null>(null)
+  const previousListScrollY = useRef(0)
   const canEdit = can('fiscal:manage')
 
   const [params] = useSearchParams()
@@ -64,6 +67,24 @@ export function FiscalDocumentsPage() {
     receiveStock,
   } = useFiscalDocuments(orderFilter)
 
+  useEffect(() => {
+    if (selected) {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [selected?.id])
+
+  function closeDetails() {
+    setSelected(null)
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: previousListScrollY.current, behavior: 'smooth' })
+    })
+  }
+
+  function openDetails(document: (typeof visible)[number]) {
+    previousListScrollY.current = window.scrollY
+    selectDocument(document)
+  }
+
   return (
     <div className="page-wrap">
       <FiscalHeader
@@ -80,15 +101,17 @@ export function FiscalDocumentsPage() {
       </p>
 
       {error && (
-        <p className="table-status" role="alert">
-          {error}
-        </p>
+        <div className="fiscal-feedback fiscal-feedback-error" role="alert">
+          <strong>Não foi possível concluir a operação</strong>
+          <span>{error}</span>
+        </div>
       )}
 
       {notice && (
-        <p className="info-note" role="status">
-          {notice}
-        </p>
+        <div className="fiscal-feedback fiscal-feedback-success" role="status">
+          <strong>Operação concluída</strong>
+          <span>{notice}</span>
+        </div>
       )}
 
       <FiscalSummary documents={documents} />
@@ -153,14 +176,14 @@ export function FiscalDocumentsPage() {
           statusFilter={statusFilter}
           canCreateForOrder={canEdit && !isOccupied(orderFilter)}
           busy={busy}
-          onSelect={selectDocument}
+          onSelect={openDetails}
           onStartOrder={(orderId) => start(orderId)}
         />
       </section>
 
       {selected && (
-        <section className="fiscal-detail page-card space-y-4">
-          <button className="detail-close" type="button" onClick={() => setSelected(null)}>
+        <section ref={detailRef} className="fiscal-detail page-card space-y-4">
+          <button className="detail-close" type="button" onClick={closeDetails}>
             Fechar
           </button>
 
