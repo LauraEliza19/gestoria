@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import type {
   FiscalDraftItem,
@@ -48,6 +49,9 @@ export function FiscalDocumentForm({
   onClose,
 }: FiscalDocumentFormProps) {
   const chosenOrder = orders.find((order) => order.id === form.order_id)
+  const availableOrders = orders.filter(
+    (order) => order.status !== 'cancelled' && !isOccupied(order.id),
+  )
 
   return (
     <section className="page-card space-y-4">
@@ -96,6 +100,15 @@ export function FiscalDocumentForm({
                     </option>
                   ))}
               </select>
+              {availableOrders.length === 0 && (
+                <small className="font-normal text-muted">
+                  Nenhum pedido disponível. Crie um pedido em{' '}
+                  <Link className="font-bold text-signal" to="/pedidos/novo">
+                    Pedidos → Novo pedido
+                  </Link>{' '}
+                  e volte aqui.
+                </small>
+              )}
             </label>
           ) : (
             <label>
