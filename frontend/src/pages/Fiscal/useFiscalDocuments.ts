@@ -17,6 +17,8 @@ export function useFiscalDocuments(orderFilter: string) {
   const [type, setType] = useState<'saida' | 'entrada'>('saida')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(createEmptyFiscalForm)
   const [draftItems, setDraftItems] = useState([createEmptyFiscalItem()])
@@ -68,19 +70,49 @@ export function useFiscalDocuments(orderFilter: string) {
     }
   }, [])
 
+  const matchesCommonFilters = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const digits = term.replace(/\D/g, '')
+
+    return (document: FiscalDocument) =>
+      (!statusFilter || document.status === statusFilter) &&
+      (!orderFilter || document.order_id === orderFilter) &&
+      (!dateFrom || document.issue_date >= dateFrom) &&
+      (!dateTo || document.issue_date <= dateTo) &&
+      (!term ||
+        `${document.number} ${document.participant_name} ${document.access_key || ''}`
+          .toLowerCase()
+          .includes(term) ||
+        (digits.length >= 3 &&
+          (document.participant_document || '').replace(/\D/g, '').includes(digits)))
+  }, [statusFilter, orderFilter, dateFrom, dateTo, search])
+
   const visible = useMemo(
     () =>
       documents.filter(
-        (document) =>
-          document.document_type === type &&
-          (!statusFilter || document.status === statusFilter) &&
-          (!orderFilter || document.order_id === orderFilter) &&
-          `${document.number} ${document.participant_name} ${document.access_key || ''}`
-            .toLowerCase()
-            .includes(search.toLowerCase()),
+        (document) => document.document_type === type && matchesCommonFilters(document),
       ),
-    [documents, type, statusFilter, orderFilter, search],
+    [documents, type, matchesCommonFilters],
   )
+
+  const typeCounts = useMemo(
+    () => ({
+      saida: documents.filter(
+        (document) => document.document_type === 'saida' && matchesCommonFilters(document),
+      ).length,
+      entrada: documents.filter(
+        (document) => document.document_type === 'entrada' && matchesCommonFilters(document),
+      ).length,
+    }),
+    [documents, matchesCommonFilters],
+  )
+
+  function clearFilters() {
+    setSearch('')
+    setStatusFilter('')
+    setDateFrom('')
+    setDateTo('')
+  }
 
   const contextOrder = orders.find((order) => order.id === orderFilter)
 
@@ -132,6 +164,24 @@ export function useFiscalDocuments(orderFilter: string) {
     })
     setDraftItems([createEmptyFiscalItem()])
     setShowForm(true)
+    void reloadFormOptions()
+  }
+
+  // Pedidos, produtos e fornecedores podem ter sido cadastrados depois que a
+  // página abriu; recarrega as opções sempre que o formulário é aberto.
+  async function reloadFormOptions() {
+    try {
+      const [orderList, productList, supplierList] = await Promise.all([
+        apiFetch<FiscalOrder[]>('/api/orders'),
+        apiFetch<FiscalProduct[]>('/api/products'),
+        apiFetch<FiscalSupplier[]>('/api/fiscal-suppliers'),
+      ])
+      setOrders(orderList)
+      setProducts(productList)
+      setSuppliers(supplierList)
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Falha ao carregar pedidos e fornecedores.'))
+    }
   }
 
   async function create(event: FormEvent) {
@@ -282,6 +332,12 @@ export function useFiscalDocuments(orderFilter: string) {
     setSearch,
     statusFilter,
     setStatusFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    clearFilters,
+    typeCounts,
     showForm,
     setShowForm,
     form,

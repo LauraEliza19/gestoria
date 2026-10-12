@@ -12,6 +12,8 @@ const list = read('src/pages/Fiscal/FiscalDocumentList.tsx')
 const overview = read('src/pages/Fiscal/FiscalDocumentOverview.tsx')
 const statusForm = read('src/pages/Fiscal/FiscalStatusForm.tsx')
 const history = read('src/pages/Fiscal/FiscalHistory.tsx')
+const modal = read('src/pages/Fiscal/FiscalModal.tsx')
+const lifecycle = read('src/pages/Fiscal/FiscalLifecycle.tsx')
 const styles = read('src/styles/tailwind.css')
 
 test('fiscal UI defines all supported visual statuses', () => {
@@ -63,10 +65,34 @@ test('history displays action, timestamp, actor and reason', () => {
   assert.match(page, /<FiscalHistory events=\{selected\.events\}/)
 })
 
-test('detail close button has reserved space and cannot overlap status', () => {
-  assert.match(page, /className="detail-close"/)
-  assert.match(styles, /\.fiscal-detail\s*\{\s*@apply relative mt-5 pt-12;/)
+test('details open in an accessible modal with reserved close space', () => {
+  assert.match(modal, /className="detail-close"/)
+  assert.match(modal, /role="dialog"/)
+  assert.match(modal, /aria-modal="true"/)
+  assert.match(modal, /event\.key === 'Escape'/)
+  assert.match(styles, /\.fiscal-modal-header\s*\{[^}]*pr-14/s)
   assert.match(styles, /\.fiscal-detail-title\s*\{[^}]*md:pr-24/s)
+})
+
+test('note list offers selection, per-note options and status steps', () => {
+  assert.match(list, /type="checkbox"/)
+  assert.match(list, /onOpen\(document, 'details'\)/)
+  assert.match(list, /onOpen\(document, 'danfe'\)/)
+  assert.match(list, /onOpen\(document, 'history'\)/)
+  assert.match(list, /onOpen\(document, 'lifecycle'\)/)
+  assert.match(list, /fiscalSteps\(document\)/)
+  assert.match(lifecycle, /Eventos fiscais/)
+  assert.match(lifecycle, /Ocorrências do sistema/)
+  for (const step of ['done', 'processing', 'failed', 'warning', 'cancelled', 'idle']) {
+    assert.ok(styles.includes(`.fiscal-step-${step}`), `missing ${step} step style`)
+  }
+})
+
+test('simplified DANFE is clearly labelled and printable', () => {
+  const danfe = read('src/pages/Fiscal/FiscalDanfe.tsx')
+  assert.match(danfe, /Não\s+substitui o DANFE oficial/)
+  assert.match(styles, /@media print/)
+  assert.match(styles, /\.fiscal-print-root/)
 })
 
 test('fiscal UI clearly states that external authorization is not performed here', () => {
