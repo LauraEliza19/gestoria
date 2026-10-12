@@ -1,18 +1,27 @@
 import { Link } from 'react-router-dom'
 import { FiscalItems } from './FiscalItems'
 import type { FiscalDocument } from './fiscalTypes'
-import { formatFiscalDateTime, formatFiscalMoney } from './fiscalUtils'
+import { fiscalStatusClass, fiscalStatusMeta, formatFiscalDateTime, formatFiscalMoney } from './fiscalUtils'
 
 type FiscalDocumentOverviewProps = {
   document: FiscalDocument
 }
 
 export function FiscalDocumentOverview({ document }: FiscalDocumentOverviewProps) {
+  const statusMeta = fiscalStatusMeta(document.status)
+
   return (
     <>
-      <h2>
-        NF {document.number} · {document.status}
-      </h2>
+      <div className="fiscal-detail-title">
+        <div>
+          <p className="eyebrow">Documento fiscal</p>
+          <h2>NF {document.number}</h2>
+        </div>
+        <div className="fiscal-status-context">
+          <span className={fiscalStatusClass(document.status)}>{statusMeta.label}</span>
+          <p>{statusMeta.description}</p>
+        </div>
+      </div>
 
       <div className="detail-grid">
         <span>

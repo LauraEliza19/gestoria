@@ -1,5 +1,5 @@
 import type { FiscalEvent } from './fiscalTypes'
-import { FISCAL_ACTION_NAMES, formatFiscalDateTime } from './fiscalUtils'
+import { FISCAL_ACTION_NAMES, fiscalStatusClass, formatFiscalDateTime } from './fiscalUtils'
 
 type FiscalHistoryProps = {
   events: FiscalEvent[]
@@ -11,16 +11,21 @@ export function FiscalHistory({ events }: FiscalHistoryProps) {
       <h3>Histórico de ações</h3>
 
       {events.length > 0 ? (
-        <ul className="space-y-2">
+        <ol className="fiscal-history">
           {events.map((event) => (
             <li key={event.id}>
-              {formatFiscalDateTime(event.created_at)} ·{' '}
-              {FISCAL_ACTION_NAMES[event.action] || event.action} · usuário {event.actor_id}
-              {event.detail.status ? ` · ${event.detail.status}` : ''}
-              {event.detail.reason ? ` · ${event.detail.reason}` : ''}
+              <span className="fiscal-history-dot" aria-hidden="true" />
+              <div>
+                <strong>{FISCAL_ACTION_NAMES[event.action] || event.action}</strong>
+                <p>
+                  {formatFiscalDateTime(event.created_at)} · usuário {event.actor_id}
+                  {event.detail.status ? <> · <span className={fiscalStatusClass(event.detail.status)}>{event.detail.status}</span></> : ''}
+                </p>
+                {event.detail.reason && <p>Motivo: {event.detail.reason}</p>}
+              </div>
             </li>
           ))}
-        </ul>
+        </ol>
       ) : (
         <p className="text-sm text-muted">Nenhuma ação registrada.</p>
       )}

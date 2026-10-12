@@ -19,9 +19,16 @@ export function FiscalSummary({ documents }: FiscalSummaryProps) {
       count: documents.filter((document) => document.status === 'Autorizada').length,
     },
     {
-      label: 'A conciliar',
-      count: documents.filter((document) => document.snapshot_source === 'legacy_unverified')
-        .length,
+      label: 'Em processamento',
+      count: documents.filter((document) => document.status === 'Em processamento').length,
+    },
+    {
+      label: 'Rejeitadas',
+      count: documents.filter((document) => document.status === 'Rejeitada').length,
+    },
+    {
+      label: 'Canceladas',
+      count: documents.filter((document) => document.status === 'Cancelada').length,
     },
   ]
 
