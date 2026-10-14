@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChefHat, Check, Clock3, RefreshCw, Search } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { ProductionPanel } from './ProductionPanel'
+import type { ProductionView } from './ProductionPanel'
+import { OrderSupplies, OrderSupplyBadge } from './OrderSupplies'
+import { orderSupplies, recipeIndex } from './availability'
+import type { OrderSupply } from './availability'
+import { useProductionSnapshot } from './useProductionSnapshot'
 import { getErrorMessage } from '../../utils/errors'
+import { ErrorState, LoadingState } from '../../components/AsyncState'
 
 type Order = {
   id: string
@@ -13,6 +19,7 @@ type Order = {
   created_at: string
 }
 type Queue = 'in_preparation' | 'completed'
+type ProductionFocus = { view: ProductionView; query: string; key: number }
 
 const quantities = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 6 })
 const dates = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -26,6 +33,7 @@ function normalize(value: string) {
 
 export function FactoryModePage() {
   const [area, setArea] = useState<'orders' | 'production'>('orders')
+  const [focus, setFocus] = useState<ProductionFocus>({ view: 'available', query: '', key: 0 })
   const [orders, setOrders] = useState<Order[]>([])
   const [tab, setTab] = useState<Queue>('in_preparation')
   const [search, setSearch] = useState('')
@@ -37,6 +45,7 @@ export function FactoryModePage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const busy = useRef(true)
+  const snapshot = useProductionSnapshot(area === 'orders')
 
   const [searchParams] = useSearchParams()
   const highlightedOrderId = searchParams.get('order_id')
@@ -100,10 +109,11 @@ export function FactoryModePage() {
     setError('')
     setNotice('')
     setCompletedOrder(null)
+    snapshot.reload()
     try {
       setOrders(await apiFetch<Order[]>('/api/orders'))
       setLoaded(true)
-      setNotice('Fila atualizada.')
+      setNotice('Fila e insumos atualizados.')
     } catch (reason) {
       setError(getErrorMessage(reason, 'Não foi possível atualizar a fila. Tente novamente.'))
     } finally {
@@ -139,17 +149,34 @@ export function FactoryModePage() {
     }
   }
 
+  function openProduction(view: ProductionView, query = '') {
+    setFocus((current) => ({ view, query, key: current.key + 1 }))
+    setArea('production')
+  }
+
   const pending = orders.filter((order) => order.status === 'in_preparation')
   const completed = orders.filter((order) => order.status === 'completed')
   const pendingItems = pending.reduce(
     (total, order) => total + order.items.reduce((sum, item) => sum + Number(item.quantity), 0),
     0,
   )
+  const supplies = useMemo(() => {
+    const result = new Map<string, OrderSupply>()
+    if (!snapshot.recipes) return result
+    const index = recipeIndex(snapshot.recipes)
+    for (const order of orders) {
+      if (order.status === 'in_preparation') result.set(order.id, orderSupplies(order, index))
+    }
+    return result
+  }, [orders, snapshot.recipes])
+  const shortOrders = [...supplies.values()].filter((supply) => supply.status === 'short').length
   const query = normalize(search)
   const visible = (tab === 'in_preparation' ? pending : completed)
     .filter(
       (order) =>
-        normalize(order.customer_name).includes(query) || normalize(order.id).includes(query),
+        normalize(order.customer_name).includes(query) ||
+        normalize(order.id).includes(query) ||
+        order.items.some((item) => normalize(item.product_name).includes(query)),
     )
     .sort((a, b) => {
       const difference = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -166,7 +193,9 @@ export function FactoryModePage() {
             <ChefHat size={32} aria-hidden="true" />
             Produção
           </h1>
-          <p>Organize a fila de preparo e acompanhe cada pedido até a conclusão.</p>
+          <p>
+            Organize a fila de preparo, confira os insumos e acompanhe cada pedido até a conclusão.
+          </p>
         </div>
         <Link className="secondary-button" to={highlightedOrderId ? '/pedidos' : '/dashboard'}>
           {highlightedOrderId ? 'Voltar aos pedidos' : 'Voltar ao painel'}
@@ -186,20 +215,26 @@ export function FactoryModePage() {
           type="button"
           aria-pressed={area === 'production'}
           className={area === 'production' ? 'primary-button' : 'secondary-button'}
-          onClick={() => setArea('production')}
+          onClick={() => openProduction('available')}
         >
           Produção e receitas
         </button>
       </div>
       {area === 'production' ? (
-        <ProductionPanel />
+        <ProductionPanel key={focus.key} initialView={focus.view} initialQuery={focus.query} />
       ) : (
         <>
           <div className="metric-grid">
             <article>
               <span>Em preparo</span>
               <strong>{loaded ? pending.length : '—'}</strong>
-              <small>Pedidos aguardando conclusão</small>
+              <small>
+                {loaded && snapshot.recipes
+                  ? shortOrders > 0
+                    ? `${shortOrders} ${shortOrders === 1 ? 'pedido' : 'pedidos'} com falta de insumos`
+                    : 'Nenhum pedido com falta de insumos'
+                  : 'Pedidos aguardando conclusão'}
+              </small>
             </article>
             <article>
               <span>Itens pendentes</span>
@@ -258,7 +293,7 @@ export function FactoryModePage() {
                     id="kitchen-search"
                     type="search"
                     className="form-input pl-10"
-                    placeholder="Cliente ou número do pedido"
+                    placeholder="Cliente, número do pedido ou produto"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                   />
@@ -277,21 +312,35 @@ export function FactoryModePage() {
                 </select>
               </label>
             </div>
-            {error && (
+
+            {!loaded && loading && <LoadingState message="Carregando pedidos..." />}
+            {!loaded && !loading && error && (
+              <ErrorState message={error} onRetry={() => void refresh()} />
+            )}
+
+            {loaded && error && (
               <p
                 role="alert"
                 className="mb-4 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
               >
-                {error}
-                {loaded && ' Os pedidos exibidos foram mantidos; atualize a fila para conferir.'}
+                {error} Os pedidos exibidos foram mantidos; atualize a fila para conferir.
               </p>
             )}
 
-            {(loading || notice) && (
+            {loaded && (loading || notice) && (
               <p role="status" className="mb-4 text-sm text-muted">
-                {loading ? (loaded ? 'Atualizando a fila...' : 'Carregando pedidos...') : notice}
+                {loading ? 'Atualizando a fila...' : notice}
               </p>
             )}
+
+            {loaded &&
+              tab === 'in_preparation' &&
+              snapshot.state === 'error' &&
+              snapshot.recipes && (
+                <p role="alert" className="mb-4 text-sm text-[#8a6815]">
+                  {snapshot.error} Os insumos exibidos podem estar desatualizados.
+                </p>
+              )}
 
             {completedOrder && (
               <section
@@ -305,12 +354,20 @@ export function FactoryModePage() {
                     concluído.
                   </p>
                   <p className="mt-1 text-sm text-[#4f7769]">
-                    A produção foi finalizada. Você pode consultar o pedido ou seguir para os
-                    documentos fiscais.
+                    Registre o uso dos ingredientes para manter o estoque e a disponibilidade
+                    corretos, ou siga para os documentos fiscais.
                   </p>
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    className="secondary-button w-full sm:w-auto"
+                    onClick={() => openProduction('ingredients')}
+                  >
+                    Registrar uso no estoque
+                  </button>
+
                   <Link
                     className="secondary-button w-full sm:w-auto"
                     to={`/pedidos?order_id=${completedOrder.id}&from=production`}
@@ -333,83 +390,101 @@ export function FactoryModePage() {
                   {visible.length}{' '}
                   {visible.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
                 </p>
-                {visible.map((order) => (
-                  <article
-                    aria-labelledby={`order-${order.id}`}
-                    className={`min-w-0 scroll-mt-24 rounded-lg border p-4 transition sm:p-5 ${
-                      order.id === highlightedOrderId
-                        ? 'border-[#9fb5ff] bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5]'
-                        : 'border-line'
-                    }`}
-                    id={`factory-order-${order.id}`}
-                    key={order.id}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="mb-1 font-mono text-xs text-muted">
-                          Pedido {order.id.slice(0, 8)}
-                        </p>
-                        <h2
-                          id={`order-${order.id}`}
-                          className="break-words font-display text-xl font-semibold"
-                        >
-                          {order.customer_name}
-                        </h2>
-                      </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${order.status === 'completed' ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#eef2ff] text-signal-dark'}`}
-                      >
-                        {order.status === 'completed' ? 'Concluído' : 'Em preparo'}
-                      </span>
-                    </div>
-                    <p className="mt-3 flex items-center gap-2 text-xs text-muted">
-                      <Clock3 size={14} aria-hidden="true" />
-                      <span>
-                        Criado em{' '}
-                        <time dateTime={order.created_at}>
-                          {dates.format(new Date(order.created_at))}
-                        </time>
-                      </span>
-                    </p>
-                    <ul
-                      className="my-4 divide-y divide-line rounded-lg bg-paper px-3"
-                      aria-label="Itens do pedido"
+                {visible.map((order) => {
+                  const supply = supplies.get(order.id) ?? null
+                  return (
+                    <article
+                      aria-labelledby={`order-${order.id}`}
+                      className={`min-w-0 scroll-mt-24 rounded-lg border p-4 transition sm:p-5 ${
+                        order.id === highlightedOrderId
+                          ? 'border-[#9fb5ff] bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5]'
+                          : 'border-line'
+                      }`}
+                      id={`factory-order-${order.id}`}
+                      key={order.id}
                     >
-                      {order.items.map((item, index) => (
-                        <li
-                          key={`${item.product_name}-${index}`}
-                          className="flex items-start gap-3 py-3 text-sm"
-                        >
-                          <span className="shrink-0 rounded bg-white px-2 py-0.5 font-mono font-medium text-signal-dark">
-                            {quantities.format(Number(item.quantity))}×
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="mb-1 font-mono text-xs text-muted">
+                            Pedido {order.id.slice(0, 8)}
+                          </p>
+                          <h2
+                            id={`order-${order.id}`}
+                            className="break-words font-display text-xl font-semibold"
+                          >
+                            {order.customer_name}
+                          </h2>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {order.status === 'in_preparation' && (
+                            <OrderSupplyBadge supply={supply} state={snapshot.state} />
+                          )}
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${order.status === 'completed' ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#eef2ff] text-signal-dark'}`}
+                          >
+                            {order.status === 'completed' ? 'Concluído' : 'Em preparo'}
                           </span>
-                          <span className="min-w-0 break-words">{item.product_name}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex flex-wrap justify-end gap-3">
-                      <Link
-                        className="secondary-button w-full sm:w-auto"
-                        to={`/pedidos?order_id=${order.id}&from=production`}
+                        </div>
+                      </div>
+                      <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+                        <Clock3 size={14} aria-hidden="true" />
+                        <span>
+                          Criado em{' '}
+                          <time dateTime={order.created_at}>
+                            {dates.format(new Date(order.created_at))}
+                          </time>
+                        </span>
+                      </p>
+                      <ul
+                        className="my-4 divide-y divide-line rounded-lg bg-paper px-3"
+                        aria-label="Itens do pedido"
                       >
-                        Ver pedido
-                      </Link>
-
+                        {order.items.map((item, index) => (
+                          <li
+                            key={`${item.product_name}-${index}`}
+                            className="flex items-start gap-3 py-3 text-sm"
+                          >
+                            <span className="shrink-0 rounded bg-white px-2 py-0.5 font-mono font-medium text-signal-dark">
+                              {quantities.format(Number(item.quantity))}×
+                            </span>
+                            <span className="min-w-0 break-words">{item.product_name}</span>
+                          </li>
+                        ))}
+                      </ul>
                       {order.status === 'in_preparation' && (
-                        <button
-                          type="button"
-                          className="primary-button w-full gap-2 sm:w-auto"
-                          disabled={disabled}
-                          onClick={() => void complete(order)}
-                          aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}
-                        >
-                          <Check size={17} aria-hidden="true" />
-                          {completing === order.id ? 'Concluindo...' : 'Marcar concluído'}
-                        </button>
+                        <OrderSupplies
+                          orderLabel={`pedido ${order.id.slice(0, 8)}`}
+                          supply={supply}
+                          state={snapshot.state}
+                          error={snapshot.error}
+                          onRetry={snapshot.reload}
+                          onOpenAvailability={(name) => openProduction('available', name)}
+                        />
                       )}
-                    </div>
-                  </article>
-                ))}
+                      <div className="flex flex-wrap justify-end gap-3">
+                        <Link
+                          className="secondary-button w-full sm:w-auto"
+                          to={`/pedidos?order_id=${order.id}&from=production`}
+                        >
+                          Ver pedido
+                        </Link>
+
+                        {order.status === 'in_preparation' && (
+                          <button
+                            type="button"
+                            className="primary-button w-full gap-2 sm:w-auto"
+                            disabled={disabled}
+                            onClick={() => void complete(order)}
+                            aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}
+                          >
+                            <Check size={17} aria-hidden="true" />
+                            {completing === order.id ? 'Concluindo...' : 'Marcar concluído'}
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
                 {visible.length === 0 && (
                   <div className="rounded-lg border border-dashed border-line px-4 py-10 text-center">
                     <ChefHat size={28} className="mx-auto mb-3 text-muted" aria-hidden="true" />
@@ -422,7 +497,7 @@ export function FactoryModePage() {
                     </p>
                     <p className="mt-2 text-sm text-muted">
                       {query
-                        ? 'Tente outro cliente ou número de pedido.'
+                        ? 'Tente outro cliente, produto ou número de pedido.'
                         : 'Use Atualizar para consultar os pedidos mais recentes.'}
                     </p>
                     {query && (
