@@ -3,17 +3,24 @@ import { BookOpen, Boxes, ChefHat, Plus, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { RecipeForm, StockForm } from './ProductionForms'
 import { StockUsageForm } from './StockUsageForm'
+import { AvailabilityBoard } from './AvailabilityBoard'
 import { friendlyAmount } from './stockUsage'
 import { formatQuantity as format } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 import type { Recipe, Snapshot, StockItem } from './productionTypes'
 import { useSession } from '../../contexts/SessionContext'
+import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
 
-type View = 'ingredients' | 'recipes' | 'available'
+export type ProductionView = 'ingredients' | 'recipes' | 'available'
 
-export function ProductionPanel() {
+type Props = {
+  initialView?: ProductionView
+  initialQuery?: string
+}
+
+export function ProductionPanel({ initialView = 'available', initialQuery = '' }: Props) {
   const { can } = useSession()
-  const [view, setView] = useState<View>('available')
+  const [view, setView] = useState<ProductionView>(initialView)
   const [data, setData] = useState<Snapshot>({ ingredients: [], stock_items: [], recipes: [] })
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -24,7 +31,6 @@ export function ProductionPanel() {
   const [recipeEditor, setRecipeEditor] = useState<Recipe | null | undefined>()
   const [usingStock, setUsingStock] = useState<string | null>(null)
   const [usageNeedsRefresh, setUsageNeedsRefresh] = useState(false)
-  const [onlyAvailable, setOnlyAvailable] = useState(false)
   const lock = useRef(true)
   const busy = loading || saving
 
@@ -38,7 +44,8 @@ export function ProductionPanel() {
         }
       })
       .catch((reason) => {
-        if (!controller.signal.aborted) setError(getErrorMessage(reason))
+        if (!controller.signal.aborted)
+          setError(getErrorMessage(reason, 'Não foi possível carregar o estoque e as receitas.'))
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -62,7 +69,7 @@ export function ProductionPanel() {
       setUsingStock(null)
       setUsageNeedsRefresh(false)
     } catch (reason) {
-      setError(getErrorMessage(reason))
+      setError(getErrorMessage(reason, 'Não foi possível carregar o estoque e as receitas.'))
     } finally {
       lock.current = false
       setLoading(false)
@@ -121,7 +128,7 @@ export function ProductionPanel() {
       }))
       setData(await apiFetch<Snapshot>('/api/production'))
       setNotice(
-        `Você usou ${friendlyAmount(quantity, stock.unit)} de ${stock.name}. Estoque atualizado.`,
+        `Você usou ${friendlyAmount(quantity, stock.unit)} de ${stock.name}. Estoque e disponibilidade atualizados.`,
       )
     } catch (reason) {
       setUsingStock(null)
@@ -138,27 +145,31 @@ export function ProductionPanel() {
   }
 
   const availableCount = data.recipes.filter((recipe) => recipe.max_batches > 0).length
-  const shownRecipes =
-    view === 'available' && onlyAvailable
-      ? data.recipes.filter((recipe) => recipe.max_batches > 0)
-      : data.recipes
+  const blockedCount = data.recipes.length - availableCount
+
   return (
     <section aria-label="Painel de produção">
       <div className="metric-grid">
         <article>
+          <span>Receitas disponíveis</span>
+          <strong className="text-[#28745b]">{loaded ? availableCount : '—'}</strong>
+          <small>
+            {loaded
+              ? `De ${data.recipes.length} ${data.recipes.length === 1 ? 'receita cadastrada' : 'receitas cadastradas'}`
+              : 'Com estoque para ao menos uma receita'}
+          </small>
+        </article>
+        <article>
+          <span>Receitas bloqueadas</span>
+          <strong className={loaded && blockedCount > 0 ? 'text-[#a52c42]' : ''}>
+            {loaded ? blockedCount : '—'}
+          </strong>
+          <small>Falta ao menos um insumo</small>
+        </article>
+        <article>
           <span>Itens em estoque</span>
           <strong>{loaded ? data.stock_items.length : '—'}</strong>
           <small>Estoque exclusivo da produção</small>
-        </article>
-        <article>
-          <span>Receitas cadastradas</span>
-          <strong>{loaded ? data.recipes.length : '—'}</strong>
-          <small>Ingredientes e rendimento definidos</small>
-        </article>
-        <article>
-          <span>Receitas disponíveis</span>
-          <strong>{loaded ? availableCount : '—'}</strong>
-          <small>Com estoque para ao menos uma receita</small>
         </article>
       </div>
       <div className="page-card">
@@ -197,7 +208,13 @@ export function ProductionPanel() {
             {loading ? 'Atualizando...' : 'Atualizar'}
           </button>
         </div>
-        {error && (
+
+        {!loaded && loading && <LoadingState message="Calculando o que dá para preparar..." />}
+        {!loaded && !loading && error && (
+          <ErrorState message={error} onRetry={() => void refresh()} />
+        )}
+
+        {loaded && error && (
           <p
             role="alert"
             className="mb-4 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
@@ -205,9 +222,24 @@ export function ProductionPanel() {
             {error}
           </p>
         )}
-        <p role="status" className="mb-4 text-sm text-muted">
-          {loading ? 'Consultando ingredientes e receitas...' : notice}
-        </p>
+        {loaded && (
+          <p role="status" className="mb-4 text-sm text-muted" aria-live="polite">
+            {loading ? 'Atualizando ingredientes e receitas...' : notice}
+          </p>
+        )}
+
+        {loaded && view === 'available' && (
+          <div aria-busy={loading}>
+            <AvailabilityBoard
+              recipes={data.recipes}
+              stockCount={data.stock_items.length}
+              initialQuery={initialQuery}
+              onOpenRecipes={() => setView('recipes')}
+              onOpenStock={() => setView('ingredients')}
+            />
+          </div>
+        )}
+
         {loaded && view === 'ingredients' && (
           <>
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -315,13 +347,14 @@ export function ProductionPanel() {
               ))}
             </div>
             {data.stock_items.length === 0 && (
-              <p className="rounded-lg bg-paper p-6 text-sm text-muted">
-                Nenhum item em estoque. Você pode cadastrar receitas agora e adicionar os saldos
-                depois.
-              </p>
+              <EmptyState
+                title="Nenhum item em estoque"
+                description="Você pode cadastrar receitas agora e adicionar os saldos depois. Sem estoque, todas as receitas ficam bloqueadas."
+              />
             )}
           </>
         )}
+
         {loaded && view === 'recipes' && (
           <>
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -342,8 +375,8 @@ export function ProductionPanel() {
               </button>
             </div>
             <p className="info-note">
-              Suas receitas independem do estoque. Ingredientes sem saldo aparecem como faltantes na
-              consulta.
+              Suas receitas independem do estoque. Para ligar uma receita aos pedidos, use o mesmo
+              nome do produto vendido (maiúsculas e acentos não importam).
             </p>
             {recipeEditor !== undefined && (
               <RecipeForm
@@ -361,75 +394,34 @@ export function ProductionPanel() {
                 }
               />
             )}
-          </>
-        )}
-        {loaded && view === 'available' && (
-          <>
-            <h2 className="font-display text-xl font-semibold">O que posso preparar?</h2>
-            <p className="mt-2 text-sm text-muted">
-              Cada opção considera o estoque inteiro, individualmente. As quantidades de receitas
-              diferentes não devem ser somadas, pois podem usar os mesmos ingredientes.
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              Esta consulta não reserva nem desconta ingredientes.
-            </p>
-            <label className="my-5 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={onlyAvailable}
-                onChange={(event) => setOnlyAvailable(event.target.checked)}
-              />
-              Mostrar apenas receitas disponíveis
-            </label>
-          </>
-        )}
-        {loaded && view !== 'ingredients' && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {shownRecipes.map((recipe) => (
-              <article key={recipe.id} className="min-w-0 rounded-lg border border-line p-5">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="break-words font-display text-xl font-semibold">{recipe.name}</h3>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${recipe.max_batches > 0 ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#fff4f6] text-[#a52c42]'}`}
-                  >
-                    {recipe.max_batches > 0 ? 'Disponível' : 'Faltam ingredientes'}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-muted">
-                  Uma receita rende {format(recipe.yield_quantity)} {recipe.yield_unit}.
-                </p>
-                {view === 'available' && (
-                  <div className="my-4 rounded-lg bg-paper p-3">
-                    <p className="font-semibold">
-                      {format(recipe.max_batches)} receita(s) completa(s)
-                    </p>
-                    <p className="mt-1 text-sm text-muted">
-                      Rendimento possível: {format(recipe.possible_yield)} {recipe.yield_unit}
-                    </p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {data.recipes.map((recipe) => (
+                <article key={recipe.id} className="min-w-0 rounded-lg border border-line p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h3 className="break-words font-display text-xl font-semibold">
+                      {recipe.name}
+                    </h3>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${recipe.max_batches > 0 ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#fff4f6] text-[#a52c42]'}`}
+                    >
+                      {recipe.max_batches > 0 ? 'Disponível' : 'Bloqueada'}
+                    </span>
                   </div>
-                )}
-                <ul className="my-4 divide-y divide-line">
-                  {recipe.items.map((item) => (
-                    <li key={item.ingredient_id} className="py-3 text-sm">
-                      <p className="break-words">
-                        <strong>
-                          {format(item.quantity)} {item.unit}
-                        </strong>{' '}
-                        de {item.ingredient_name}
-                      </p>
-                      {view === 'available' && (
-                        <p
-                          className={`mt-1 text-xs ${Number(item.missing_quantity) > 0 ? 'text-[#a52c42]' : 'text-muted'}`}
-                        >
-                          Disponível: {format(item.available_quantity)} {item.unit}
-                          {Number(item.missing_quantity) > 0 &&
-                            ` · Faltam ${format(item.missing_quantity)} ${item.unit} para uma receita`}
+                  <p className="mt-2 text-sm text-muted">
+                    Uma receita rende {format(recipe.yield_quantity)} {recipe.yield_unit}.
+                  </p>
+                  <ul className="my-4 divide-y divide-line">
+                    {recipe.items.map((item) => (
+                      <li key={item.ingredient_id} className="py-3 text-sm">
+                        <p className="break-words">
+                          <strong>
+                            {format(item.quantity)} {item.unit}
+                          </strong>{' '}
+                          de {item.ingredient_name}
                         </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                {view === 'recipes' && (
+                      </li>
+                    ))}
+                  </ul>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -454,17 +446,16 @@ export function ProductionPanel() {
                       </button>
                     )}
                   </div>
-                )}
-              </article>
-            ))}
-            {shownRecipes.length === 0 && (
-              <div className="rounded-lg bg-paper p-6 text-sm text-muted lg:col-span-2">
-                {data.recipes.length === 0
-                  ? 'Nenhuma receita cadastrada. Abra Receitas e cadastre a primeira, mesmo sem ingredientes em estoque.'
-                  : 'Nenhuma receita tem todos os ingredientes necessários. Desmarque o filtro para conferir o que falta.'}
-              </div>
+                </article>
+              ))}
+            </div>
+            {data.recipes.length === 0 && recipeEditor === undefined && (
+              <EmptyState
+                title="Nenhuma receita cadastrada"
+                description="Cadastre a primeira receita, mesmo sem ingredientes em estoque."
+              />
             )}
-          </div>
+          </>
         )}
       </div>
     </section>
