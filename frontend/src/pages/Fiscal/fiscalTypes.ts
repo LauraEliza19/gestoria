@@ -122,12 +122,7 @@ export type FiscalParty = {
 export type FiscalModalView = 'details' | 'danfe' | 'history' | 'lifecycle'
 
 export type FiscalSortKey =
-  | 'emitter'
-  | 'recipient'
-  | 'number'
-  | 'value'
-  | 'issue_date'
-  | 'updated_at'
+  'emitter' | 'recipient' | 'number' | 'value' | 'issue_date' | 'updated_at'
 
 export type FiscalSort = {
   key: FiscalSortKey
