@@ -1,26 +1,54 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Printer } from 'lucide-react'
 import { useSession } from '../../contexts/SessionContext'
 
-import { formatFiscalDateTime, formatFiscalMoney, isActiveFiscalStatus } from './fiscalUtils'
+import type { FiscalDocument, FiscalModalView } from './fiscalTypes'
+import {
+  buildFiscalCsv,
+  downloadTextFile,
+  formatFiscalDateTime,
+  formatFiscalMoney,
+  isActiveFiscalStatus,
+} from './fiscalUtils'
 
 import { FiscalSummary } from './FiscalSummary'
 import { FiscalHeader } from './FiscalHeader'
 import { FiscalDocumentList } from './FiscalDocumentList'
 import { FiscalFilters } from './FiscalFilters'
-import { FiscalDocumentOverview } from './FiscalDocumentOverview'
+import { FiscalToolbar } from './FiscalToolbar'
+import { FiscalModal } from './FiscalModal'
+import { FiscalDocumentDetails } from './FiscalDocumentDetails'
+import { FiscalDanfe } from './FiscalDanfe'
+import { FiscalLifecycle } from './FiscalLifecycle'
+import { FiscalPrintArea } from './FiscalPrintArea'
 import { FiscalHistory } from './FiscalHistory'
 import { FiscalStatusForm } from './FiscalStatusForm'
 import { FiscalLinkForm } from './FiscalLinkForm'
 import { FiscalDocumentForm } from './FiscalDocumentForm'
 import { useFiscalDocuments } from './useFiscalDocuments'
 
+const MODAL_TITLES: Record<FiscalModalView, string> = {
+  details: 'Detalhes da nota fiscal',
+  danfe: 'Visualizar DANFE',
+  history: 'Histórico de processamento',
+  lifecycle: 'Ciclo de vida da nota',
+}
+
 export function FiscalDocumentsPage() {
-  const { can } = useSession()
+  const { can, session } = useSession()
+  const organization = session.organization
   const canEdit = can('fiscal:manage')
 
   const [params] = useSearchParams()
   const orderFilter = params.get('order_id') || ''
   const fromProduction = params.get('from') === 'production'
+
+  const [modalView, setModalView] = useState<FiscalModalView | null>(null)
+  const [modalTab, setModalTab] = useState<string | undefined>()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [printDocuments, setPrintDocuments] = useState<FiscalDocument[]>([])
+  const [toolbarNotice, setToolbarNotice] = useState('')
 
   const {
     documents,
@@ -37,6 +65,12 @@ export function FiscalDocumentsPage() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    clearFilters,
+    typeCounts,
     showForm,
     setShowForm,
     form,
@@ -64,6 +98,156 @@ export function FiscalDocumentsPage() {
     receiveStock,
   } = useFiscalDocuments(orderFilter)
 
+  const selectedDocuments = useMemo(
+    () => visible.filter((document) => selectedIds.has(document.id)),
+    [visible, selectedIds],
+  )
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [type])
+
+  useEffect(() => {
+    if (!toolbarNotice) {
+      return
+    }
+
+    const timer = window.setTimeout(() => setToolbarNotice(''), 4000)
+    return () => window.clearTimeout(timer)
+  }, [toolbarNotice])
+
+  const closeModal = useCallback(() => {
+    setModalView(null)
+    setModalTab(undefined)
+    setSelected(null)
+  }, [setSelected])
+
+  const finishPrint = useCallback(() => setPrintDocuments([]), [])
+
+  function openDocument(document: FiscalDocument, view: FiscalModalView, tab?: string) {
+    selectDocument(document)
+    setModalTab(tab)
+    setModalView(view)
+  }
+
+  function toggleSelection(ids: string[], checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      ids.forEach((id) => (checked ? next.add(id) : next.delete(id)))
+      return next
+    })
+  }
+
+  function exportCsv() {
+    const rows = selectedDocuments.length > 0 ? selectedDocuments : visible
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadTextFile(
+      `notas-${type === 'saida' ? 'saida' : 'entrada'}-${stamp}.csv`,
+      buildFiscalCsv(rows, organization),
+      'text/csv',
+    )
+    setToolbarNotice(`${rows.length} ${rows.length === 1 ? 'nota exportada' : 'notas exportadas'}.`)
+  }
+
+  async function copyKeys() {
+    const keys = selectedDocuments
+      .map((document) => document.access_key)
+      .filter((key): key is string => Boolean(key))
+
+    if (keys.length === 0) {
+      setToolbarNotice('As notas selecionadas não possuem chave de acesso registrada.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(keys.join('\n'))
+      setToolbarNotice(
+        `${keys.length} ${keys.length === 1 ? 'chave copiada' : 'chaves copiadas'}` +
+          (keys.length < selectedDocuments.length ? ' (algumas notas não têm chave).' : '.'),
+      )
+    } catch {
+      setToolbarNotice('Não foi possível acessar a área de transferência.')
+    }
+  }
+
+  const statusActions =
+    selected && canEdit ? (
+      <>
+        {selected.document_type === 'saida' && selected.snapshot_source === 'legacy_unverified' && (
+          <FiscalLinkForm
+            orders={orders}
+            currentOrderId={selected.order_id}
+            form={linkForm}
+            busy={busy}
+            onChange={setLinkForm}
+            onSubmit={reconcileOrder}
+          />
+        )}
+
+        <FiscalStatusForm
+          currentStatus={selected.status}
+          allowedStatuses={selected.allowed_statuses}
+          form={eventForm}
+          busy={busy}
+          onChange={setEventForm}
+          onSubmit={statusEvent}
+        />
+
+        {selected.document_type === 'saida' &&
+          selected.order_id &&
+          !isActiveFiscalStatus(selected.status) && (
+            <button
+              className="secondary-button"
+              disabled={busy}
+              type="button"
+              onClick={() => {
+                const orderId = selected.order_id!
+                closeModal()
+                start(orderId)
+              }}
+            >
+              Reemitir em novo registro
+            </button>
+          )}
+
+        {selected.stock_received_at && (
+          <p className="info-note">
+            Recebimento registrado em {formatFiscalDateTime(selected.stock_received_at)}.
+            {selected.status === 'Cancelada' ? ' O cancelamento estornou esse recebimento.' : ''}
+          </p>
+        )}
+
+        {selected.document_type === 'entrada' &&
+          selected.status === 'Autorizada' &&
+          !selected.is_legacy &&
+          !selected.stock_received_at && (
+            <button
+              className="primary-button"
+              disabled={busy}
+              type="button"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Confirma o recebimento físico dos produtos? Esta ação adiciona as quantidades ao estoque uma única vez.',
+                  )
+                ) {
+                  void receiveStock()
+                }
+              }}
+            >
+              Confirmar recebimento no estoque
+            </button>
+          )}
+
+        {selected.allowed_statuses.length === 0 &&
+          !(selected.document_type === 'saida' && selected.order_id) && (
+            <p className="text-sm text-muted">
+              Esta nota está em uma situação final e não aceita novos eventos.
+            </p>
+          )}
+      </>
+    ) : undefined
+
   return (
     <div className="page-wrap">
       <FiscalHeader
@@ -79,19 +263,30 @@ export function FiscalDocumentsPage() {
         autorização fiscal dependem de um serviço externo.
       </p>
 
-      {error && (
-        <p className="table-status" role="alert">
-          {error}
-        </p>
+      {error && !modalView && (
+        <div className="fiscal-feedback fiscal-feedback-error" role="alert">
+          <strong>Não foi possível concluir a operação</strong>
+          <span>{error}</span>
+        </div>
       )}
 
-      {notice && (
-        <p className="info-note" role="status">
-          {notice}
-        </p>
+      {notice && !modalView && (
+        <div className="fiscal-feedback fiscal-feedback-success" role="status">
+          <strong>Operação concluída</strong>
+          <span>{notice}</span>
+        </div>
       )}
 
-      <FiscalSummary documents={documents} />
+      <FiscalSummary
+        documents={documents}
+        type={type}
+        statusFilter={statusFilter}
+        onSelectType={(documentType) => {
+          setType(documentType)
+          setStatusFilter('')
+        }}
+        onSelectStatus={setStatusFilter}
+      />
 
       {showForm && canEdit && (
         <FiscalDocumentForm
@@ -137,106 +332,120 @@ export function FiscalDocumentsPage() {
           type={type}
           search={search}
           statusFilter={statusFilter}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          counts={typeCounts}
           busy={busy}
           onTypeChange={setType}
           onSearchChange={setSearch}
           onStatusFilterChange={setStatusFilter}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+          onClear={clearFilters}
           onRefresh={() => void refreshDocuments()}
         />
 
+        <FiscalToolbar
+          selectedCount={selectedDocuments.length}
+          visibleCount={visible.length}
+          onExport={exportCsv}
+          onPrint={() => setPrintDocuments(selectedDocuments)}
+          onCopyKeys={() => void copyKeys()}
+          onClearSelection={() => setSelectedIds(new Set())}
+        />
+
+        {toolbarNotice && (
+          <p className="fiscal-toolbar-notice" role="status">
+            {toolbarNotice}
+          </p>
+        )}
+
         <FiscalDocumentList
           documents={visible}
+          organization={organization}
           loading={loading}
           orderFilter={orderFilter}
           type={type}
           search={search}
           statusFilter={statusFilter}
+          resetKey={`${type}|${search}|${statusFilter}|${orderFilter}|${dateFrom}|${dateTo}`}
           canCreateForOrder={canEdit && !isOccupied(orderFilter)}
+          canEdit={canEdit}
           busy={busy}
-          onSelect={selectDocument}
+          selectedIds={selectedIds}
+          onToggleSelection={toggleSelection}
+          onOpen={openDocument}
           onStartOrder={(orderId) => start(orderId)}
         />
       </section>
 
-      {selected && (
-        <section className="fiscal-detail page-card space-y-4">
-          <button className="detail-close" type="button" onClick={() => setSelected(null)}>
-            Fechar
-          </button>
+      {selected && modalView && (
+        <FiscalModal
+          title={MODAL_TITLES[modalView]}
+          document={selected}
+          organization={organization}
+          wide={modalView === 'details' || modalView === 'danfe'}
+          showContext={modalView !== 'details'}
+          footer={
+            modalView === 'danfe' ? (
+              <button
+                className="primary-button gap-2"
+                type="button"
+                onClick={() => setPrintDocuments([selected])}
+              >
+                <Printer size={16} aria-hidden="true" />
+                Imprimir
+              </button>
+            ) : modalView !== 'details' ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setModalView('details')}
+              >
+                Ver detalhes da nota
+              </button>
+            ) : undefined
+          }
+          onClose={closeModal}
+        >
+          {error && (
+            <div className="fiscal-feedback fiscal-feedback-error" role="alert">
+              <strong>Não foi possível concluir a operação</strong>
+              <span>{error}</span>
+            </div>
+          )}
 
-          <FiscalDocumentOverview document={selected} />
+          {notice && (
+            <div className="fiscal-feedback fiscal-feedback-success" role="status">
+              <strong>Operação concluída</strong>
+              <span>{notice}</span>
+            </div>
+          )}
 
-          {canEdit &&
-            selected.document_type === 'saida' &&
-            selected.snapshot_source === 'legacy_unverified' && (
-              <FiscalLinkForm
-                orders={orders}
-                currentOrderId={selected.order_id}
-                form={linkForm}
-                busy={busy}
-                onChange={setLinkForm}
-                onSubmit={reconcileOrder}
-              />
-            )}
-
-          {canEdit && (
-            <FiscalStatusForm
-              currentStatus={selected.status}
-              allowedStatuses={selected.allowed_statuses}
-              form={eventForm}
-              busy={busy}
-              onChange={setEventForm}
-              onSubmit={statusEvent}
+          {modalView === 'details' && (
+            <FiscalDocumentDetails
+              key={`${selected.id}-${modalTab || 'nfe'}`}
+              document={selected}
+              organization={organization}
+              initialTab={modalTab}
+              actions={statusActions}
+              history={<FiscalHistory events={selected.events} />}
             />
           )}
 
-          {canEdit &&
-            selected.document_type === 'saida' &&
-            selected.order_id &&
-            !isActiveFiscalStatus(selected.status) && (
-              <button
-                className="secondary-button"
-                disabled={busy}
-                type="button"
-                onClick={() => start(selected.order_id!)}
-              >
-                Reemitir em novo registro
-              </button>
-            )}
+          {modalView === 'danfe' && <FiscalDanfe document={selected} organization={organization} />}
 
-          {selected.stock_received_at && (
-            <p className="info-note">
-              Recebimento registrado em {formatFiscalDateTime(selected.stock_received_at)}.
-              {selected.status === 'Cancelada' ? ' O cancelamento estornou esse recebimento.' : ''}
-            </p>
-          )}
+          {modalView === 'history' && <FiscalHistory events={selected.events} />}
 
-          {canEdit &&
-            selected.document_type === 'entrada' &&
-            selected.status === 'Autorizada' &&
-            !selected.is_legacy &&
-            !selected.stock_received_at && (
-              <button
-                className="primary-button"
-                disabled={busy}
-                type="button"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      'Confirma o recebimento físico dos produtos? Esta ação adiciona as quantidades ao estoque uma única vez.',
-                    )
-                  ) {
-                    void receiveStock()
-                  }
-                }}
-              >
-                Confirmar recebimento no estoque
-              </button>
-            )}
-
-          <FiscalHistory events={selected.events} />
-        </section>
+          {modalView === 'lifecycle' && <FiscalLifecycle document={selected} />}
+        </FiscalModal>
       )}
+
+      <FiscalPrintArea
+        documents={printDocuments}
+        organization={organization}
+        onDone={finishPrint}
+      />
     </div>
   )
 }
