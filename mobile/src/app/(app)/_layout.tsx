@@ -24,6 +24,16 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Pedidos',
+          tabBarAccessibilityLabel: 'Abrir pedidos',
+          tabBarIcon: ({ color }) => (
+            <Text style={[styles.icon, { color }]}>≡</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="account"
         options={{
           title: 'Conta',
