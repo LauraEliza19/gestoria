@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-gestoria}:${POSTGRES_PASSWORD:-gestoria_dev}@db:5432/${POSTGRES_DB:-gestoria}
       APP_ENV: development
       COOKIE_SECURE: "false"
+      ALLOWED_HOSTS: '${ALLOWED_HOSTS:-["localhost","127.0.0.1","testserver"]}'
       DEMO_ENABLED: ${DEMO_ENABLED:-false}
       DEMO_ORGANIZATION: ${DEMO_ORGANIZATION:-Empresa Demo GestorIA}
       DEMO_EMAIL: ${DEMO_EMAIL:-admin@gestoria.dev}
