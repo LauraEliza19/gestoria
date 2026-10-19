@@ -10,6 +10,7 @@ from app.api import (
     auth,
     copilot,
     customers,
+    dashboard,
     fiscal,
     management,
     management_employee_records,
@@ -63,6 +64,7 @@ app.include_router(copilot.router)
 app.include_router(order_operations.router)
 app.include_router(products.router)
 app.include_router(customers.router)
+app.include_router(dashboard.router)
 app.include_router(orders.router)
 app.include_router(quotes.router)
 app.include_router(organization.router)

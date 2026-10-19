@@ -20,6 +20,11 @@ from app.schemas.customer import (
     CustomerRead,
     CustomerUpdate,
 )
+from app.schemas.dashboard import (
+    DashboardAlertRead,
+    DashboardOverviewRead,
+    DashboardSummaryRead,
+)
 from app.schemas.fiscal import (
     FiscalDocumentCreate,
     FiscalDocumentRead,
@@ -76,6 +81,9 @@ __all__ = [
     "CustomerProfileRead",
     "CustomerRead",
     "CustomerUpdate",
+    "DashboardAlertRead",
+    "DashboardOverviewRead",
+    "DashboardSummaryRead",
     "EmployeeCreate",
     "EmployeeRead",
     "EmployeeRecordCancel",
