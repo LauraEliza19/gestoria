@@ -7,6 +7,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import (
     auth,
+    copilot,
     customers,
     fiscal,
     management,
@@ -50,6 +51,7 @@ app = FastAPI(
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 app.include_router(auth.router)
+app.include_router(copilot.router)
 app.include_router(order_operations.router)
 app.include_router(products.router)
 app.include_router(customers.router)
