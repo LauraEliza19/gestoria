@@ -16,7 +16,7 @@ export const PERMISSIONS = [
   'cost_centers:manage',
 ] as const
 
-export type Permission = (typeof PERMISSIONS)[number]
+export type Permission = (typeof PERMISSIONS)[number] | 'finance:read' | 'finance:manage'
 
 const permissionsByRole: Record<UserRole, ReadonlySet<Permission>> = {
   owner: new Set(PERMISSIONS),

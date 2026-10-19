@@ -12,6 +12,7 @@ export type Session = {
   full_name: string
   email: string
   role: UserRole
+  finance_access_approved?: boolean
   organization: Record<string, string | null>
 }
 

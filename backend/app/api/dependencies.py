@@ -25,3 +25,18 @@ def require_role(current: AuthenticatedUser, allowed: set[str]) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você não possui permissão para executar essa ação.",
         )
+
+
+def require_finance_read(current: AuthenticatedUser) -> None:
+    if current.membership.role not in {"owner", "admin"} and not (
+        current.membership.role == "member"
+        and current.membership.finance_access_approved
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="O acesso de membro ao Financeiro precisa ser aprovado.",
+        )
+
+
+def require_finance_manage(current: AuthenticatedUser) -> None:
+    require_role(current, {"owner", "admin"})
