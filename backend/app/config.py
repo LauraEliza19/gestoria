@@ -23,6 +23,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
     ]
     allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
     session_access_minutes: int = Field(default=30, ge=1, le=120)
