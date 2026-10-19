@@ -35,6 +35,9 @@ __all__ = [
     "FiscalDocumentItem",
     "FiscalEvent",
     "FiscalStockMovement",
+    "FinanceAuditEvent",
+    "FinanceCategory",
+    "FinanceEntry",
     "Order",
     "OrderAuditEvent",
     "OrderItem",
@@ -123,6 +126,9 @@ class OrganizationMember(Base):
     )
     role: Mapped[str] = mapped_column(String(20), default="member", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    finance_access_approved: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -461,3 +467,4 @@ from app.models.production import (  # noqa: F401
     Recipe,
     RecipeIngredient,
 )
+from app.models.finance import FinanceAuditEvent, FinanceCategory, FinanceEntry
