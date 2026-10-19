@@ -34,6 +34,16 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="copilot"
+        options={{
+          title: 'Copiloto',
+          tabBarAccessibilityLabel: 'Abrir Copiloto',
+          tabBarIcon: ({ color }) => (
+            <Text style={[styles.icon, { color }]}>✦</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="account"
         options={{
           title: 'Conta',
