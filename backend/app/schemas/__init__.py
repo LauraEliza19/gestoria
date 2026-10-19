@@ -122,3 +122,12 @@ __all__ = [
     "SessionRead",
     "normalize_phone",
 ]
+from app.schemas.finance import (
+    FinanceCategoryCreate,
+    FinanceCategoryRead,
+    FinanceCategoryUpdate,
+    FinanceEntryCreate,
+    FinanceEntryRead,
+    FinanceEntryUpdate,
+    FinanceSummaryRead,
+)

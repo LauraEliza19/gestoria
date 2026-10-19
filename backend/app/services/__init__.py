@@ -50,6 +50,14 @@ from app.services.quotes import (
     delete_quote_record,
     update_quote_status,
 )
+from app.services.finance import (
+    DuplicateFinanceCategoryError,
+    FinanceCategoryUnavailableError,
+    create_category,
+    create_entry,
+    update_category,
+    update_entry,
+)
 
 __all__ = [
     "ActiveEmploymentExistsError",
@@ -97,4 +105,10 @@ __all__ = [
     "update_order_status",
     "update_product",
     "update_quote_status",
+    "DuplicateFinanceCategoryError",
+    "FinanceCategoryUnavailableError",
+    "create_category",
+    "create_entry",
+    "update_category",
+    "update_entry",
 ]

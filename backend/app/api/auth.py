@@ -85,5 +85,6 @@ def get_me(current: CurrentUser):
         full_name=current.user.full_name,
         email=current.user.email,
         role=current.membership.role,
+        finance_access_approved=current.membership.finance_access_approved,
         organization=OrganizationRead.model_validate(current.organization),
     )

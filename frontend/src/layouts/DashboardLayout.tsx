@@ -7,6 +7,7 @@ import {
   ChefHat,
   ClipboardList,
   FileText,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -61,7 +62,8 @@ function TopNavigation() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const headerRef = useRef<HTMLElement>(null)
-  const managementActive = pathname === '/gestao' || pathname.startsWith('/gestao/')
+  const managementActive =
+    pathname === '/financeiro' || pathname === '/gestao' || pathname.startsWith('/gestao/')
   const managementOpen = openGroup === 'gestao'
 
   function closeNavigation() {
@@ -218,7 +220,7 @@ function TopNavigation() {
             )
           })}
 
-          {can('management:read') && (
+          {(can('management:read') || can('finance:read')) && (
             <div className="relative">
               <button
                 type="button"
@@ -238,21 +240,38 @@ function TopNavigation() {
               </button>
 
               <div id="navigation-gestao" hidden={!managementOpen} className={dropdownClass}>
-                <NavLink
-                  to="/gestao"
-                  end
-                  onClick={closeNavigation}
-                  className={({ isActive }) =>
-                    `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                      isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
-                    }`
-                  }
-                >
-                  <BriefcaseBusiness size={18} aria-hidden="true" />
-                  Visão geral
-                </NavLink>
+                {can('management:read') && (
+                  <NavLink
+                    to="/gestao"
+                    end
+                    onClick={closeNavigation}
+                    className={({ isActive }) =>
+                      `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    <BriefcaseBusiness size={18} aria-hidden="true" />
+                    Visão geral
+                  </NavLink>
+                )}
 
-                <NavLink
+                {can('finance:read') && (
+                  <NavLink
+                    to="/financeiro"
+                    onClick={closeNavigation}
+                    className={({ isActive }) =>
+                      `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    <Landmark size={18} aria-hidden="true" />
+                    Financeiro
+                  </NavLink>
+                )}
+
+                {can('management:read') && <NavLink
                   to="/gestao/funcionarios"
                   onClick={closeNavigation}
                   className={({ isActive }) =>
@@ -263,9 +282,9 @@ function TopNavigation() {
                 >
                   <Users size={18} aria-hidden="true" />
                   Funcionários
-                </NavLink>
+                </NavLink>}
 
-                <NavLink
+                {can('management:read') && <NavLink
                   to="/gestao/centros-de-custo"
                   onClick={closeNavigation}
                   className={({ isActive }) =>
@@ -276,7 +295,7 @@ function TopNavigation() {
                 >
                   <Building2 size={18} aria-hidden="true" />
                   Centros de custo
-                </NavLink>
+                </NavLink>}
               </div>
             </div>
           )}

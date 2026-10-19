@@ -13,6 +13,7 @@ from app.repositories.orders import OrderItemRepository, OrderRepository
 from app.repositories.products import ProductRepository
 from app.repositories.quotes import QuoteItemRepository, QuoteRepository
 from app.repositories.users import OrganizationRepository, UserRepository
+from app.repositories.finance import FinanceCategoryRepository, FinanceEntryRepository
 
 __all__ = [
     "CopilotRepository",
@@ -33,4 +34,6 @@ __all__ = [
     "QuoteItemRepository",
     "QuoteRepository",
     "UserRepository",
+    "FinanceCategoryRepository",
+    "FinanceEntryRepository",
 ]
