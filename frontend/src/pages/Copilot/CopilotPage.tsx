@@ -14,6 +14,7 @@ export function CopilotPage() {
     newConversation,
     clearHistory,
     sendMessage,
+    retryMessage,
   } = useCopilot()
 
   return (
@@ -51,6 +52,7 @@ export function CopilotPage() {
           messages={messages}
           sending={sending}
           onInputChange={setInput}
+          onRetry={retryMessage}
           onSend={sendMessage}
         />
 

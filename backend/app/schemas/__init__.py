@@ -6,6 +6,14 @@ from app.schemas.auth import (
     SessionRead,
 )
 from app.schemas.common import Money, normalize_phone
+from app.schemas.copilot import (
+    CopilotActionRead,
+    CopilotChatRequest,
+    CopilotChatResponse,
+    CopilotConfirmationRead,
+    CopilotItemRead,
+    CopilotToolRead,
+)
 from app.schemas.customer import (
     CustomerCreate,
     CustomerProfileRead,
@@ -54,6 +62,12 @@ from app.schemas.quote import (
 )
 
 __all__ = [
+    "CopilotActionRead",
+    "CopilotChatRequest",
+    "CopilotChatResponse",
+    "CopilotConfirmationRead",
+    "CopilotItemRead",
+    "CopilotToolRead",
     "CostCenterCreate",
     "CostCenterRead",
     "CostCenterUpdate",

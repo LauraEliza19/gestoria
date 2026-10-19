@@ -1,4 +1,5 @@
 from app.services.auth import AuthenticatedUser, authenticate
+from app.services.copilot import answer_copilot
 from app.services.customers import get_customer_profile
 from app.services.management import (
     ActiveEmploymentExistsError,
@@ -72,6 +73,7 @@ __all__ = [
     "QuoteNotConvertibleError",
     "QuoteServiceError",
     "QuoteStatusTransitionError",
+    "answer_copilot",
     "authenticate",
     "cancel_employee_record",
     "convert_quote_to_order",
