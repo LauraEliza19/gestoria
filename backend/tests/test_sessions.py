@@ -176,24 +176,48 @@ def test_csrf_required_for_all_mutations(client, path):
 def test_origin_null_rejected_and_same_origin_allowed(client):
     assert (
         client.post(
-            "/api/auth/login", headers={"Origin": "null"}, json=LOGIN
+            "/api/auth/login",
+            headers={"Origin": "null"},
+            json=LOGIN,
         ).status_code
         == 403
     )
+
     assert (
         client.post(
-            "/api/auth/login", headers={"Origin": "http://localhost:5173"}, json=LOGIN
+            "/api/auth/login",
+            headers={"Origin": "http://localhost:5173"},
+            json=LOGIN,
         ).status_code
         == 200
     )
-    response = client.options(
+
+    expo_preflight = client.options(
+        "/api/auth/login",
+        headers={
+            "Origin": "http://localhost:8081",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": ("Content-Type, X-CSRF-Protection"),
+        },
+    )
+
+    assert expo_preflight.status_code == 200
+    assert (
+        expo_preflight.headers["access-control-allow-origin"] == "http://localhost:8081"
+    )
+    assert expo_preflight.headers["access-control-allow-credentials"] == "true"
+
+    attacker_preflight = client.options(
         "/api/auth/login",
         headers={
             "Origin": "https://attacker.example",
+            "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "X-CSRF-Protection",
         },
     )
-    assert "access-control-allow-origin" not in response.headers
+
+    assert attacker_preflight.status_code == 400
+    assert "access-control-allow-origin" not in attacker_preflight.headers
 
 
 def test_account_rate_limit_normalizes_email(client, monkeypatch):

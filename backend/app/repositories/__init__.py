@@ -1,3 +1,4 @@
+from app.repositories.copilot import CopilotRepository
 from app.repositories.customers import CustomerRepository, CustomerSummary
 from app.repositories.fiscal import FiscalDocumentRepository
 from app.repositories.management import (
@@ -13,6 +14,7 @@ from app.repositories.quotes import QuoteItemRepository, QuoteRepository
 from app.repositories.users import OrganizationRepository, UserRepository
 
 __all__ = [
+    "CopilotRepository",
     "CostCenterRepository",
     "CustomerRepository",
     "CustomerSummary",
