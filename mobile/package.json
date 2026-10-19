@@ -41,7 +41,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/copilotInterface.test.cjs",
+    "test": "node --test tests/copilotInterface.test.cjs tests/dashboardInterface.test.cjs",
     "check": "npm run lint && npm run typecheck && npm test"
   },
   "private": true
