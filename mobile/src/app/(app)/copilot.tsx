@@ -1,0 +1,1 @@
+export { CopilotScreen as default } from '@/features/copilot/screens/CopilotScreen';
