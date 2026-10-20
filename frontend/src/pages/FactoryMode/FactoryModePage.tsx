@@ -1,32 +1,39 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChefHat, Check, Clock3, RefreshCw, Search } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { ProductionPanel } from './ProductionPanel'
+import type { ProductionView } from './ProductionPanel'
+import { OrderSupplies, SupplyBadge } from './OrderSupplies'
+import { byQueueOrder, normalizeText as normalize, planQueueSupplies } from './availability'
+import { loadQueueAndSupplies } from './queueRefresh'
+import type { Snapshot } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 
 type Order = {
   id: string
   customer_name: string
   status: string
-  items: { product_name: string; quantity: string }[]
+  items: {
+    product_id: string
+    product_name: string
+    quantity: string
+    recipe_id?: string | null
+    unit_of_measure?: string | null
+  }[]
   created_at: string
 }
 type Queue = 'in_preparation' | 'completed'
 
 const quantities = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 6 })
 const dates = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-function normalize(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('pt-BR')
-    .trim()
-}
 
 export function FactoryModePage() {
   const [area, setArea] = useState<'orders' | 'production'>('orders')
+  const [productionView, setProductionView] = useState<ProductionView>('available')
   const [orders, setOrders] = useState<Order[]>([])
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
+  const [openSupplies, setOpenSupplies] = useState<string | null>(null)
   const [tab, setTab] = useState<Queue>('in_preparation')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('oldest')
@@ -44,28 +51,24 @@ export function FactoryModePage() {
   useEffect(() => {
     const controller = new AbortController()
 
-    apiFetch<Order[]>('/api/orders', {
-      signal: controller.signal,
-    })
-      .then((list) => {
-        if (controller.signal.aborted) {
-          return
-        }
+    void loadQueueAndSupplies(
+      () => apiFetch<Order[]>('/api/orders', { signal: controller.signal }),
+      () => apiFetch<Snapshot>('/api/production', { signal: controller.signal }),
+      getErrorMessage,
+    ).then((result) => {
+      if (controller.signal.aborted) {
+        return
+      }
 
-        setOrders(list)
+      if (result.orders) {
+        setOrders(result.orders)
         setLoaded(true)
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(getErrorMessage(reason, 'Não foi possível carregar os pedidos.'))
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          busy.current = false
-          setLoading(false)
-        }
-      })
+      }
+      if (result.supplies) setSnapshot(result.supplies)
+      setError(result.error)
+      busy.current = false
+      setLoading(false)
+    })
 
     return () => controller.abort()
   }, [])
@@ -100,16 +103,25 @@ export function FactoryModePage() {
     setError('')
     setNotice('')
     setCompletedOrder(null)
-    try {
-      setOrders(await apiFetch<Order[]>('/api/orders'))
+    // The notice only appears after both the queue and the supplies have settled.
+    const result = await loadQueueAndSupplies(
+      () => apiFetch<Order[]>('/api/orders'),
+      () => apiFetch<Snapshot>('/api/production'),
+      getErrorMessage,
+    )
+    if (result.orders) {
+      setOrders(result.orders)
       setLoaded(true)
-      setNotice('Fila atualizada.')
-    } catch (reason) {
-      setError(getErrorMessage(reason, 'Não foi possível atualizar a fila. Tente novamente.'))
-    } finally {
-      busy.current = false
-      setLoading(false)
     }
+    if (result.supplies) setSnapshot(result.supplies)
+    const kept = [
+      !result.orders && loaded && 'Os pedidos exibidos foram mantidos.',
+      !result.supplies && snapshot && 'Os insumos exibidos podem estar desatualizados.',
+    ]
+    setError([result.error, ...kept].filter(Boolean).join(' '))
+    setNotice(result.notice)
+    busy.current = false
+    setLoading(false)
   }
 
   async function complete(order: Order) {
@@ -132,7 +144,9 @@ export function FactoryModePage() {
       setOrders((current) => current.map((item) => (item.id === order.id ? updated : item)))
       setCompletedOrder(updated)
     } catch (reason) {
-      setError(getErrorMessage(reason, 'Não foi possível concluir o pedido. Tente novamente.'))
+      setError(
+        `${getErrorMessage(reason, 'Não foi possível concluir o pedido. Tente novamente.')} Os pedidos exibidos foram mantidos; atualize a fila para conferir.`,
+      )
     } finally {
       busy.current = false
       setCompleting(null)
@@ -145,16 +159,20 @@ export function FactoryModePage() {
     (total, order) => total + order.items.reduce((sum, item) => sum + Number(item.quantity), 0),
     0,
   )
+  // Reservations always follow the queue (oldest first), whatever the search or sort shown.
+  const supplies = useMemo(
+    () => (snapshot ? planQueueSupplies(orders, snapshot) : null),
+    [orders, snapshot],
+  )
   const query = normalize(search)
   const visible = (tab === 'in_preparation' ? pending : completed)
     .filter(
       (order) =>
-        normalize(order.customer_name).includes(query) || normalize(order.id).includes(query),
+        normalize(order.customer_name).includes(query) ||
+        normalize(order.id).includes(query) ||
+        order.items.some((item) => normalize(item.product_name).includes(query)),
     )
-    .sort((a, b) => {
-      const difference = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      return (sort === 'oldest' ? difference : -difference) || a.id.localeCompare(b.id)
-    })
+    .sort((a, b) => (sort === 'oldest' ? byQueueOrder(a, b) : byQueueOrder(b, a)))
   const disabled = loading || completing !== null
 
   return (
@@ -186,13 +204,16 @@ export function FactoryModePage() {
           type="button"
           aria-pressed={area === 'production'}
           className={area === 'production' ? 'primary-button' : 'secondary-button'}
-          onClick={() => setArea('production')}
+          onClick={() => {
+            setProductionView('available')
+            setArea('production')
+          }}
         >
           Produção e receitas
         </button>
       </div>
       {area === 'production' ? (
-        <ProductionPanel />
+        <ProductionPanel initialView={productionView} onSnapshot={setSnapshot} />
       ) : (
         <>
           <div className="metric-grid">
@@ -258,7 +279,7 @@ export function FactoryModePage() {
                     id="kitchen-search"
                     type="search"
                     className="form-input pl-10"
-                    placeholder="Cliente ou número do pedido"
+                    placeholder="Cliente, número do pedido ou produto"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                   />
@@ -278,18 +299,29 @@ export function FactoryModePage() {
               </label>
             </div>
             {error && (
-              <p
+              <div
                 role="alert"
-                className="mb-4 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
+                className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
               >
-                {error}
-                {loaded && ' Os pedidos exibidos foram mantidos; atualize a fila para conferir.'}
-              </p>
+                <p>{error}</p>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={disabled}
+                  onClick={() => void refresh()}
+                >
+                  Tentar novamente
+                </button>
+              </div>
             )}
 
             {(loading || notice) && (
               <p role="status" className="mb-4 text-sm text-muted">
-                {loading ? (loaded ? 'Atualizando a fila...' : 'Carregando pedidos...') : notice}
+                {loading
+                  ? loaded
+                    ? 'Atualizando a fila e os insumos...'
+                    : 'Carregando pedidos e insumos...'
+                  : notice}
               </p>
             )}
 
@@ -305,12 +337,23 @@ export function FactoryModePage() {
                     concluído.
                   </p>
                   <p className="mt-1 text-sm text-[#4f7769]">
-                    A produção foi finalizada. Você pode consultar o pedido ou seguir para os
-                    documentos fiscais.
+                    A produção foi finalizada. Registre os ingredientes usados para manter o estoque
+                    correto, consulte o pedido ou siga para os documentos fiscais.
                   </p>
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    className="secondary-button w-full sm:w-auto"
+                    onClick={() => {
+                      setProductionView('ingredients')
+                      setArea('production')
+                    }}
+                  >
+                    Registrar uso no estoque
+                  </button>
+
                   <Link
                     className="secondary-button w-full sm:w-auto"
                     to={`/pedidos?order_id=${completedOrder.id}&from=production`}
@@ -333,83 +376,115 @@ export function FactoryModePage() {
                   {visible.length}{' '}
                   {visible.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
                 </p>
-                {visible.map((order) => (
-                  <article
-                    aria-labelledby={`order-${order.id}`}
-                    className={`min-w-0 scroll-mt-24 rounded-lg border p-4 transition sm:p-5 ${
-                      order.id === highlightedOrderId
-                        ? 'border-[#9fb5ff] bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5]'
-                        : 'border-line'
-                    }`}
-                    id={`factory-order-${order.id}`}
-                    key={order.id}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="mb-1 font-mono text-xs text-muted">
-                          Pedido {order.id.slice(0, 8)}
-                        </p>
-                        <h2
-                          id={`order-${order.id}`}
-                          className="break-words font-display text-xl font-semibold"
-                        >
-                          {order.customer_name}
-                        </h2>
-                      </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${order.status === 'completed' ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#eef2ff] text-signal-dark'}`}
-                      >
-                        {order.status === 'completed' ? 'Concluído' : 'Em preparo'}
-                      </span>
-                    </div>
-                    <p className="mt-3 flex items-center gap-2 text-xs text-muted">
-                      <Clock3 size={14} aria-hidden="true" />
-                      <span>
-                        Criado em{' '}
-                        <time dateTime={order.created_at}>
-                          {dates.format(new Date(order.created_at))}
-                        </time>
-                      </span>
-                    </p>
-                    <ul
-                      className="my-4 divide-y divide-line rounded-lg bg-paper px-3"
-                      aria-label="Itens do pedido"
+                {visible.map((order) => {
+                  const plan =
+                    order.status === 'in_preparation' ? supplies?.get(order.id) : undefined
+                  return (
+                    <article
+                      aria-labelledby={`order-${order.id}`}
+                      className={`min-w-0 scroll-mt-24 rounded-lg border p-4 transition sm:p-5 ${
+                        order.id === highlightedOrderId
+                          ? 'border-[#9fb5ff] bg-[#f7f9ff] shadow-[inset_3px_0_0_#3d63f5]'
+                          : 'border-line'
+                      }`}
+                      id={`factory-order-${order.id}`}
+                      key={order.id}
                     >
-                      {order.items.map((item, index) => (
-                        <li
-                          key={`${item.product_name}-${index}`}
-                          className="flex items-start gap-3 py-3 text-sm"
-                        >
-                          <span className="shrink-0 rounded bg-white px-2 py-0.5 font-mono font-medium text-signal-dark">
-                            {quantities.format(Number(item.quantity))}×
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="mb-1 font-mono text-xs text-muted">
+                            Pedido {order.id.slice(0, 8)}
+                          </p>
+                          <h2
+                            id={`order-${order.id}`}
+                            className="break-words font-display text-xl font-semibold"
+                          >
+                            {order.customer_name}
+                          </h2>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {order.status === 'in_preparation' &&
+                            (plan ? (
+                              <SupplyBadge status={plan.status} />
+                            ) : (
+                              <span className="rounded-full bg-paper px-3 py-1 text-xs font-semibold text-muted">
+                                Insumos não carregados
+                              </span>
+                            ))}
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${order.status === 'completed' ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#eef2ff] text-signal-dark'}`}
+                          >
+                            {order.status === 'completed' ? 'Concluído' : 'Em preparo'}
                           </span>
-                          <span className="min-w-0 break-words">{item.product_name}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex flex-wrap justify-end gap-3">
-                      <Link
-                        className="secondary-button w-full sm:w-auto"
-                        to={`/pedidos?order_id=${order.id}&from=production`}
+                        </div>
+                      </div>
+                      <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+                        <Clock3 size={14} aria-hidden="true" />
+                        <span>
+                          Criado em{' '}
+                          <time dateTime={order.created_at}>
+                            {dates.format(new Date(order.created_at))}
+                          </time>
+                        </span>
+                      </p>
+                      <ul
+                        className="my-4 divide-y divide-line rounded-lg bg-paper px-3"
+                        aria-label="Itens do pedido"
                       >
-                        Ver pedido
-                      </Link>
-
-                      {order.status === 'in_preparation' && (
-                        <button
-                          type="button"
-                          className="primary-button w-full gap-2 sm:w-auto"
-                          disabled={disabled}
-                          onClick={() => void complete(order)}
-                          aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}
-                        >
-                          <Check size={17} aria-hidden="true" />
-                          {completing === order.id ? 'Concluindo...' : 'Marcar concluído'}
-                        </button>
+                        {order.items.map((item, index) => (
+                          <li
+                            key={`${item.product_name}-${index}`}
+                            className="flex items-start gap-3 py-3 text-sm"
+                          >
+                            <span className="shrink-0 rounded bg-white px-2 py-0.5 font-mono font-medium text-signal-dark">
+                              {quantities.format(Number(item.quantity))}×
+                            </span>
+                            <span className="min-w-0 break-words">{item.product_name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {openSupplies === order.id && plan && (
+                        <OrderSupplies id={`supplies-${order.id}`} plan={plan} />
                       )}
-                    </div>
-                  </article>
-                ))}
+                      <div className="flex flex-wrap justify-end gap-3">
+                        {order.status === 'in_preparation' && (
+                          <button
+                            type="button"
+                            className="secondary-button w-full sm:w-auto"
+                            disabled={!plan}
+                            aria-expanded={openSupplies === order.id}
+                            aria-controls={`supplies-${order.id}`}
+                            onClick={() =>
+                              setOpenSupplies((current) => (current === order.id ? null : order.id))
+                            }
+                          >
+                            {openSupplies === order.id ? 'Ocultar insumos' : 'Consultar insumos'}
+                          </button>
+                        )}
+
+                        <Link
+                          className="secondary-button w-full sm:w-auto"
+                          to={`/pedidos?order_id=${order.id}&from=production`}
+                        >
+                          Ver pedido
+                        </Link>
+
+                        {order.status === 'in_preparation' && (
+                          <button
+                            type="button"
+                            className="primary-button w-full gap-2 sm:w-auto"
+                            disabled={disabled}
+                            onClick={() => void complete(order)}
+                            aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}
+                          >
+                            <Check size={17} aria-hidden="true" />
+                            {completing === order.id ? 'Concluindo...' : 'Marcar concluído'}
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
                 {visible.length === 0 && (
                   <div className="rounded-lg border border-dashed border-line px-4 py-10 text-center">
                     <ChefHat size={28} className="mx-auto mb-3 text-muted" aria-hidden="true" />
@@ -422,7 +497,7 @@ export function FactoryModePage() {
                     </p>
                     <p className="mt-2 text-sm text-muted">
                       {query
-                        ? 'Tente outro cliente ou número de pedido.'
+                        ? 'Tente outro cliente, número de pedido ou produto.'
                         : 'Use Atualizar para consultar os pedidos mais recentes.'}
                     </p>
                     {query && (
