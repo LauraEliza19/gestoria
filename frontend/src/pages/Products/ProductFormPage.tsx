@@ -30,7 +30,10 @@ const initialForm = {
   ncm_code: '',
   cest_code: '',
   fiscal_origin: '',
+  recipe_id: '',
 }
+
+type RecipeOption = { id: string; name: string; yield_quantity: string; yield_unit: string }
 
 const numericFields = [
   ['price', 'Preço de venda'],
@@ -48,6 +51,22 @@ export function ProductFormPage() {
   const [status, setStatus] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FiscalFieldErrors>({})
   const [loading, setLoading] = useState(Boolean(id))
+  const [recipes, setRecipes] = useState<RecipeOption[] | null>(null)
+  const [recipesError, setRecipesError] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    apiFetch<{ recipes: RecipeOption[] }>('/api/production', { signal: controller.signal })
+      .then((snapshot) => {
+        if (!controller.signal.aborted) setRecipes(snapshot.recipes)
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setRecipesError(getErrorMessage(error, 'Não foi possível carregar as receitas.'))
+        }
+      })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -167,6 +186,7 @@ export function ProductFormPage() {
         barcode: form.barcode || null,
         ncm_code: form.ncm_code || null,
         cest_code: form.cest_code || null,
+        recipe_id: form.recipe_id || null,
       }
 
       await apiFetch(id ? `/api/products/${id}` : '/api/products', {
@@ -298,6 +318,39 @@ export function ProductFormPage() {
               />
             </label>
           )}
+        </div>
+
+        <div className="grid gap-4 border-t border-line pt-5 md:grid-cols-2">
+          <p className="eyebrow md:col-span-2">Produção</p>
+
+          <label className="form-label">
+            Receita de produção
+            <select
+              className="form-input"
+              value={form.recipe_id}
+              disabled={recipes === null}
+              onChange={(event) => update('recipe_id', event.target.value)}
+              aria-describedby="recipe-help"
+            >
+              <option value="">Sem receita vinculada</option>
+              {recipes?.map((recipe) => (
+                <option key={recipe.id} value={recipe.id}>
+                  {recipe.name} (rende {Number(recipe.yield_quantity).toLocaleString('pt-BR')}{' '}
+                  {recipe.yield_unit})
+                </option>
+              ))}
+              {recipes === null && form.recipe_id && (
+                <option value={form.recipe_id}>Receita vinculada</option>
+              )}
+            </select>
+            <small id="recipe-help" className={recipesError ? 'text-[#d84f62]' : 'text-muted'}>
+              {recipesError
+                ? `${recipesError} O vínculo atual será mantido.`
+                : recipes === null
+                  ? 'Carregando receitas...'
+                  : 'O Modo Produção usa esta receita para calcular os insumos dos pedidos deste produto.'}
+            </small>
+          </label>
         </div>
 
         <div className="grid gap-4 border-t border-line pt-5 md:grid-cols-2 lg:grid-cols-4">

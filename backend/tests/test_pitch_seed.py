@@ -129,6 +129,23 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
             )
         )
     )
+    linked = {
+        product.name: product.recipe_id
+        for product in db.scalars(
+            select(Product).where(
+                Product.organization_id == organization.id,
+                Product.recipe_id.is_not(None),
+            )
+        )
+    }
+    pao_de_queijo = db.scalar(
+        select(Recipe).where(
+            Recipe.organization_id == organization.id,
+            Recipe.name == "Pão de queijo artesanal",
+        )
+    )
+    assert linked == {"Pão de queijo artesanal": pao_de_queijo.id}
+
     assert sum(order.status == "in_preparation" for order in orders) == 1
     assert sum(order.status == "completed" for order in orders) == 2
 

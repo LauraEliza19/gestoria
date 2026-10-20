@@ -28,6 +28,9 @@ class OrderItemRead(BaseModel):
     product_name: str
     quantity: ItemQuantity
     unit_price: Money
+    # Production planning links items to recipes through the product id.
+    recipe_id: uuid.UUID | None = None
+    unit_of_measure: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

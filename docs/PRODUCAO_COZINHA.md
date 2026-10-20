@@ -21,9 +21,27 @@ Marcas diferentes associadas ao mesmo ingrediente somam seus saldos com convers�
 
 ## Consulta
 
-Em **O que posso preparar**, veja receitas completas possíveis, rendimento e faltas para uma receita. Sem item associado em estoque, a disponibilidade do ingrediente é zero.
+Em **O que posso preparar**, as receitas aparecem separadas em **Prontas para produzir** e **Bloqueadas por falta de insumos**. As prontas mostram quantas receitas completas dá para fazer, o rendimento possível, o ingrediente limitante e o que falta para mais uma receita. As bloqueadas mostram cada insumo faltante com a quantidade necessária, o saldo atual e a falta. Busque por receita ou ingrediente e filtre por situação. Sem item associado em estoque, a disponibilidade do ingrediente é zero.
 
-Cada receita é calculada individualmente sobre todo o estoque. Não some as opções como se pudessem ser feitas simultaneamente: elas podem disputar ingredientes. A consulta não reserva nem desconta saldos. Produtos vendidos e a fila de pedidos continuam separados.
+Cada receita é calculada individualmente sobre todo o estoque. Não some as opções como se pudessem ser feitas simultaneamente: elas podem disputar ingredientes. A consulta não reserva nem desconta saldos.
+
+## Produtos vendidos e receitas
+
+No cadastro do produto, escolha a **Receita de produção**. O vínculo é feito pelo ID da receita, nunca pelo nome: renomear a receita ou o produto mantém a associação, e um produto sem receita escolhida não é associado automaticamente, mesmo que os nomes coincidam. Excluir uma receita deixa os produtos vinculados sem receita; os produtos são mantidos.
+
+## Insumos da fila de pedidos
+
+Na **Fila de pedidos**, cada pedido em preparo recebe um selo:
+- **Insumos suficientes**: todos os itens têm receita calculável e o estoque atende o pedido.
+- **Faltam insumos**: algum insumo não é suficiente depois dos pedidos anteriores.
+- **Cobertura parcial**: o estoque atende os itens calculados, mas algum item não tem receita ou tem unidade incompatível.
+- **Sem receita vinculada**: nenhum item do pedido tem receita.
+
+**Consultar insumos** mostra, por insumo, quanto o pedido precisa, quanto está disponível para ele e quanto falta. Os pedidos são atendidos na ordem da fila (mais antigos primeiro, independentemente da busca ou da ordenação exibida): cada pedido reserva virtualmente o que precisa e os seguintes só contam com o saldo restante. Um pedido antigo sem insumos suficientes continua com prioridade sobre o que existe. A reserva é apenas uma simulação na tela e não desconta o estoque.
+
+A quantidade é proporcional ao rendimento. Produtos vendidos por unidade exigem receitas com rendimento em unidades, porções ou peças; produtos vendidos em kg ou g exigem rendimento em g ou kg. Outros rendimentos, como fatias, aparecem como não calculados.
+
+**Atualizar** consulta a fila e os insumos ao mesmo tempo e só informa **Fila e insumos atualizados** depois que as duas consultas terminam. Se uma delas falhar, a mensagem indica qual parte não foi atualizada.
 
 ## API
 
@@ -33,11 +51,15 @@ Cada receita é calculada individualmente sobre todo o estoque. Não some as op�
 - DELETE /api/production/stock-items/{id}: exclui só o item de estoque.
 - POST /api/production/recipes: cria receita e novos ingredientes em uma transação.
 - PUT /api/production/recipes/{id}: substitui nome, rendimento e composição.
-- DELETE /api/production/recipes/{id}: exclui receita e composição, preservando estoque.
+- DELETE /api/production/recipes/{id}: exclui receita e composição, preservando estoque e desvinculando os produtos.
+- POST/PATCH /api/products: aceitam `recipe_id` (receita da mesma empresa ou `null`); receita inexistente ou de outra empresa retorna 422.
+- GET /api/orders: cada item traz `recipe_id` e `unit_of_measure` do produto.
 
 Cada referência de ingrediente aceita **ingredient_id** de um cadastro existente ou **ingredient_name** de um novo ingrediente, nunca os dois. O servidor valida empresa, unidades e ingredientes repetidos após normalização. Falhas desfazem a transação inteira.
 
 ## Migration e validação
+
+A migration **0012_product_recipe_link** adiciona `products.recipe_id` com chave estrangeira composta por empresa. Produtos existentes começam sem receita. O downgrade é bloqueado enquanto houver produtos vinculados.
 
 A migration **0008_recipe_ingredients**, posterior à 0007 já aplicada, transfere todos os saldos antigos para production_stock_items, mantendo os IDs e vínculos das receitas. Nomes antigos são preservados, inclusive marcas; a associação pode ser corrigida pelo formulário. O downgrade com ingredientes cadastrados é bloqueado para evitar perda de informação.
 
