@@ -1,17 +1,83 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import {
+  type ColorValue,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-import { colors, fontSizes, spacing } from '@/theme/tokens';
+import {
+  fontSizes,
+  radii,
+  sereneColors,
+} from '@/theme/tokens';
+
+type TabIconProps = {
+  color: ColorValue;
+  focused: boolean;
+  symbol: string;
+};
+
+function TabIcon({
+  color,
+  focused,
+  symbol,
+}: TabIconProps) {
+  return (
+    <View
+      style={[
+        styles.iconContainer,
+        focused && styles.iconContainerFocused,
+      ]}
+    >
+      <Text
+        style={[
+          styles.icon,
+          { color },
+          focused && styles.iconFocused,
+        ]}
+      >
+        {symbol}
+      </Text>
+    </View>
+  );
+}
+
+type CopilotIconProps = {
+  focused: boolean;
+};
+
+function CopilotIcon({ focused }: CopilotIconProps) {
+  return (
+    <View
+      style={[
+        styles.iconContainer,
+        focused && styles.iconContainerFocused,
+      ]}
+    >
+      <Text
+        style={[
+          styles.copilotIcon,
+          focused && styles.copilotIconFocused,
+        ]}
+      >
+        ✦
+      </Text>
+    </View>
+  );
+}
 
 export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveTintColor: sereneColors.primary,
+        tabBarInactiveTintColor:
+          sereneColors.textMuted,
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: styles.label,
+        tabBarItemStyle: styles.tabBarItem,
+        tabBarShowLabel: false,
         tabBarStyle: styles.tabBar,
       }}
     >
@@ -20,35 +86,78 @@ export default function AppLayout() {
         options={{
           title: 'Início',
           tabBarAccessibilityLabel: 'Abrir início',
-          tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>⌂</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Pedidos',
-          tabBarAccessibilityLabel: 'Abrir pedidos',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>≡</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              color={color}
+              focused={focused}
+              symbol="⌂"
+            />
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="alerts"
+        options={{
+          title: 'Alertas',
+          tabBarAccessibilityLabel:
+            'Abrir central de alertas',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              color={color}
+              focused={focused}
+              symbol="!"
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="copilot"
         options={{
           title: 'Copiloto',
           tabBarAccessibilityLabel: 'Abrir Copiloto',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>✦</Text>
+          tabBarIcon: ({ focused }) => (
+            <CopilotIcon focused={focused} />
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="modules"
+        options={{
+          title: 'Módulos',
+          tabBarAccessibilityLabel:
+            'Abrir módulos da empresa',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              color={color}
+              focused={focused}
+              symbol="▦"
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="account"
         options={{
           title: 'Conta',
           tabBarAccessibilityLabel: 'Abrir conta',
-          tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>●</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              color={color}
+              focused={focused}
+              symbol="○"
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="orders"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
@@ -57,19 +166,58 @@ export default function AppLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
+    backgroundColor: sereneColors.tabBar,
+    borderColor: sereneColors.border,
+    borderRadius: radii.pill,
+    borderTopWidth: 0,
+    borderWidth: 1,
+    bottom: 18,
+    elevation: 14,
     height: 68,
-    paddingBottom: spacing.sm,
-    paddingTop: spacing.sm,
+    left: 24,
+    paddingBottom: 0,
+    paddingHorizontal: 10,
+    paddingTop: 0,
+    position: 'absolute',
+    right: 24,
+    shadowColor: '#020817',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.26,
+    shadowRadius: 18,
   },
-  label: {
-    fontSize: fontSizes.caption,
-    fontWeight: '700',
+  tabBarItem: {
+    alignItems: 'center',
+    height: 66,
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  iconContainerFocused: {
+    backgroundColor: sereneColors.sheetSurface,
   },
   icon: {
-    fontSize: 23,
+    fontSize: 22,
     fontWeight: '700',
-    lineHeight: 24,
+    lineHeight: 25,
+  },
+  iconFocused: {
+    color: sereneColors.primary,
+  },
+  copilotIcon: {
+    color: sereneColors.primary,
+    fontSize: fontSizes.title,
+    fontWeight: '800',
+    lineHeight: 28,
+  },
+  copilotIconFocused: {
+    color: sereneColors.primaryPressed,
   },
 });
