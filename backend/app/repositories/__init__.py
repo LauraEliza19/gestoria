@@ -1,6 +1,7 @@
 from app.repositories.copilot import CopilotRepository
 from app.repositories.customers import CustomerRepository, CustomerSummary
 from app.repositories.dashboard import DashboardRepository, DashboardSnapshot
+from app.repositories.finance import FinanceCategoryRepository, FinanceEntryRepository
 from app.repositories.fiscal import FiscalDocumentRepository
 from app.repositories.management import (
     CostCenterRepository,
@@ -13,7 +14,6 @@ from app.repositories.orders import OrderItemRepository, OrderRepository
 from app.repositories.products import ProductRepository
 from app.repositories.quotes import QuoteItemRepository, QuoteRepository
 from app.repositories.users import OrganizationRepository, UserRepository
-from app.repositories.finance import FinanceCategoryRepository, FinanceEntryRepository
 
 __all__ = [
     "CopilotRepository",
@@ -25,6 +25,8 @@ __all__ = [
     "EmployeeRecordRepository",
     "EmployeeRepository",
     "EmploymentRepository",
+    "FinanceCategoryRepository",
+    "FinanceEntryRepository",
     "FiscalDocumentRepository",
     "ManagementOverviewRepository",
     "OrderItemRepository",
@@ -34,6 +36,4 @@ __all__ = [
     "QuoteItemRepository",
     "QuoteRepository",
     "UserRepository",
-    "FinanceCategoryRepository",
-    "FinanceEntryRepository",
 ]

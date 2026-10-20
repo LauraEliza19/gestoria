@@ -2,6 +2,14 @@ from app.services.auth import AuthenticatedUser, authenticate
 from app.services.copilot import answer_copilot
 from app.services.customers import get_customer_profile
 from app.services.dashboard import build_dashboard_overview
+from app.services.finance import (
+    DuplicateFinanceCategoryError,
+    FinanceCategoryUnavailableError,
+    create_category,
+    create_entry,
+    update_category,
+    update_entry,
+)
 from app.services.management import (
     ActiveEmploymentExistsError,
     DuplicateCostCenterError,
@@ -50,14 +58,6 @@ from app.services.quotes import (
     delete_quote_record,
     update_quote_status,
 )
-from app.services.finance import (
-    DuplicateFinanceCategoryError,
-    FinanceCategoryUnavailableError,
-    create_category,
-    create_entry,
-    update_category,
-    update_entry,
-)
 
 __all__ = [
     "ActiveEmploymentExistsError",
@@ -65,9 +65,11 @@ __all__ = [
     "CustomerNotFoundError",
     "DuplicateCostCenterError",
     "DuplicateEmployeeError",
+    "DuplicateFinanceCategoryError",
     "EmployeeRecordNotOpenError",
     "EmployeeUserNotMemberError",
     "EmploymentCostCenterUnavailableError",
+    "FinanceCategoryUnavailableError",
     "InactiveEmployeeError",
     "InsufficientStockError",
     "InvalidEmployeeRecordStateError",
@@ -87,10 +89,12 @@ __all__ = [
     "build_dashboard_overview",
     "cancel_employee_record",
     "convert_quote_to_order",
+    "create_category",
     "create_cost_center",
     "create_employee",
     "create_employee_record",
     "create_employment",
+    "create_entry",
     "create_order",
     "create_product",
     "create_quote",
@@ -98,17 +102,13 @@ __all__ = [
     "delete_quote_record",
     "get_customer_profile",
     "resolve_employee_record",
+    "update_category",
     "update_cost_center",
     "update_employee",
     "update_employee_record",
     "update_employment",
+    "update_entry",
     "update_order_status",
     "update_product",
     "update_quote_status",
-    "DuplicateFinanceCategoryError",
-    "FinanceCategoryUnavailableError",
-    "create_category",
-    "create_entry",
-    "update_category",
-    "update_entry",
 ]
