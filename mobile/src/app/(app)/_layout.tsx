@@ -1,17 +1,68 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import type { ComponentProps } from 'react';
+import {
+  type ColorValue,
+  StyleSheet,
+  View,
+} from 'react-native';
 
-import { colors, fontSizes, spacing } from '@/theme/tokens';
+import {
+  radii,
+  sereneColors,
+} from '@/theme/tokens';
+
+type IoniconName = ComponentProps<
+  typeof Ionicons
+>['name'];
+
+type TabIconProps = {
+  color: ColorValue;
+  focused: boolean;
+  activeName: IoniconName;
+  inactiveName: IoniconName;
+  size?: number;
+};
+
+function TabIcon({
+  color,
+  focused,
+  activeName,
+  inactiveName,
+  size = 24,
+}: TabIconProps) {
+  return (
+    <View
+      style={[
+        styles.iconContainer,
+        focused && styles.iconContainerFocused,
+      ]}
+    >
+      <Ionicons
+        color={
+          focused
+            ? sereneColors.primary
+            : color
+        }
+        name={focused ? activeName : inactiveName}
+        size={size}
+      />
+    </View>
+  );
+}
 
 export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveTintColor: sereneColors.primary,
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: styles.label,
+        tabBarIconStyle: styles.tabBarIcon,
+        tabBarInactiveTintColor:
+          sereneColors.textSubtle,
+        tabBarItemStyle: styles.tabBarItem,
+        tabBarShowLabel: false,
         tabBarStyle: styles.tabBar,
       }}
     >
@@ -20,35 +71,88 @@ export default function AppLayout() {
         options={{
           title: 'Início',
           tabBarAccessibilityLabel: 'Abrir início',
-          tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>⌂</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Pedidos',
-          tabBarAccessibilityLabel: 'Abrir pedidos',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>≡</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              activeName="home"
+              color={color}
+              focused={focused}
+              inactiveName="home-outline"
+            />
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="alerts"
+        options={{
+          title: 'Alertas',
+          tabBarAccessibilityLabel:
+            'Abrir central de alertas',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              activeName="notifications"
+              color={color}
+              focused={focused}
+              inactiveName="notifications-outline"
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="copilot"
         options={{
           title: 'Copiloto',
           tabBarAccessibilityLabel: 'Abrir Copiloto',
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>✦</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              activeName="sparkles"
+              color={color}
+              focused={focused}
+              inactiveName="sparkles-outline"
+              size={25}
+            />
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="modules"
+        options={{
+          title: 'Módulos',
+          tabBarAccessibilityLabel:
+            'Abrir módulos da empresa',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              activeName="grid"
+              color={color}
+              focused={focused}
+              inactiveName="grid-outline"
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="account"
         options={{
           title: 'Conta',
           tabBarAccessibilityLabel: 'Abrir conta',
-          tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>●</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              activeName="person"
+              color={color}
+              focused={focused}
+              inactiveName="person-outline"
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="orders"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
@@ -57,19 +161,64 @@ export default function AppLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
+    backgroundColor: sereneColors.tabBar,
+    borderColor: sereneColors.border,
+    borderRadius: radii.pill,
+    borderTopWidth: 0,
+    borderWidth: 1,
+    bottom: 18,
+    elevation: 14,
     height: 68,
-    paddingBottom: spacing.sm,
-    paddingTop: spacing.sm,
+    left: 24,
+    paddingBottom: 0,
+    paddingHorizontal: 8,
+    paddingTop: 0,
+    position: 'absolute',
+    right: 24,
+    shadowColor: '#020817',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    width: 'auto',
   },
-  label: {
-    fontSize: fontSizes.caption,
-    fontWeight: '700',
+
+  tabBarItem: {
+    alignItems: 'center',
+    flex: 1,
+    height: 66,
+    justifyContent: 'center',
+    margin: 0,
+    padding: 0,
   },
-  icon: {
-    fontSize: 23,
-    fontWeight: '700',
-    lineHeight: 24,
+
+  tabBarIcon: {
+    alignItems: 'center',
+    height: 66,
+    justifyContent: 'center',
+    margin: 0,
+    padding: 0,
+    width: '100%',
+  },
+
+  iconContainer: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+
+  iconContainerFocused: {
+    backgroundColor: sereneColors.sheetSurface,
+    shadowColor: '#020817',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
   },
 });
