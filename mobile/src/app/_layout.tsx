@@ -3,7 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider } from '@/features/auth/context/AuthProvider';
 import { useAuth } from '@/features/auth/context/useAuth';
-import { colors } from '@/theme/tokens';
+import {
+  colors,
+  sereneColors,
+} from '@/theme/tokens';
 
 function RootNavigator() {
   const { status } = useAuth();
@@ -22,12 +25,22 @@ function RootNavigator() {
         <Stack.Screen name="loading" />
       </Stack.Protected>
 
-      <Stack.Protected guard={status === 'unauthenticated'}>
+      <Stack.Protected
+        guard={status === 'unauthenticated'}
+      >
         <Stack.Screen name="index" />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'authenticated'}>
-        <Stack.Screen name="(app)" />
+        <Stack.Screen
+          name="(app)"
+          options={{
+            contentStyle: {
+              backgroundColor:
+                sereneColors.background,
+            },
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );
