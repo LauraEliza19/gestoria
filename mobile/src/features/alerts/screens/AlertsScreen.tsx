@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -11,6 +12,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import {
+  SereneHeader,
+  SereneSheet,
+} from '@/components/serene/SereneLayout';
 
 import {
   fontSizes,
@@ -125,7 +131,11 @@ function AlertCard({ item, onOpen }: AlertCardProps) {
         <Text style={styles.actionText}>
           {item.action_label}
         </Text>
-        <Text style={styles.actionArrow}>›</Text>
+        <Ionicons
+          color={sereneColors.primary}
+          name="chevron-forward"
+          size={20}
+        />
       </Pressable>
     </View>
   );
@@ -163,7 +173,9 @@ export function AlertsScreen() {
         refreshControl={
           <RefreshControl
             colors={[sereneColors.primary]}
-            progressBackgroundColor={sereneColors.surface}
+            progressBackgroundColor={
+              sereneColors.sheetSurface
+            }
             refreshing={refreshing}
             tintColor={sereneColors.primary}
             onRefresh={refresh}
@@ -171,108 +183,104 @@ export function AlertsScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>
-              CENTRAL DE PRIORIDADES
-            </Text>
-            <Text style={styles.title}>Alertas</Text>
-          </View>
+        <SereneHeader
+          actions={
+            overview ? (
+              <View style={styles.totalBadge}>
+                <Text style={styles.totalBadgeText}>
+                  {overview.alerts.length}
+                </Text>
+              </View>
+            ) : null
+          }
+          description="Veja o que aconteceu, entenda o impacto e abra o módulo responsável."
+          eyebrow="Central de prioridades"
+          title="Alertas"
+        />
 
-          {overview ? (
-            <View style={styles.totalBadge}>
-              <Text style={styles.totalBadgeText}>
-                {overview.alerts.length}
+        <SereneSheet>
+
+          {loading && !overview ? (
+            <View style={styles.stateCard}>
+              <ActivityIndicator
+                color={sereneColors.primary}
+                size="large"
+              />
+              <Text style={styles.stateTitle}>
+                Organizando suas prioridades
+              </Text>
+              <Text style={styles.stateDescription}>
+                Consultando os dados mais recentes da empresa.
               </Text>
             </View>
           ) : null}
-        </View>
 
-        <Text style={styles.subtitle}>
-          Veja o que aconteceu, entenda o impacto e abra o
-          módulo responsável.
-        </Text>
-
-        {loading && !overview ? (
-          <View style={styles.stateCard}>
-            <ActivityIndicator
-              color={sereneColors.primary}
-              size="large"
-            />
-            <Text style={styles.stateTitle}>
-              Organizando suas prioridades
-            </Text>
-            <Text style={styles.stateDescription}>
-              Consultando os dados mais recentes da empresa.
-            </Text>
-          </View>
-        ) : null}
-
-        {error && !overview ? (
-          <View style={styles.errorCard}>
-            <View style={styles.errorAccent} />
-            <Text style={styles.errorTitle}>
-              Não foi possível carregar os alertas
-            </Text>
-            <Text style={styles.errorDescription}>
-              {error}
-            </Text>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={retry}
-              style={({ pressed }) => [
-                styles.retryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.retryButtonText}>
-                Tentar novamente
+          {error && !overview ? (
+            <View style={styles.errorCard}>
+              <View style={styles.errorAccent} />
+              <Text style={styles.errorTitle}>
+                Não foi possível carregar os alertas
               </Text>
-            </Pressable>
-          </View>
-        ) : null}
+              <Text style={styles.errorDescription}>
+                {error}
+              </Text>
 
-        {overview ? (
-          <>
-            {error ? (
-              <View style={styles.updateWarning}>
-                <View style={styles.warningDot} />
-                <Text style={styles.warningText}>
-                  A atualização falhou. Os últimos alertas
-                  disponíveis continuam na tela.
+              <Pressable
+                accessibilityRole="button"
+                onPress={retry}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.retryButtonText}>
+                  Tentar novamente
                 </Text>
-              </View>
-            ) : null}
+              </Pressable>
+            </View>
+          ) : null}
 
-            {overview.alerts.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <Text style={styles.emptyIconText}>✓</Text>
+          {overview ? (
+            <>
+              {error ? (
+                <View style={styles.updateWarning}>
+                  <View style={styles.warningDot} />
+                  <Text style={styles.warningText}>
+                    A atualização falhou. Os últimos alertas
+                    disponíveis continuam na tela.
+                  </Text>
                 </View>
+              ) : null}
 
-                <Text style={styles.emptyTitle}>
-                  Nenhum alerta importante
-                </Text>
+              {overview.alerts.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <View style={styles.emptyIcon}>
+                    <Text style={styles.emptyIconText}>✓</Text>
+                  </View>
 
-                <Text style={styles.emptyDescription}>
-                  Sua operação não possui pendências
-                  prioritárias neste momento.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.alertList}>
-                {overview.alerts.map((item) => (
-                  <AlertCard
-                    key={item.id}
-                    item={item}
-                    onOpen={() => openAlert(item)}
-                  />
-                ))}
-              </View>
-            )}
-          </>
-        ) : null}
+                  <Text style={styles.emptyTitle}>
+                    Nenhum alerta importante
+                  </Text>
+
+                  <Text style={styles.emptyDescription}>
+                    Sua operação não possui pendências
+                    prioritárias neste momento.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.alertList}>
+                  {overview.alerts.map((item) => (
+                    <AlertCard
+                      key={item.id}
+                      item={item}
+                      onOpen={() => openAlert(item)}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
+          ) : null}
+        </SereneSheet>
       </ScrollView>
     </SafeAreaView>
   );
@@ -285,29 +293,9 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'center',
+    flexGrow: 1,
     maxWidth: 560,
-    paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
     width: '100%',
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  eyebrow: {
-    color: sereneColors.primary,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-  },
-  title: {
-    color: sereneColors.text,
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-    marginTop: spacing.xs,
   },
   totalBadge: {
     alignItems: 'center',
@@ -323,39 +311,31 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
-  subtitle: {
-    color: sereneColors.textMuted,
-    fontSize: fontSizes.bodySmall,
-    lineHeight: 21,
-    marginBottom: spacing.xxl,
-    marginTop: spacing.md,
-    maxWidth: 390,
-  },
   stateCard: {
     alignItems: 'center',
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.xxl,
   },
   stateTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '700',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
   stateDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
     marginTop: spacing.sm,
     textAlign: 'center',
   },
   errorCard: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.xl,
@@ -368,12 +348,12 @@ const styles = StyleSheet.create({
     width: 36,
   },
   errorTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
   errorDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
     marginTop: spacing.sm,
@@ -394,8 +374,8 @@ const styles = StyleSheet.create({
   },
   updateWarning: {
     alignItems: 'flex-start',
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.md,
     borderWidth: 1,
     flexDirection: 'row',
@@ -411,20 +391,18 @@ const styles = StyleSheet.create({
     width: 8,
   },
   warningText: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     flex: 1,
     fontSize: fontSizes.caption,
     lineHeight: 18,
   },
   alertList: {
-    gap: spacing.md,
+    gap: 0,
   },
   alertCard: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
+    borderBottomColor: sereneColors.sheetBorder,
+    borderBottomWidth: 1,
+    paddingVertical: spacing.xl,
   },
   alertHeader: {
     alignItems: 'center',
@@ -441,12 +419,12 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   alertTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.body,
     fontWeight: '800',
   },
   alertMetadata: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: 10,
     marginTop: spacing.xs,
   },
@@ -461,32 +439,32 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   alertDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
     marginTop: spacing.lg,
   },
   impactBox: {
-    backgroundColor: sereneColors.surfaceMuted,
+    backgroundColor: sereneColors.sheetPressed,
     borderRadius: radii.md,
     marginTop: spacing.md,
     padding: spacing.md,
   },
   impactLabel: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
   },
   impactText: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     lineHeight: 18,
     marginTop: spacing.xs,
   },
   actionButton: {
     alignItems: 'center',
-    borderTopColor: sereneColors.border,
+    borderTopColor: sereneColors.sheetBorder,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -498,15 +476,10 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.bodySmall,
     fontWeight: '700',
   },
-  actionArrow: {
-    color: sereneColors.primary,
-    fontSize: fontSizes.title,
-    lineHeight: 24,
-  },
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.xxl,
@@ -525,13 +498,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   emptyTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
     marginTop: spacing.lg,
   },
   emptyDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
     marginTop: spacing.sm,

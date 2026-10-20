@@ -1,3 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
+
+import {
+  SereneHeader,
+  SereneSheet,
+} from '@/components/serene/SereneLayout';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRef } from 'react';
@@ -74,340 +80,332 @@ export function CopilotScreen() {
         }
         style={styles.keyboardArea}
       >
-        <View style={styles.header}>
-          <View style={styles.headerIdentity}>
-            <View style={styles.icon}>
-              <Text style={styles.iconText}>✦</Text>
-            </View>
+        <SereneHeader
+          actions={
+            <Pressable
+              accessibilityLabel="Nova conversa"
+              accessibilityRole="button"
+              disabled={sending}
+              onPress={newConversation}
+              style={({ pressed }) => [
+                styles.newConversationButton,
+                pressed && styles.pressed,
+                sending && styles.disabled,
+              ]}
+            >
+              <Ionicons
+                color={sereneColors.text}
+                name="add-outline"
+                size={25}
+              />
+            </Pressable>
+          }
+          description="Consulte informações da empresa e receba orientações com segurança."
+          eyebrow="Assistente empresarial"
+          title="Copiloto GestorIA"
+        >
+          <View style={styles.protectedContext}>
+            <View style={styles.protectedDot} />
 
-            <View style={styles.headerText}>
-              <Text style={styles.eyebrow}>
-                ASSISTENTE EMPRESARIAL
-              </Text>
-
-              <Text style={styles.title}>
-                Copiloto GestorIA
-              </Text>
-            </View>
+            <Text style={styles.protectedText}>
+              Contexto protegido
+            </Text>
           </View>
+        </SereneHeader>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Iniciar nova conversa"
-            disabled={sending}
-            style={({ pressed }) => [
-              styles.newConversationButton,
-              pressed && styles.pressed,
-              sending && styles.disabled,
-            ]}
-            onPress={newConversation}
-          >
-            <Text style={styles.newConversationText}>
-              Nova conversa
-            </Text>
-          </Pressable>
-        </View>
+        <SereneSheet style={styles.copilotSheet}>
+          <View style={styles.suggestionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                Perguntas sugeridas
+              </Text>
 
-        <View style={styles.protectedContext}>
-          <View style={styles.protectedDot} />
-          <Text style={styles.protectedText}>
-            Contexto protegido
-          </Text>
-        </View>
+              <Text style={styles.sectionHint}>
+                Deslize para explorar →
+              </Text>
+            </View>
 
-        <View style={styles.suggestionsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              Perguntas sugeridas
-            </Text>
+            <ScrollView
+              horizontal
+              contentContainerStyle={styles.suggestions}
+              showsHorizontalScrollIndicator={false}
+            >
+              {suggestions.map((suggestion) => (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={sending}
+                  key={suggestion.title}
+                  style={({ pressed }) => [
+                    styles.suggestionCard,
+                    pressed &&
+                    styles.suggestionPressed,
+                    sending && styles.disabled,
+                  ]}
+                  onPress={() =>
+                    void sendMessage(suggestion.prompt)
+                  }
+                >
+                  <Text style={styles.suggestionTitle}>
+                    {suggestion.title}
+                  </Text>
 
-            <Text style={styles.sectionHint}>
-              Deslize para explorar →
-            </Text>
+                  <Text
+                    style={styles.suggestionDescription}
+                  >
+                    {suggestion.description}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
 
           <ScrollView
-            horizontal
-            contentContainerStyle={styles.suggestions}
-            showsHorizontalScrollIndicator={false}
+            ref={messageScrollRef}
+            accessibilityLiveRegion="polite"
+            contentContainerStyle={styles.messages}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.messageList}
+            onContentSizeChange={() =>
+              messageScrollRef.current?.scrollToEnd({
+                animated: true,
+              })
+            }
           >
-            {suggestions.map((suggestion) => (
-              <Pressable
-                accessibilityRole="button"
-                disabled={sending}
-                key={suggestion.title}
-                style={({ pressed }) => [
-                  styles.suggestionCard,
-                  pressed &&
-                    styles.suggestionPressed,
-                  sending && styles.disabled,
-                ]}
-                onPress={() =>
-                  void sendMessage(suggestion.prompt)
-                }
-              >
-                <Text style={styles.suggestionTitle}>
-                  {suggestion.title}
-                </Text>
+            {messages.map((message) => {
+              const isUser = message.role === 'user';
+              const isError = Boolean(
+                message.retryPrompt
+              );
 
-                <Text
-                  style={styles.suggestionDescription}
-                >
-                  {suggestion.description}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        <ScrollView
-          ref={messageScrollRef}
-          accessibilityLiveRegion="polite"
-          contentContainerStyle={styles.messages}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.messageList}
-          onContentSizeChange={() =>
-            messageScrollRef.current?.scrollToEnd({
-              animated: true,
-            })
-          }
-        >
-          {messages.map((message) => {
-            const isUser = message.role === 'user';
-            const isError = Boolean(
-              message.retryPrompt
-            );
-
-            return (
-              <View
-                key={message.id}
-                style={[
-                  styles.messageBubble,
-                  isUser
-                    ? styles.userBubble
-                    : isError
-                      ? styles.errorBubble
-                      : styles.assistantBubble,
-                ]}
-              >
-                {message.status ? (
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      message.status === 'answered'
-                        ? styles.statusAnswered
-                        : message.status ===
-                            'confirmation_required'
-                          ? styles.statusConfirmation
-                          : styles.statusGuided,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        message.status === 'answered'
-                          ? styles.statusAnsweredText
-                          : message.status ===
-                              'confirmation_required'
-                            ? styles.statusConfirmationText
-                            : styles.statusGuidedText,
-                      ]}
-                    >
-                      {STATUS_LABELS[message.status]}
-                    </Text>
-                  </View>
-                ) : null}
-
-                <Text
+              return (
+                <View
+                  key={message.id}
                   style={[
-                    styles.messageText,
-                    isUser &&
-                      styles.userMessageText,
-                    isError &&
-                      styles.errorMessageText,
+                    styles.messageBubble,
+                    isUser
+                      ? styles.userBubble
+                      : isError
+                        ? styles.errorBubble
+                        : styles.assistantBubble,
                   ]}
                 >
-                  {message.text}
-                </Text>
-
-                {message.items?.map((item) => {
-                  const available = isMobilePath(
-                    item.path
-                  );
-
-                  return (
-                    <Pressable
-                      accessibilityRole={
-                        available
-                          ? 'button'
-                          : undefined
-                      }
-                      disabled={!available}
-                      key={item.id}
-                      style={({ pressed }) => [
-                        styles.resultCard,
-                        !available &&
-                          styles.unavailableCard,
-                        pressed &&
-                          available &&
-                          styles.pressed,
+                  {message.status ? (
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        message.status === 'answered'
+                          ? styles.statusAnswered
+                          : message.status ===
+                            'confirmation_required'
+                            ? styles.statusConfirmation
+                            : styles.statusGuided,
                       ]}
-                      onPress={() =>
-                        openMobilePath(item.path)
-                      }
-                    >
-                      <Text style={styles.resultTitle}>
-                        {item.title}
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.resultDescription
-                        }
-                      >
-                        {item.description}
-                      </Text>
-
-                      <Text
-                        style={styles.resultAction}
-                      >
-                        {available
-                          ? 'Abrir no aplicativo →'
-                          : 'Disponível no sistema web'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-
-                {message.actions?.map((action) => {
-                  const available = isMobilePath(
-                    action.path
-                  );
-
-                  return (
-                    <Pressable
-                      accessibilityRole={
-                        available
-                          ? 'button'
-                          : undefined
-                      }
-                      disabled={!available}
-                      key={action.id}
-                      style={({ pressed }) => [
-                        styles.actionButton,
-                        !available &&
-                          styles.unavailableAction,
-                        pressed &&
-                          available &&
-                          styles.pressed,
-                      ]}
-                      onPress={() =>
-                        openMobilePath(action.path)
-                      }
                     >
                       <Text
                         style={[
-                          styles.actionText,
-                          !available &&
-                            styles.unavailableActionText,
+                          styles.statusText,
+                          message.status === 'answered'
+                            ? styles.statusAnsweredText
+                            : message.status ===
+                              'confirmation_required'
+                              ? styles.statusConfirmationText
+                              : styles.statusGuidedText,
                         ]}
                       >
-                        {available
-                          ? `${action.label} →`
-                          : `${action.label} · disponível no web`}
+                        {STATUS_LABELS[message.status]}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Text
+                    style={[
+                      styles.messageText,
+                      isUser &&
+                      styles.userMessageText,
+                      isError &&
+                      styles.errorMessageText,
+                    ]}
+                  >
+                    {message.text}
+                  </Text>
+
+                  {message.items?.map((item) => {
+                    const available = isMobilePath(
+                      item.path
+                    );
+
+                    return (
+                      <Pressable
+                        accessibilityRole={
+                          available
+                            ? 'button'
+                            : undefined
+                        }
+                        disabled={!available}
+                        key={item.id}
+                        style={({ pressed }) => [
+                          styles.resultCard,
+                          !available &&
+                          styles.unavailableCard,
+                          pressed &&
+                          available &&
+                          styles.pressed,
+                        ]}
+                        onPress={() =>
+                          openMobilePath(item.path)
+                        }
+                      >
+                        <Text style={styles.resultTitle}>
+                          {item.title}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.resultDescription
+                          }
+                        >
+                          {item.description}
+                        </Text>
+
+                        <Text
+                          style={styles.resultAction}
+                        >
+                          {available
+                            ? 'Abrir no aplicativo →'
+                            : 'Disponível no sistema web'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+
+                  {message.actions?.map((action) => {
+                    const available = isMobilePath(
+                      action.path
+                    );
+
+                    return (
+                      <Pressable
+                        accessibilityRole={
+                          available
+                            ? 'button'
+                            : undefined
+                        }
+                        disabled={!available}
+                        key={action.id}
+                        style={({ pressed }) => [
+                          styles.actionButton,
+                          !available &&
+                          styles.unavailableAction,
+                          pressed &&
+                          available &&
+                          styles.pressed,
+                        ]}
+                        onPress={() =>
+                          openMobilePath(action.path)
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.actionText,
+                            !available &&
+                            styles.unavailableActionText,
+                          ]}
+                        >
+                          {available
+                            ? `${action.label} →`
+                            : `${action.label} · disponível no web`}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+
+                  {message.retryPrompt ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={sending}
+                      style={({ pressed }) => [
+                        styles.retryButton,
+                        pressed && styles.pressed,
+                        sending && styles.disabled,
+                      ]}
+                      onPress={() =>
+                        void retryMessage(
+                          message.id,
+                          message.retryPrompt!
+                        )
+                      }
+                    >
+                      <Text style={styles.retryText}>
+                        ↻ Tentar novamente
                       </Text>
                     </Pressable>
-                  );
-                })}
+                  ) : null}
+                </View>
+              );
+            })}
 
-                {message.retryPrompt ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={sending}
-                    style={({ pressed }) => [
-                      styles.retryButton,
-                      pressed && styles.pressed,
-                      sending && styles.disabled,
-                    ]}
-                    onPress={() =>
-                      void retryMessage(
-                        message.id,
-                        message.retryPrompt!
-                      )
-                    }
-                  >
-                    <Text style={styles.retryText}>
-                      ↻ Tentar novamente
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            );
-          })}
-
-          {sending ? (
-            <View
-              accessibilityLabel="Copiloto consultando"
-              style={[
-                styles.messageBubble,
-                styles.assistantBubble,
-                styles.loadingBubble,
-              ]}
-            >
-              <ActivityIndicator
-                color={sereneColors.primary}
-                size="small"
-              />
-
-              <Text style={styles.loadingText}>
-                Consultando...
-              </Text>
-            </View>
-          ) : null}
-        </ScrollView>
-
-        <View style={styles.composer}>
-          <TextInput
-            accessibilityLabel="Mensagem para o Copiloto"
-            editable={!sending}
-            maxLength={500}
-            multiline
-            placeholder="Pergunte algo sobre sua empresa..."
-            placeholderTextColor={
-              sereneColors.textSubtle
-            }
-            selectionColor={sereneColors.primary}
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-          />
-
-          <Pressable
-            accessibilityLabel="Enviar mensagem"
-            accessibilityRole="button"
-            disabled={sending || !input.trim()}
-            style={({ pressed }) => [
-              styles.sendButton,
-              pressed &&
-                styles.sendButtonPressed,
-              (sending || !input.trim()) &&
-                styles.sendButtonDisabled,
-            ]}
-            onPress={() => void sendMessage()}
-          >
             {sending ? (
-              <ActivityIndicator
-                color={sereneColors.textOnPrimary}
-                size="small"
-              />
-            ) : (
-              <Text style={styles.sendButtonText}>
-                ↑
-              </Text>
-            )}
-          </Pressable>
-        </View>
+              <View
+                accessibilityLabel="Copiloto consultando"
+                style={[
+                  styles.messageBubble,
+                  styles.assistantBubble,
+                  styles.loadingBubble,
+                ]}
+              >
+                <ActivityIndicator
+                  color={sereneColors.primary}
+                  size="small"
+                />
+
+                <Text style={styles.loadingText}>
+                  Consultando...
+                </Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View style={styles.composer}>
+            <TextInput
+              accessibilityLabel="Mensagem para o Copiloto"
+              editable={!sending}
+              maxLength={500}
+              multiline
+              placeholder="Pergunte algo sobre sua empresa..."
+              placeholderTextColor={sereneColors.sheetTextMuted}
+              selectionColor={sereneColors.primary}
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+            />
+
+            <Pressable
+              accessibilityLabel="Enviar mensagem"
+              accessibilityRole="button"
+              disabled={sending || !input.trim()}
+              style={({ pressed }) => [
+                styles.sendButton,
+                pressed &&
+                styles.sendButtonPressed,
+                (sending || !input.trim()) &&
+                styles.sendButtonDisabled,
+              ]}
+              onPress={() => void sendMessage()}
+            >
+              {sending ? (
+                <ActivityIndicator
+                  color={sereneColors.textOnPrimary}
+                  size="small"
+                />
+              ) : (
+                <Text style={styles.sendButtonText}>
+                  ↑
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </SereneSheet>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -466,12 +464,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   newConversationButton: {
+    alignItems: 'center',
     backgroundColor: sereneColors.surface,
     borderColor: sereneColors.border,
     borderRadius: radii.pill,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
   },
   newConversationText: {
     color: sereneColors.primary,
@@ -487,8 +487,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.sm,
-    marginLeft: spacing.lg,
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
@@ -504,7 +503,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   suggestionsSection: {
-    marginTop: spacing.xl,
+    marginTop: 0,
   },
   sectionHeader: {
     alignItems: 'center',
@@ -517,12 +516,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sectionTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
   sectionHint: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -531,8 +530,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   suggestionCard: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     minHeight: 92,
@@ -540,23 +539,23 @@ const styles = StyleSheet.create({
     width: 200,
   },
   suggestionPressed: {
-    backgroundColor: sereneColors.surfaceElevated,
+    backgroundColor: sereneColors.sheetPressed,
     borderColor: sereneColors.primary,
   },
   suggestionTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
   suggestionDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     lineHeight: 17,
     marginTop: spacing.sm,
   },
   messageList: {
-    backgroundColor: sereneColors.backgroundSoft,
-    borderTopColor: sereneColors.border,
+    backgroundColor: sereneColors.sheet,
+    borderTopColor: sereneColors.sheetBorder,
     borderTopWidth: 1,
     flex: 1,
     marginTop: spacing.xl,
@@ -575,9 +574,9 @@ const styles = StyleSheet.create({
   },
   assistantBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: sereneColors.surface,
+    backgroundColor: sereneColors.sheetSurface,
     borderBottomLeftRadius: spacing.xs,
-    borderColor: sereneColors.border,
+    borderColor: sereneColors.sheetBorder,
     borderWidth: 1,
   },
   userBubble: {
@@ -587,12 +586,12 @@ const styles = StyleSheet.create({
   },
   errorBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: '#2A171D',
-    borderColor: '#61303B',
+    backgroundColor: '#FFF1F3',
+    borderColor: '#F3BBC5',
     borderWidth: 1,
   },
   messageText: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
   },
@@ -600,7 +599,7 @@ const styles = StyleSheet.create({
     color: sereneColors.textOnPrimary,
   },
   errorMessageText: {
-    color: sereneColors.danger,
+    color: '#C83E59',
   },
   statusBadge: {
     alignSelf: 'flex-start',
@@ -610,13 +609,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   statusAnswered: {
-    backgroundColor: '#102A25',
+    backgroundColor: '#E5F6EE',
   },
   statusGuided: {
-    backgroundColor: sereneColors.primarySoft,
+    backgroundColor: '#EAF0FF',
   },
   statusConfirmation: {
-    backgroundColor: '#302715',
+    backgroundColor: '#FFF5D8',
   },
   statusText: {
     fontSize: 10,
@@ -624,17 +623,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   statusAnsweredText: {
-    color: sereneColors.success,
+    color: '#16815B',
   },
   statusGuidedText: {
-    color: '#7FA4FF',
+    color: sereneColors.primaryPressed,
   },
   statusConfirmationText: {
-    color: sereneColors.warning,
+    color: '#9A6700',
   },
   resultCard: {
-    backgroundColor: sereneColors.surfaceMuted,
-    borderColor: sereneColors.border,
+    backgroundColor: '#F8FAFD',
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -644,12 +643,12 @@ const styles = StyleSheet.create({
     opacity: 0.62,
   },
   resultTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
   resultDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     lineHeight: 18,
     marginTop: spacing.xs,
@@ -663,8 +662,8 @@ const styles = StyleSheet.create({
   actionButton: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: sereneColors.primarySoft,
-    borderColor: sereneColors.border,
+    backgroundColor: '#EAF0FF',
+    borderColor: '#D6E1FB',
     borderRadius: radii.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -672,21 +671,21 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   unavailableAction: {
-    backgroundColor: sereneColors.surfaceMuted,
+    backgroundColor: sereneColors.sheetPressed,
     opacity: 0.62,
   },
   actionText: {
-    color: '#7FA4FF',
+    color: sereneColors.primaryPressed,
     fontSize: fontSizes.caption,
     fontWeight: '800',
   },
   unavailableActionText: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
   },
   retryButton: {
     alignSelf: 'flex-start',
-    backgroundColor: sereneColors.surfaceMuted,
-    borderColor: '#61303B',
+    backgroundColor: '#FFF1F3',
+    borderColor: '#F3BBC5',
     borderRadius: radii.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -694,7 +693,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   retryText: {
-    color: sereneColors.danger,
+    color: '#C83E59',
     fontSize: fontSizes.caption,
     fontWeight: '800',
   },
@@ -709,8 +708,8 @@ const styles = StyleSheet.create({
   },
   composer: {
     alignItems: 'flex-end',
-    backgroundColor: sereneColors.tabBar,
-    borderTopColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderTopColor: sereneColors.sheetBorder,
     borderTopWidth: 1,
     flexDirection: 'row',
     gap: spacing.sm,
@@ -719,11 +718,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   input: {
-    backgroundColor: sereneColors.surfaceMuted,
-    borderColor: sereneColors.borderStrong,
+    backgroundColor: sereneColors.sheet,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     flex: 1,
     fontSize: fontSizes.bodySmall,
     maxHeight: 110,
@@ -744,6 +743,14 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.38,
+  },
+  copilotSheet: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+    paddingBottom: 96,
+    paddingHorizontal: 0,
+    paddingTop: spacing.lg,
   },
   sendButtonText: {
     color: sereneColors.textOnPrimary,

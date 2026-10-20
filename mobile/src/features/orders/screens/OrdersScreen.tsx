@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import {
   useCallback,
@@ -16,6 +17,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SereneHeader,
+  SereneSheet,
+} from '@/components/serene/SereneLayout';
 
 import {
   fontSizes,
@@ -43,16 +48,16 @@ const statusColors: Record<
   { background: string; text: string }
 > = {
   in_preparation: {
-    background: sereneColors.primarySoft,
-    text: '#7FA4FF',
+    background: '#EAF0FF',
+    text: sereneColors.primaryPressed,
   },
   completed: {
-    background: '#102A25',
-    text: sereneColors.success,
+    background: '#E5F6EE',
+    text: '#16815B',
   },
   cancelled: {
-    background: '#331C24',
-    text: sereneColors.danger,
+    background: '#FDECEF',
+    text: '#C83E59',
   },
 };
 
@@ -62,11 +67,11 @@ const filters: {
   label: string;
   value: OrderFilter;
 }[] = [
-  { label: 'Todos', value: 'all' },
-  { label: 'Em preparo', value: 'in_preparation' },
-  { label: 'Concluídos', value: 'completed' },
-  { label: 'Cancelados', value: 'cancelled' },
-];
+    { label: 'Todos', value: 'all' },
+    { label: 'Em preparo', value: 'in_preparation' },
+    { label: 'Concluídos', value: 'completed' },
+    { label: 'Cancelados', value: 'cancelled' },
+  ];
 
 function formatCurrency(value: string) {
   const parsed = Number(value);
@@ -239,7 +244,7 @@ export function OrdersScreen() {
         contentContainerStyle={[
           styles.content,
           visibleOrders.length === 0 &&
-            styles.emptyContent,
+          styles.emptyContent,
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -249,121 +254,120 @@ export function OrdersScreen() {
             onRefresh={() => void reload()}
             colors={[sereneColors.primary]}
             progressBackgroundColor={
-              sereneColors.surface
+              sereneColors.sheetSurface
             }
             tintColor={sereneColors.primary}
           />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.eyebrow}>
-              OPERAÇÃO
-            </Text>
-
-            <Text style={styles.title}>
-              Pedidos
-            </Text>
-
-            <Text style={styles.description}>
-              Acompanhe os pedidos registrados na sua
-              empresa.
-            </Text>
-
-            <TextInput
-              accessibilityLabel="Buscar pedidos"
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-              onChangeText={setQuery}
-              placeholder="Cliente, pedido ou produto"
-              placeholderTextColor={
-                sereneColors.textSubtle
-              }
-              returnKeyType="search"
-              selectionColor={sereneColors.primary}
-              style={styles.searchInput}
-              value={query}
+          <View>
+            <SereneHeader
+              description="Acompanhe os pedidos registrados na sua empresa."
+              eyebrow="Operação"
+              title="Pedidos"
             />
 
-            <View
-              accessibilityRole="radiogroup"
-              style={styles.filterRow}
-            >
-              {filters.map((option) => {
-                const selected =
-                  filter === option.value;
+            <SereneSheet style={styles.ordersSheet}>
+              <TextInput
+                accessibilityLabel="Buscar pedidos"
+                autoCapitalize="none"
+                autoCorrect={false}
+                clearButtonMode="while-editing"
+                onChangeText={setQuery}
+                placeholder="Cliente, pedido ou produto"
+                placeholderTextColor={
+                  sereneColors.sheetTextMuted
+                }
+                returnKeyType="search"
+                selectionColor={sereneColors.primary}
+                style={styles.searchInput}
+                value={query}
+              />
 
-                return (
-                  <Pressable
-                    key={option.value}
-                    accessibilityRole="radio"
-                    accessibilityState={{
-                      checked: selected,
-                    }}
-                    onPress={() =>
-                      setFilter(option.value)
-                    }
-                    style={({ pressed }) => [
-                      styles.filterButton,
-                      selected &&
-                        styles.filterButtonSelected,
-                      pressed &&
-                        styles.filterButtonPressed,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
+              <View
+                accessibilityRole="radiogroup"
+                style={styles.filterRow}
+              >
+                {filters.map((option) => {
+                  const selected =
+                    filter === option.value;
+
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="radio"
+                      accessibilityState={{
+                        checked: selected,
+                      }}
+                      onPress={() =>
+                        setFilter(option.value)
+                      }
+                      style={({ pressed }) => [
+                        styles.filterButton,
                         selected &&
-                          styles.filterButtonTextSelected,
+                        styles.filterButtonSelected,
+                        pressed &&
+                        styles.filterButtonPressed,
                       ]}
                     >
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                      <Text
+                        style={[
+                          styles.filterButtonText,
+                          selected &&
+                          styles.filterButtonTextSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-            {error ? (
-              <View
-                style={styles.warningCard}
-                accessibilityRole="alert"
-              >
-                <View style={styles.warningDot} />
+              {error ? (
+                <View
+                  accessibilityRole="alert"
+                  style={styles.warningCard}
+                >
+                  <View style={styles.warningDot} />
 
-                <Text style={styles.warningText}>
-                  {error} Os pedidos já exibidos foram
-                  mantidos.
+                  <Text style={styles.warningText}>
+                    {error} Os pedidos já exibidos foram
+                    mantidos.
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={styles.resultSummary}>
+                <Text style={styles.count}>
+                  {visibleOrders.length}{' '}
+                  {visibleOrders.length === 1
+                    ? 'pedido encontrado'
+                    : 'pedidos encontrados'}
+                </Text>
+
+                <Text style={styles.refreshHint}>
+                  Puxe para atualizar
                 </Text>
               </View>
-            ) : null}
-
-            <View style={styles.resultSummary}>
-              <Text style={styles.count}>
-                {visibleOrders.length}{' '}
-                {visibleOrders.length === 1
-                  ? 'pedido encontrado'
-                  : 'pedidos encontrados'}
-              </Text>
-
-              <Text style={styles.refreshHint}>
-                Puxe para atualizar
-              </Text>
-            </View>
+            </SereneSheet>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Text style={styles.emptyIconText}>○</Text>
+              <Ionicons
+                color={sereneColors.primary}
+                name="receipt-outline"
+                size={25}
+              />
             </View>
 
-            <Text style={styles.stateTitle}>
+            <Text style={styles.emptyTitle}>
               Nenhum pedido encontrado
             </Text>
 
-            <Text style={styles.stateDescription}>
+            <Text style={styles.emptyDescription}>
               {orders.length === 0
                 ? 'Os pedidos registrados no sistema aparecerão aqui.'
                 : 'Nenhum pedido corresponde à busca e ao filtro selecionados.'}
@@ -457,12 +461,15 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'center',
-    gap: spacing.md,
+    backgroundColor: sereneColors.sheet,
     maxWidth: 560,
-    paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingBottom: 140,
     width: '100%',
+  },
+ordersSheet: {
+    minHeight: 0,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.lg,
   },
   emptyContent: {
     flexGrow: 1,
@@ -498,14 +505,13 @@ const styles = StyleSheet.create({
     maxWidth: 390,
   },
   searchInput: {
-    backgroundColor: sereneColors.surfaceMuted,
-    borderColor: sereneColors.borderStrong,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    marginTop: spacing.xl,
-    minHeight: 50,
+    minHeight: 52,
     paddingHorizontal: spacing.lg,
   },
   filterRow: {
@@ -514,33 +520,38 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md,
   },
+
   filterButton: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.pill,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
+
   filterButtonSelected: {
     backgroundColor: sereneColors.primary,
     borderColor: sereneColors.primary,
   },
+
   filterButtonPressed: {
     opacity: 0.72,
   },
+
   filterButtonText: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     fontWeight: '700',
   },
+
   filterButtonTextSelected: {
     color: sereneColors.textOnPrimary,
   },
   warningCard: {
     alignItems: 'flex-start',
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.md,
     borderWidth: 1,
     flexDirection: 'row',
@@ -556,7 +567,7 @@ const styles = StyleSheet.create({
     width: 8,
   },
   warningText: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     flex: 1,
     fontSize: fontSizes.caption,
     lineHeight: 18,
@@ -568,18 +579,21 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   count: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
   },
+
   refreshHint: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: 10,
   },
   card: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.xl,
     borderWidth: 1,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.xl,
     padding: spacing.xl,
   },
   cardHeader: {
@@ -592,12 +606,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   orderCode: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     fontWeight: '600',
   },
   customerName: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
     marginTop: spacing.xs,
@@ -612,12 +626,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   createdAt: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     marginTop: spacing.md,
   },
   divider: {
-    backgroundColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetBorder,
     height: 1,
     marginVertical: spacing.lg,
   },
@@ -631,20 +645,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   itemName: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     flex: 1,
     fontSize: fontSizes.bodySmall,
     fontWeight: '600',
     lineHeight: 20,
   },
   itemQuantity: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     textAlign: 'right',
   },
   totalRow: {
     alignItems: 'center',
-    borderTopColor: sereneColors.border,
+    borderTopColor: sereneColors.sheetBorder,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -652,12 +666,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   totalLabel: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     fontWeight: '700',
   },
   totalValue: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
@@ -665,22 +679,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xxxl,
   },
   emptyIcon: {
     alignItems: 'center',
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.primarySoft,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.pill,
     borderWidth: 1,
-    height: 48,
+    height: 52,
     justifyContent: 'center',
-    width: 48,
+    width: 52,
   },
-  emptyIconText: {
-    color: sereneColors.textMuted,
-    fontSize: fontSizes.title,
-    fontWeight: '700',
+  emptyTitle: {
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.subtitle,
+    fontWeight: '800',
+    marginTop: spacing.lg,
+    textAlign: 'center',
+  },
+
+  emptyDescription: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.bodySmall,
+    lineHeight: 21,
+    marginTop: spacing.sm,
+    maxWidth: 340,
+    textAlign: 'center',
   },
   errorAccent: {
     backgroundColor: sereneColors.danger,

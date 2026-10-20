@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -9,6 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  SereneHeader,
+  SereneSheet,
+} from '@/components/serene/SereneLayout';
 import { useAuth } from '@/features/auth/context/useAuth';
 import {
   fontSizes,
@@ -24,7 +29,10 @@ const roleLabels = {
 } as const;
 
 function getInitials(fullName: string) {
-  const names = fullName.trim().split(/\s+/).filter(Boolean);
+  const names = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
 
   if (names.length === 0) {
     return 'GE';
@@ -34,7 +42,9 @@ function getInitials(fullName: string) {
     return names[0].slice(0, 2).toUpperCase();
   }
 
-  return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+  return `${names[0][0]}${
+    names[names.length - 1][0]
+  }`.toUpperCase();
 }
 
 export function AccountScreen() {
@@ -59,160 +69,177 @@ export function AccountScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
+    <SafeAreaView
+      edges={['top']}
+      style={styles.screen}
+    >
       <StatusBar style="light" />
 
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.eyebrow}>CONTA</Text>
-        <Text style={styles.title}>Seu acesso</Text>
+        <SereneHeader
+          description="Confira a conta e a empresa conectadas neste aparelho."
+          eyebrow="Conta"
+          title="Seu acesso"
+        />
 
-        <Text style={styles.description}>
-          Confira a conta e a empresa conectadas neste
-          aparelho.
-        </Text>
+        <SereneSheet style={styles.accountSheet}>
+          <View style={styles.profileCard}>
+            <View style={styles.profileHeader}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {getInitials(fullName)}
+                </Text>
+              </View>
 
-        <View style={styles.profileCard}>
-          <View style={styles.profileHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {getInitials(fullName)}
-              </Text>
+              <View style={styles.profileIdentity}>
+                <Text style={styles.name}>
+                  {fullName}
+                </Text>
+
+                <Text style={styles.organization}>
+                  {organizationName}
+                </Text>
+              </View>
+
+              {session ? (
+                <View style={styles.roleBadge}>
+                  <Text style={styles.roleBadgeText}>
+                    {roleLabels[session.role]}
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
-            <View style={styles.profileIdentity}>
-              <Text style={styles.name}>
-                {fullName}
-              </Text>
+            <View style={styles.divider} />
 
-              <Text style={styles.organization}>
-                {organizationName}
-              </Text>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons
+                  color={sereneColors.primary}
+                  name="mail-outline"
+                  size={18}
+                />
+              </View>
+
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>
+                  E-mail
+                </Text>
+
+                <Text style={styles.detailValue}>
+                  {session?.email ?? '—'}
+                </Text>
+              </View>
             </View>
 
-            {session ? (
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>
-                  {roleLabels[session.role]}
+            <View style={styles.detailDivider} />
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons
+                  color={sereneColors.primary}
+                  name="shield-checkmark-outline"
+                  size={18}
+                />
+              </View>
+
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>
+                  Perfil de acesso
+                </Text>
+
+                <Text style={styles.detailValue}>
+                  {session
+                    ? roleLabels[session.role]
+                    : '—'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.detailDivider} />
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons
+                  color={sereneColors.primary}
+                  name="business-outline"
+                  size={18}
+                />
+              </View>
+
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>
+                  Empresa
+                </Text>
+
+                <Text style={styles.detailValue}>
+                  {organizationName}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.securityCard}>
+            <View style={styles.securityIndicator} />
+
+            <View style={styles.securityContent}>
+              <Text style={styles.securityTitle}>
+                Sessão protegida
+              </Text>
+
+              <Text style={styles.securityDescription}>
+                Seu acesso está vinculado à empresa e ao seu
+                perfil de permissões.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.actions}>
+            {error ? (
+              <View
+                accessibilityRole="alert"
+                style={styles.errorCard}
+              >
+                <View style={styles.errorDot} />
+
+                <Text style={styles.errorText}>
+                  {error}
                 </Text>
               </View>
             ) : null}
-          </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Text style={styles.detailIconText}>@</Text>
-            </View>
-
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>
-                E-mail
-              </Text>
-              <Text style={styles.detailValue}>
-                {session?.email ?? '—'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Text style={styles.detailIconText}>◇</Text>
-            </View>
-
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>
-                Perfil de acesso
-              </Text>
-              <Text style={styles.detailValue}>
-                {session
-                  ? roleLabels[session.role]
-                  : '—'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.detailDivider} />
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Text style={styles.detailIconText}>⌂</Text>
-            </View>
-
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>
-                Empresa
-              </Text>
-              <Text style={styles.detailValue}>
-                {organizationName}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.securityCard}>
-          <View style={styles.securityIndicator} />
-
-          <View style={styles.securityContent}>
-            <Text style={styles.securityTitle}>
-              Sessão protegida
-            </Text>
-
-            <Text style={styles.securityDescription}>
-              Seu acesso está vinculado à empresa e ao seu
-              perfil de permissões.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.actions}>
-          {error ? (
-            <View
-              style={styles.errorCard}
-              accessibilityRole="alert"
+            <Pressable
+              accessibilityLabel="Sair da conta"
+              accessibilityRole="button"
+              disabled={isLoading}
+              onPress={handleSignOut}
+              style={({ pressed }) => [
+                styles.logoutButton,
+                pressed &&
+                  !isLoading &&
+                  styles.logoutButtonPressed,
+                isLoading &&
+                  styles.logoutButtonDisabled,
+              ]}
             >
-              <View style={styles.errorDot} />
-              <Text style={styles.errorText}>
-                {error}
-              </Text>
-            </View>
-          ) : null}
+              {isLoading ? (
+                <ActivityIndicator color="#C83E59" />
+              ) : (
+                <Text style={styles.logoutButtonText}>
+                  Sair da conta
+                </Text>
+              )}
+            </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Sair da conta"
-            disabled={isLoading}
-            onPress={handleSignOut}
-            style={({ pressed }) => [
-              styles.logoutButton,
-              pressed &&
-                !isLoading &&
-                styles.logoutButtonPressed,
-              isLoading &&
-                styles.logoutButtonDisabled,
-            ]}
-          >
-            {isLoading ? (
-              <ActivityIndicator
-                color={sereneColors.danger}
-              />
-            ) : (
-              <Text style={styles.logoutButtonText}>
-                Sair da conta
-              </Text>
-            )}
-          </Pressable>
-
-          <Text style={styles.logoutHint}>
-            Você precisará informar suas credenciais para
-            entrar novamente.
-          </Text>
-        </View>
+            <Text style={styles.logoutHint}>
+              Você precisará informar suas credenciais para
+              entrar novamente.
+            </Text>
+          </View>
+        </SereneSheet>
       </ScrollView>
     </SafeAreaView>
   );
@@ -220,145 +247,144 @@ export function AccountScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
     backgroundColor: sereneColors.background,
+    flex: 1,
   },
+
   content: {
     alignSelf: 'center',
     flexGrow: 1,
     maxWidth: 560,
-    paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingBottom: 0,
     width: '100%',
   },
-  eyebrow: {
-    color: sereneColors.primary,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+
+  accountSheet: {
+    flex: 1,
+    minHeight: 560,
+    paddingBottom: 140,
+    paddingTop: spacing.xl,
   },
-  title: {
-    color: sereneColors.text,
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-    marginTop: spacing.xs,
-  },
-  description: {
-    color: sereneColors.textMuted,
-    fontSize: fontSizes.bodySmall,
-    lineHeight: 21,
-    marginTop: spacing.md,
-    maxWidth: 390,
-  },
+
   profileCard: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.xl,
     borderWidth: 1,
-    marginTop: spacing.xxl,
+    marginTop: 0,
     padding: spacing.xl,
   },
+
   profileHeader: {
     alignItems: 'center',
     flexDirection: 'row',
   },
+
   avatar: {
     alignItems: 'center',
-    backgroundColor: sereneColors.primarySoft,
-    borderColor: sereneColors.primary,
+    backgroundColor: '#EAF0FF',
+    borderColor: '#D6E1FB',
     borderRadius: radii.pill,
     borderWidth: 1,
     height: 48,
     justifyContent: 'center',
     width: 48,
   },
+
   avatarText: {
-    color: '#7FA4FF',
+    color: sereneColors.primaryPressed,
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
+
   profileIdentity: {
     flex: 1,
     marginLeft: spacing.md,
     marginRight: spacing.sm,
   },
+
   name: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
+
   organization: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     marginTop: spacing.xs,
   },
+
   roleBadge: {
-    backgroundColor: sereneColors.primarySoft,
+    backgroundColor: '#EAF0FF',
     borderRadius: radii.pill,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
+
   roleBadgeText: {
-    color: '#7FA4FF',
+    color: sereneColors.primaryPressed,
     fontSize: 9,
     fontWeight: '800',
   },
+
   divider: {
-    backgroundColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetBorder,
     height: 1,
     marginVertical: spacing.xl,
   },
+
   detailRow: {
     alignItems: 'center',
     flexDirection: 'row',
   },
+
   detailIcon: {
     alignItems: 'center',
-    backgroundColor: sereneColors.surfaceMuted,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetPressed,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.md,
     borderWidth: 1,
     height: 36,
     justifyContent: 'center',
     width: 36,
   },
-  detailIconText: {
-    color: sereneColors.textMuted,
-    fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
-  },
+
   detailContent: {
     flex: 1,
     marginLeft: spacing.md,
   },
+
   detailLabel: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+
   detailValue: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     marginTop: spacing.xs,
   },
+
   detailDivider: {
-    backgroundColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetBorder,
     height: 1,
     marginVertical: spacing.lg,
   },
+
   securityCard: {
     alignItems: 'flex-start',
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: '#EAF8F1',
+    borderColor: '#CBEADB',
     borderRadius: radii.lg,
     borderWidth: 1,
     flexDirection: 'row',
     marginTop: spacing.lg,
     padding: spacing.lg,
   },
+
   securityIndicator: {
     backgroundColor: sereneColors.success,
     borderRadius: radii.pill,
@@ -366,29 +392,34 @@ const styles = StyleSheet.create({
     marginTop: 4,
     width: 9,
   },
+
   securityContent: {
     flex: 1,
     marginLeft: spacing.md,
   },
+
   securityTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
+
   securityDescription: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     lineHeight: 18,
     marginTop: spacing.xs,
   },
+
   actions: {
     marginTop: 'auto',
     paddingTop: spacing.xxxl,
   },
+
   errorCard: {
     alignItems: 'flex-start',
-    backgroundColor: '#2A171D',
-    borderColor: '#61303B',
+    backgroundColor: '#FFF1F3',
+    borderColor: '#F3BBC5',
     borderRadius: radii.md,
     borderWidth: 1,
     flexDirection: 'row',
@@ -396,40 +427,47 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     padding: spacing.md,
   },
+
   errorDot: {
-    backgroundColor: sereneColors.danger,
+    backgroundColor: '#C83E59',
     borderRadius: radii.pill,
     height: 8,
     marginTop: 5,
     width: 8,
   },
+
   errorText: {
-    color: sereneColors.danger,
+    color: '#C83E59',
     flex: 1,
     fontSize: fontSizes.caption,
     lineHeight: 18,
   },
+
   logoutButton: {
     alignItems: 'center',
-    borderColor: sereneColors.danger,
+    borderColor: '#C83E59',
     borderRadius: radii.md,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 52,
   },
+
   logoutButtonPressed: {
-    backgroundColor: '#2A171D',
+    backgroundColor: '#FFF1F3',
   },
+
   logoutButtonDisabled: {
     opacity: 0.55,
   },
+
   logoutButtonText: {
-    color: sereneColors.danger,
+    color: '#C83E59',
     fontSize: fontSizes.body,
     fontWeight: '800',
   },
+
   logoutHint: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     lineHeight: 18,
     marginTop: spacing.md,
