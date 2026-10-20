@@ -182,10 +182,12 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 20,
+    width: 'auto',
   },
 
   tabBarItem: {
     alignItems: 'center',
+    flex: 1,
     height: 66,
     justifyContent: 'center',
     margin: 0,
@@ -194,11 +196,11 @@ const styles = StyleSheet.create({
 
   tabBarIcon: {
     alignItems: 'center',
-    height: 46,
+    height: 66,
     justifyContent: 'center',
     margin: 0,
     padding: 0,
-    width: 46,
+    width: '100%',
   },
 
   iconContainer: {

@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -9,6 +11,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SereneHeader,
+  SereneSheet,
+} from '@/components/serene/SereneLayout';
 
 import {
   fontSizes,
@@ -31,6 +37,23 @@ type ModuleGroup = {
   title: string;
   description: string;
   items: ModuleItem[];
+};
+
+type IoniconName = ComponentProps<
+  typeof Ionicons
+>['name'];
+
+const MODULE_ICONS: Record<string, IoniconName> = {
+  customers: 'people-outline',
+  orders: 'receipt-outline',
+  quotes: 'document-text-outline',
+  products: 'cube-outline',
+  production: 'construct-outline',
+  stock: 'layers-outline',
+  fiscal: 'reader-outline',
+  financial: 'wallet-outline',
+  management: 'people-outline',
+  company: 'business-outline',
 };
 
 const MODULE_GROUPS: ModuleGroup[] = [
@@ -128,6 +151,8 @@ type ModuleCardProps = {
 
 function ModuleCard({ item, onPress }: ModuleCardProps) {
   const available = Boolean(item.route);
+  const iconName =
+    MODULE_ICONS[item.id] ?? 'apps-outline';
 
   return (
     <Pressable
@@ -151,14 +176,15 @@ function ModuleCard({ item, onPress }: ModuleCardProps) {
             available && styles.moduleSymbolAvailable,
           ]}
         >
-          <Text
-            style={[
-              styles.moduleSymbolText,
-              available && styles.moduleSymbolTextAvailable,
-            ]}
-          >
-            {item.symbol}
-          </Text>
+          <Ionicons
+            color={
+              available
+                ? sereneColors.primary
+                : sereneColors.sheetTextMuted
+            }
+            name={iconName}
+            size={22}
+          />
         </View>
 
         <View
@@ -188,14 +214,15 @@ function ModuleCard({ item, onPress }: ModuleCardProps) {
           {available ? 'Disponível' : 'Em integração'}
         </Text>
 
-        <Text
-          style={[
-            styles.moduleArrow,
-            available && styles.moduleArrowAvailable,
-          ]}
-        >
-          ›
-        </Text>
+        <Ionicons
+          color={
+            available
+              ? sereneColors.primary
+              : sereneColors.sheetTextMuted
+          }
+          name="chevron-forward"
+          size={19}
+        />
       </View>
     </Pressable>
   );
@@ -224,50 +251,57 @@ export function ModulesScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.eyebrow}>ÁREAS DA EMPRESA</Text>
-        <Text style={styles.title}>Módulos</Text>
+        <SereneHeader
+          description="Acesse cada área do GestorIA sem sobrecarregar sua tela inicial."
+          eyebrow="Áreas da empresa"
+          title="Módulos"
+        />
 
-        <Text style={styles.subtitle}>
-          Acesse cada área do GestorIA sem sobrecarregar sua
-          tela inicial.
-        </Text>
+        <SereneSheet>
 
-        <View style={styles.notice}>
-          <View style={styles.noticeAccent} />
+          <View style={styles.notice}>
+            <View style={styles.noticeAccent} />
 
-          <View style={styles.noticeContent}>
-            <Text style={styles.noticeTitle}>
-              Aplicativo em expansão
-            </Text>
-            <Text style={styles.noticeText}>
-              Os módulos serão liberados gradualmente, sempre
-              conectados aos dados reais da versão web.
-            </Text>
-          </View>
-        </View>
-
-        {MODULE_GROUPS.map((group) => (
-          <View key={group.title} style={styles.group}>
-            <View style={styles.groupHeader}>
-              <Text style={styles.groupTitle}>
-                {group.title}
+            <View style={styles.noticeContent}>
+              <Text style={styles.noticeTitle}>
+                Aplicativo em expansão
               </Text>
-              <Text style={styles.groupDescription}>
-                {group.description}
+              <Text style={styles.noticeText}>
+                Os módulos serão liberados gradualmente, sempre
+                conectados aos dados reais da versão web.
               </Text>
             </View>
-
-            <View style={styles.moduleGrid}>
-              {group.items.map((item) => (
-                <ModuleCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => openModule(item)}
-                />
-              ))}
-            </View>
           </View>
-        ))}
+
+          {MODULE_GROUPS.map((group, groupIndex) => (
+            <View
+              key={group.title}
+              style={[
+                styles.group,
+                groupIndex === 0 && styles.groupFirst,
+              ]}
+            >
+              <View style={styles.groupHeader}>
+                <Text style={styles.groupTitle}>
+                  {group.title}
+                </Text>
+                <Text style={styles.groupDescription}>
+                  {group.description}
+                </Text>
+              </View>
+
+              <View style={styles.moduleGrid}>
+                {group.items.map((item) => (
+                  <ModuleCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => openModule(item)}
+                  />
+                ))}
+              </View>
+            </View>
+          ))}
+        </SereneSheet>
       </ScrollView>
     </SafeAreaView>
   );
@@ -280,10 +314,8 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'center',
+    flexGrow: 1,
     maxWidth: 560,
-    paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
     width: '100%',
   },
   eyebrow: {
@@ -307,47 +339,56 @@ const styles = StyleSheet.create({
     maxWidth: 390,
   },
   notice: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     flexDirection: 'row',
-    marginTop: spacing.xl,
     padding: spacing.lg,
   },
+
   noticeAccent: {
     backgroundColor: sereneColors.primary,
     borderRadius: radii.pill,
     width: 3,
   },
+
   noticeContent: {
     flex: 1,
     marginLeft: spacing.md,
   },
+
   noticeTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
     fontWeight: '800',
   },
+
   noticeText: {
-    color: sereneColors.textMuted,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     lineHeight: 18,
     marginTop: spacing.xs,
   },
+  groupFirst: {
+    marginTop: spacing.xl,
+  },
   group: {
     marginTop: spacing.xxl,
   },
+
   groupHeader: {
     marginBottom: spacing.md,
   },
+
   groupTitle: {
-    color: sereneColors.text,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
+
   groupDescription: {
-    color: sereneColors.textSubtle,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
     marginTop: spacing.xs,
   },
@@ -357,8 +398,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   moduleCard: {
-    backgroundColor: sereneColors.surface,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     flexBasis: '47%',
@@ -366,8 +407,9 @@ const styles = StyleSheet.create({
     minHeight: 158,
     padding: spacing.lg,
   },
+
   moduleCardPressed: {
-    backgroundColor: sereneColors.surfaceElevated,
+    backgroundColor: sereneColors.sheetPressed,
     opacity: 0.82,
   },
   moduleCardHeader: {
@@ -377,44 +419,44 @@ const styles = StyleSheet.create({
   },
   moduleSymbol: {
     alignItems: 'center',
-    backgroundColor: sereneColors.surfaceMuted,
-    borderColor: sereneColors.border,
+    backgroundColor: sereneColors.sheetPressed,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.md,
     borderWidth: 1,
-    height: 36,
+    height: 40,
     justifyContent: 'center',
-    minWidth: 36,
-    paddingHorizontal: spacing.sm,
+    width: 40,
+  },
+
+  moduleTitle: {
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.bodySmall,
+    fontWeight: '800',
+    marginTop: spacing.lg,
+  },
+
+  moduleDescription: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.caption,
+    lineHeight: 17,
+    marginTop: spacing.xs,
+  },
+
+  moduleStatus: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: 10,
+    fontWeight: '700',
   },
   moduleSymbolAvailable: {
     backgroundColor: sereneColors.primarySoft,
     borderColor: sereneColors.primary,
-  },
-  moduleSymbolText: {
-    color: sereneColors.textMuted,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  moduleSymbolTextAvailable: {
-    color: sereneColors.primary,
   },
   statusDot: {
     borderRadius: radii.pill,
     height: 7,
     width: 7,
   },
-  moduleTitle: {
-    color: sereneColors.text,
-    fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
-    marginTop: spacing.lg,
-  },
-  moduleDescription: {
-    color: sereneColors.textMuted,
-    fontSize: fontSizes.caption,
-    lineHeight: 17,
-    marginTop: spacing.xs,
-  },
+
   moduleFooter: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -422,19 +464,8 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     paddingTop: spacing.md,
   },
-  moduleStatus: {
-    color: sereneColors.textSubtle,
-    fontSize: 10,
-    fontWeight: '700',
-  },
+
   moduleStatusAvailable: {
     color: sereneColors.success,
-  },
-  moduleArrow: {
-    color: sereneColors.textSubtle,
-    fontSize: fontSizes.subtitle,
-  },
-  moduleArrowAvailable: {
-    color: sereneColors.primary,
   },
 });
