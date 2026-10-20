@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -37,6 +38,37 @@ const SEVERITY_COLORS: Record<
   warning: sereneColors.warning,
   critical: sereneColors.danger,
 };
+
+type IoniconName = ComponentProps<
+  typeof Ionicons
+>['name'];
+
+function getPriorityIcon(
+  module: DashboardAlertItem['module']
+): IoniconName {
+  switch (module) {
+    case 'orders':
+      return 'receipt-outline';
+
+    case 'quotes':
+      return 'document-text-outline';
+
+    case 'products':
+      return 'cube-outline';
+
+    case 'production':
+      return 'construct-outline';
+
+    case 'fiscal':
+      return 'reader-outline';
+
+    case 'management':
+      return 'people-outline';
+
+    case 'financial':
+      return 'wallet-outline';
+  }
+}
 
 const EXECUTIVE_TITLES: Record<
   DashboardHealth,
@@ -137,7 +169,16 @@ function FocusCard({ item, onOpen }: FocusCardProps) {
 
   return (
     <View style={styles.focusCard}>
-      <View style={styles.focusHeader}>
+      <Pressable
+        accessibilityHint={item.impact}
+        accessibilityLabel={`Abrir ${item.title}`}
+        accessibilityRole="button"
+        onPress={onOpen}
+        style={({ pressed }) => [
+          styles.focusSummary,
+          pressed && styles.sheetPressed,
+        ]}
+      >
         <View
           style={[
             styles.focusDot,
@@ -145,26 +186,26 @@ function FocusCard({ item, onOpen }: FocusCardProps) {
           ]}
         />
 
-        <Text style={styles.focusEyebrow}>
-          EM FOCO AGORA
-        </Text>
-      </View>
+        <View style={styles.focusContent}>
+          <Text style={styles.focusTitle}>
+            {item.title}
+          </Text>
 
-      <Text style={styles.focusTitle}>
-        {item.title}
-      </Text>
+          <Text style={styles.focusDescription}>
+            {item.description}
+          </Text>
+        </View>
 
-      <Text style={styles.focusDescription}>
-        {item.description}
-      </Text>
-
-      <Text style={styles.focusImpact}>
-        {item.impact}
-      </Text>
+        <Ionicons
+          color={sereneColors.sheetTextMuted}
+          name="chevron-forward"
+          size={22}
+        />
+      </Pressable>
 
       <Pressable
-        accessibilityRole="button"
         accessibilityLabel={item.action_label}
+        accessibilityRole="button"
         onPress={onOpen}
         style={({ pressed }) => [
           styles.focusAction,
@@ -175,9 +216,11 @@ function FocusCard({ item, onOpen }: FocusCardProps) {
           {item.action_label}
         </Text>
 
-        <Text style={styles.focusActionArrow}>
-          ›
-        </Text>
+        <Ionicons
+          color={sereneColors.primary}
+          name="chevron-forward"
+          size={21}
+        />
       </Pressable>
     </View>
   );
@@ -199,6 +242,7 @@ function PriorityItem({
   onOpen,
 }: PriorityItemProps) {
   const color = SEVERITY_COLORS[item.severity];
+  const iconName = getPriorityIcon(item.module);
 
   return (
     <View
@@ -224,6 +268,14 @@ function PriorityItem({
           ]}
         />
 
+        <View style={styles.priorityIconContainer}>
+          <Ionicons
+            color={sereneColors.sheetText}
+            name={iconName}
+            size={24}
+          />
+        </View>
+
         <View style={styles.priorityTitleArea}>
           <Text style={styles.priorityTitle}>
             {item.title}
@@ -241,9 +293,16 @@ function PriorityItem({
           {item.count}
         </Text>
 
-        <Text style={styles.priorityChevron}>
-          {expanded ? '⌃' : '›'}
-        </Text>
+        <Ionicons
+          color={sereneColors.sheetTextMuted}
+          name={
+            expanded
+              ? 'chevron-up'
+              : 'chevron-forward'
+          }
+          size={21}
+          style={styles.priorityChevron}
+        />
       </Pressable>
 
       {expanded ? (
@@ -275,9 +334,11 @@ function PriorityItem({
               {item.action_label}
             </Text>
 
-            <Text style={styles.priorityActionArrow}>
-              ›
-            </Text>
+            <Ionicons
+              color={sereneColors.primary}
+              name="chevron-forward"
+              size={20}
+            />
           </Pressable>
         </View>
       ) : null}
@@ -321,6 +382,13 @@ export function HomeScreen() {
     );
   }
 
+  function openGlobalSearch() {
+    Alert.alert(
+      'Busca geral',
+      'A busca entre os módulos será integrada na próxima etapa.'
+    );
+  }
+
   function openAllAlerts() {
     router.push('/alerts');
   }
@@ -345,23 +413,65 @@ export function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
+          <View
+            pointerEvents="none"
+            style={styles.heroDecoration}
+          >
+            <View style={styles.heroTopGlow} />
+            <View style={styles.heroDecorationRing} />
+            <View style={styles.heroDecorationCore} />
+          </View>
+
           <View style={styles.brandRow}>
-            <Image
+            <View
               accessibilityLabel="GestorIA"
-              resizeMode="contain"
-              source={require('@/assets/images/gestoria-logo.png')}
-              style={styles.logo}
-            />
+              accessibilityRole="image"
+              style={styles.brandMark}
+            >
+              <Image
+                resizeMode="contain"
+                source={require('@/assets/images/gestoria-logo.png')}
+                style={styles.brandMarkImage}
+              />
+            </View>
 
-            {overview ? (
-              <View style={styles.onlineStatus}>
-                <View style={styles.onlineDot} />
+            <View style={styles.headerActions}>
+              <Pressable
+                accessibilityLabel="Abrir busca geral"
+                accessibilityRole="button"
+                onPress={openGlobalSearch}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  pressed && styles.headerButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  color={sereneColors.text}
+                  name="search-outline"
+                  size={25}
+                />
+              </Pressable>
 
-                <Text style={styles.onlineText}>
-                  Operação online
-                </Text>
-              </View>
-            ) : null}
+              <Pressable
+                accessibilityLabel="Abrir central de alertas"
+                accessibilityRole="button"
+                onPress={openAllAlerts}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  pressed && styles.headerButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  color={sereneColors.text}
+                  name="notifications-outline"
+                  size={25}
+                />
+
+                {overview && overview.alerts.length > 0 ? (
+                  <View style={styles.notificationBadge} />
+                ) : null}
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.introduction}>
@@ -375,13 +485,23 @@ export function HomeScreen() {
                 : 'Sua empresa em um só lugar.'}
             </Text>
 
-            <Text style={styles.updateTime}>
-              {overview
-                ? formatUpdateTime(
-                    overview.generated_at
-                  )
-                : 'Preparando sua visão executiva'}
-            </Text>
+            <View style={styles.statusRow}>
+              <Text style={styles.updateTime}>
+                {overview
+                  ? formatUpdateTime(overview.generated_at)
+                  : 'Preparando sua visão executiva'}
+              </Text>
+
+              {overview ? (
+                <View style={styles.onlineStatus}>
+                  <View style={styles.onlineDot} />
+
+                  <Text style={styles.onlineText}>
+                    Operação online
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           {overview ? (
@@ -580,7 +700,7 @@ export function HomeScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
@@ -593,23 +713,107 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexGrow: 1,
     maxWidth: 560,
-    paddingBottom: 104,
     width: '100%',
   },
   hero: {
     backgroundColor: sereneColors.background,
+    overflow: 'hidden',
     paddingBottom: spacing.xxl,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
+    position: 'relative',
+  },
+  heroDecoration: {
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  heroTopGlow: {
+    backgroundColor: 'rgba(40, 103, 232, 0.08)',
+    borderRadius: 190,
+    height: 320,
+    left: -100,
+    position: 'absolute',
+    top: -220,
+    width: 380,
+  },
+
+  heroDecorationRing: {
+    borderColor: 'rgba(40, 103, 232, 0.14)',
+    borderRadius: 155,
+    borderWidth: 38,
+    height: 310,
+    position: 'absolute',
+    right: -160,
+    top: 86,
+    width: 310,
+  },
+
+  heroDecorationCore: {
+    backgroundColor: 'rgba(23, 174, 230, 0.04)',
+    borderRadius: 100,
+    height: 200,
+    position: 'absolute',
+    right: -92,
+    top: 141,
+    width: 200,
   },
   brandRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    zIndex: 1,
   },
-  logo: {
-    height: 38,
-    width: 126,
+  brandMark: {
+    height: 58,
+    overflow: 'hidden',
+    position: 'relative',
+    width: 58,
+  },
+  brandMarkImage: {
+    height: 194,
+    left: -58,
+    position: 'absolute',
+    top: -72,
+    width: 345,
+  },
+
+  headerActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+
+  headerButton: {
+    alignItems: 'center',
+    backgroundColor: sereneColors.surfaceMuted,
+    borderColor: sereneColors.border,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 50,
+    justifyContent: 'center',
+    position: 'relative',
+    width: 50,
+  },
+
+  headerButtonPressed: {
+    backgroundColor: sereneColors.surfaceElevated,
+    transform: [{ scale: 0.96 }],
+  },
+
+  notificationBadge: {
+    backgroundColor: sereneColors.danger,
+    borderColor: sereneColors.surfaceMuted,
+    borderRadius: radii.pill,
+    borderWidth: 2,
+    height: 9,
+    position: 'absolute',
+    right: 10,
+    top: 9,
+    width: 9,
   },
   onlineStatus: {
     alignItems: 'center',
@@ -624,11 +828,13 @@ const styles = StyleSheet.create({
   },
   onlineText: {
     color: sereneColors.success,
-    fontSize: fontSizes.caption,
+    fontSize: fontSizes.bodySmall,
     fontWeight: '600',
   },
   introduction: {
     marginTop: spacing.xl,
+    zIndex: 1,
+
   },
   greeting: {
     color: sereneColors.textMuted,
@@ -644,10 +850,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     maxWidth: 410,
   },
+  statusRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+  },
   updateTime: {
     color: sereneColors.textSubtle,
     fontSize: fontSizes.bodySmall,
-    marginTop: spacing.md,
   },
   metricsPanel: {
     backgroundColor: sereneColors.surface,
@@ -656,6 +869,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: spacing.xxl,
     overflow: 'hidden',
+    zIndex: 1,
   },
   metricsHeading: {
     paddingHorizontal: spacing.xl,
@@ -706,11 +920,11 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: sereneColors.sheet,
-    borderTopLeftRadius: radii.xxl,
-    borderTopRightRadius: radii.xxl,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     flex: 1,
     minHeight: 520,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: 140,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
   },
@@ -809,73 +1023,69 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     color: sereneColors.sheetText,
-    fontSize: fontSizes.title,
+    fontSize: 28,
     fontWeight: '800',
-    letterSpacing: -0.4,
+    letterSpacing: -0.7,
+    lineHeight: 34,
   },
   focusCard: {
     borderBottomColor: sereneColors.sheetBorder,
     borderBottomWidth: 1,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     paddingBottom: spacing.lg,
   },
-  focusHeader: {
+
+  focusSummary: {
     alignItems: 'center',
+    borderRadius: radii.md,
     flexDirection: 'row',
-    gap: spacing.md,
+    marginHorizontal: -spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
   },
+
   focusDot: {
     borderRadius: radii.pill,
-    height: 11,
-    width: 11,
+    height: 12,
+    marginRight: spacing.lg,
+    width: 12,
   },
-  focusEyebrow: {
-    color: sereneColors.sheetTextMuted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+
+  focusContent: {
+    flex: 1,
+    minWidth: 0,
   },
+
   focusTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
     lineHeight: 24,
-    marginLeft: 23,
-    marginTop: spacing.md,
   },
+
   focusDescription: {
     color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
-    lineHeight: 21,
-    marginLeft: 23,
+    lineHeight: 20,
     marginTop: spacing.xs,
   },
-  focusImpact: {
-    color: sereneColors.sheetTextMuted,
-    fontSize: fontSizes.caption,
-    lineHeight: 18,
-    marginLeft: 23,
-    marginTop: spacing.sm,
-  },
+
   focusAction: {
     alignItems: 'center',
+    borderRadius: radii.md,
     borderTopColor: sereneColors.sheetBorder,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.lg,
   },
+
   focusActionText: {
     color: sereneColors.primary,
-    fontSize: fontSizes.bodySmall,
+    fontSize: fontSizes.body,
     fontWeight: '700',
-  },
-  focusActionArrow: {
-    color: sereneColors.primary,
-    fontSize: fontSizes.title,
-    lineHeight: 24,
   },
   sectionHeading: {
     alignItems: 'center',
@@ -902,11 +1112,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.subtitle,
   },
   priorityList: {
-    backgroundColor: sereneColors.sheetSurface,
-    borderColor: sereneColors.sheetBorder,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
   priorityItem: {
     borderBottomColor: sereneColors.sheetBorder,
@@ -917,46 +1123,55 @@ const styles = StyleSheet.create({
   },
   priorityHeader: {
     alignItems: 'center',
+    borderRadius: radii.md,
     flexDirection: 'row',
-    minHeight: 76,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    minHeight: 90,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.lg,
   },
   priorityDot: {
     borderRadius: radii.pill,
     height: 9,
     width: 9,
   },
+  priorityIconContainer: {
+    alignItems: 'center',
+    height: 38,
+    justifyContent: 'center',
+    marginLeft: spacing.md,
+    width: 38,
+  },
   priorityTitleArea: {
     flex: 1,
     marginLeft: spacing.md,
+    minWidth: 0,
   },
   priorityTitle: {
     color: sereneColors.sheetText,
-    fontSize: fontSizes.bodySmall,
+    fontSize: fontSizes.body,
     fontWeight: '700',
+    lineHeight: 21,
   },
   priorityDescription: {
     color: sereneColors.sheetTextMuted,
-    fontSize: fontSizes.caption,
+    fontSize: fontSizes.bodySmall,
+    lineHeight: 20,
     marginTop: spacing.xs,
   },
   priorityCount: {
     color: sereneColors.sheetText,
-    fontSize: fontSizes.body,
+    fontSize: fontSizes.subtitle,
     fontWeight: '800',
     marginLeft: spacing.md,
   },
   priorityChevron: {
-    color: sereneColors.sheetTextMuted,
-    fontSize: fontSizes.title,
-    lineHeight: 24,
     marginLeft: spacing.md,
   },
   priorityDetails: {
-    backgroundColor: '#EEF3FA',
-    borderTopColor: sereneColors.sheetBorder,
-    borderTopWidth: 1,
+    backgroundColor: sereneColors.sheetPressed,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.sm,
     padding: spacing.lg,
   },
   impactBox: {
@@ -994,11 +1209,6 @@ const styles = StyleSheet.create({
     color: sereneColors.primary,
     fontSize: fontSizes.bodySmall,
     fontWeight: '700',
-  },
-  priorityActionArrow: {
-    color: sereneColors.primary,
-    fontSize: fontSizes.title,
-    lineHeight: 24,
   },
   emptyFocus: {
     alignItems: 'center',

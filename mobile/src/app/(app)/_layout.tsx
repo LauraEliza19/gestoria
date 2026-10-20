@@ -1,27 +1,35 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
 import {
   type ColorValue,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 
 import {
-  fontSizes,
   radii,
   sereneColors,
 } from '@/theme/tokens';
 
+type IoniconName = ComponentProps<
+  typeof Ionicons
+>['name'];
+
 type TabIconProps = {
   color: ColorValue;
   focused: boolean;
-  symbol: string;
+  activeName: IoniconName;
+  inactiveName: IoniconName;
+  size?: number;
 };
 
 function TabIcon({
   color,
   focused,
-  symbol,
+  activeName,
+  inactiveName,
+  size = 24,
 }: TabIconProps) {
   return (
     <View
@@ -30,39 +38,15 @@ function TabIcon({
         focused && styles.iconContainerFocused,
       ]}
     >
-      <Text
-        style={[
-          styles.icon,
-          { color },
-          focused && styles.iconFocused,
-        ]}
-      >
-        {symbol}
-      </Text>
-    </View>
-  );
-}
-
-type CopilotIconProps = {
-  focused: boolean;
-};
-
-function CopilotIcon({ focused }: CopilotIconProps) {
-  return (
-    <View
-      style={[
-        styles.iconContainer,
-        focused && styles.iconContainerFocused,
-      ]}
-    >
-      <Text
-        style={[
-          styles.copilotIcon,
-          focused && styles.copilotIconFocused,
-        ]}
-      >
-        ✦
-      </Text>
+      <Ionicons
+        color={
+          focused
+            ? sereneColors.primary
+            : color
+        }
+        name={focused ? activeName : inactiveName}
+        size={size}
+      />
     </View>
   );
 }
@@ -73,9 +57,10 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: sereneColors.primary,
-        tabBarInactiveTintColor:
-          sereneColors.textMuted,
         tabBarHideOnKeyboard: true,
+        tabBarIconStyle: styles.tabBarIcon,
+        tabBarInactiveTintColor:
+          sereneColors.textSubtle,
         tabBarItemStyle: styles.tabBarItem,
         tabBarShowLabel: false,
         tabBarStyle: styles.tabBar,
@@ -88,9 +73,10 @@ export default function AppLayout() {
           tabBarAccessibilityLabel: 'Abrir início',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
+              activeName="home"
               color={color}
               focused={focused}
-              symbol="⌂"
+              inactiveName="home-outline"
             />
           ),
         }}
@@ -104,9 +90,10 @@ export default function AppLayout() {
             'Abrir central de alertas',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
+              activeName="notifications"
               color={color}
               focused={focused}
-              symbol="!"
+              inactiveName="notifications-outline"
             />
           ),
         }}
@@ -117,8 +104,14 @@ export default function AppLayout() {
         options={{
           title: 'Copiloto',
           tabBarAccessibilityLabel: 'Abrir Copiloto',
-          tabBarIcon: ({ focused }) => (
-            <CopilotIcon focused={focused} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              activeName="sparkles"
+              color={color}
+              focused={focused}
+              inactiveName="sparkles-outline"
+              size={25}
+            />
           ),
         }}
       />
@@ -131,9 +124,10 @@ export default function AppLayout() {
             'Abrir módulos da empresa',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
+              activeName="grid"
               color={color}
               focused={focused}
-              symbol="▦"
+              inactiveName="grid-outline"
             />
           ),
         }}
@@ -146,9 +140,10 @@ export default function AppLayout() {
           tabBarAccessibilityLabel: 'Abrir conta',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
+              activeName="person"
               color={color}
               focused={focused}
-              symbol="○"
+              inactiveName="person-outline"
             />
           ),
         }}
@@ -176,23 +171,36 @@ const styles = StyleSheet.create({
     height: 68,
     left: 24,
     paddingBottom: 0,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingTop: 0,
     position: 'absolute',
     right: 24,
     shadowColor: '#020817',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 10,
     },
-    shadowOpacity: 0.26,
-    shadowRadius: 18,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
+
   tabBarItem: {
     alignItems: 'center',
     height: 66,
     justifyContent: 'center',
+    margin: 0,
+    padding: 0,
   },
+
+  tabBarIcon: {
+    alignItems: 'center',
+    height: 46,
+    justifyContent: 'center',
+    margin: 0,
+    padding: 0,
+    width: 46,
+  },
+
   iconContainer: {
     alignItems: 'center',
     borderRadius: radii.pill,
@@ -200,24 +208,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
+
   iconContainerFocused: {
     backgroundColor: sereneColors.sheetSurface,
-  },
-  icon: {
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 25,
-  },
-  iconFocused: {
-    color: sereneColors.primary,
-  },
-  copilotIcon: {
-    color: sereneColors.primary,
-    fontSize: fontSizes.title,
-    fontWeight: '800',
-    lineHeight: 28,
-  },
-  copilotIconFocused: {
-    color: sereneColors.primaryPressed,
+    shadowColor: '#020817',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
   },
 });
