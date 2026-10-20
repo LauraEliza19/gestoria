@@ -1,5 +1,6 @@
 from sqlalchemy import delete, select, update
 
+from app.models import Product
 from app.models.production import Ingredient, Recipe, RecipeIngredient, StockItem
 
 
@@ -56,6 +57,18 @@ def get_recipe(db, organization_id, recipe_id):
         select(Recipe).where(
             Recipe.organization_id == organization_id, Recipe.id == recipe_id
         )
+    )
+
+
+def unlink_products(db, organization_id, recipe_id):
+    db.execute(
+        update(Product)
+        .where(
+            Product.organization_id == organization_id,
+            Product.recipe_id == recipe_id,
+        )
+        .values(recipe_id=None)
+        .execution_options(synchronize_session=False)
     )
 
 

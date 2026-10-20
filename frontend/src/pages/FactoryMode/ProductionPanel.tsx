@@ -3,17 +3,24 @@ import { BookOpen, Boxes, ChefHat, Plus, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { RecipeForm, StockForm } from './ProductionForms'
 import { StockUsageForm } from './StockUsageForm'
+import { AvailabilityBoard } from './AvailabilityBoard'
 import { friendlyAmount } from './stockUsage'
 import { formatQuantity as format } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 import type { Recipe, Snapshot, StockItem } from './productionTypes'
 import { useSession } from '../../contexts/SessionContext'
 
-type View = 'ingredients' | 'recipes' | 'available'
+export type ProductionView = 'ingredients' | 'recipes' | 'available'
 
-export function ProductionPanel() {
+export function ProductionPanel({
+  initialView = 'available',
+  onSnapshot,
+}: {
+  initialView?: ProductionView
+  onSnapshot?: (snapshot: Snapshot) => void
+}) {
   const { can } = useSession()
-  const [view, setView] = useState<View>('available')
+  const [view, setView] = useState<ProductionView>(initialView)
   const [data, setData] = useState<Snapshot>({ ingredients: [], stock_items: [], recipes: [] })
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -24,9 +31,13 @@ export function ProductionPanel() {
   const [recipeEditor, setRecipeEditor] = useState<Recipe | null | undefined>()
   const [usingStock, setUsingStock] = useState<string | null>(null)
   const [usageNeedsRefresh, setUsageNeedsRefresh] = useState(false)
-  const [onlyAvailable, setOnlyAvailable] = useState(false)
   const lock = useRef(true)
   const busy = loading || saving
+
+  // Keeps the order queue in sync with stock changes made in this panel.
+  useEffect(() => {
+    if (loaded) onSnapshot?.(data)
+  }, [data, loaded, onSnapshot])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -138,10 +149,6 @@ export function ProductionPanel() {
   }
 
   const availableCount = data.recipes.filter((recipe) => recipe.max_batches > 0).length
-  const shownRecipes =
-    view === 'available' && onlyAvailable
-      ? data.recipes.filter((recipe) => recipe.max_batches > 0)
-      : data.recipes
   return (
     <section aria-label="Painel de produção">
       <div className="metric-grid">
@@ -198,12 +205,22 @@ export function ProductionPanel() {
           </button>
         </div>
         {error && (
-          <p
+          <div
             role="alert"
-            className="mb-4 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-3 text-sm text-[#a52c42]"
           >
-            {error}
-          </p>
+            <p>{error}</p>
+            {!loaded && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => void refresh()}
+              >
+                Tentar novamente
+              </button>
+            )}
+          </div>
         )}
         <p role="status" className="mb-4 text-sm text-muted">
           {loading ? 'Consultando ingredientes e receitas...' : notice}
@@ -364,28 +381,11 @@ export function ProductionPanel() {
           </>
         )}
         {loaded && view === 'available' && (
-          <>
-            <h2 className="font-display text-xl font-semibold">O que posso preparar?</h2>
-            <p className="mt-2 text-sm text-muted">
-              Cada opção considera o estoque inteiro, individualmente. As quantidades de receitas
-              diferentes não devem ser somadas, pois podem usar os mesmos ingredientes.
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              Esta consulta não reserva nem desconta ingredientes.
-            </p>
-            <label className="my-5 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={onlyAvailable}
-                onChange={(event) => setOnlyAvailable(event.target.checked)}
-              />
-              Mostrar apenas receitas disponíveis
-            </label>
-          </>
+          <AvailabilityBoard recipes={data.recipes} onOpenRecipes={() => setView('recipes')} />
         )}
-        {loaded && view !== 'ingredients' && (
+        {loaded && view === 'recipes' && (
           <div className="grid gap-4 lg:grid-cols-2">
-            {shownRecipes.map((recipe) => (
+            {data.recipes.map((recipe) => (
               <article key={recipe.id} className="min-w-0 rounded-lg border border-line p-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <h3 className="break-words font-display text-xl font-semibold">{recipe.name}</h3>
@@ -398,16 +398,6 @@ export function ProductionPanel() {
                 <p className="mt-2 text-sm text-muted">
                   Uma receita rende {format(recipe.yield_quantity)} {recipe.yield_unit}.
                 </p>
-                {view === 'available' && (
-                  <div className="my-4 rounded-lg bg-paper p-3">
-                    <p className="font-semibold">
-                      {format(recipe.max_batches)} receita(s) completa(s)
-                    </p>
-                    <p className="mt-1 text-sm text-muted">
-                      Rendimento possível: {format(recipe.possible_yield)} {recipe.yield_unit}
-                    </p>
-                  </div>
-                )}
                 <ul className="my-4 divide-y divide-line">
                   {recipe.items.map((item) => (
                     <li key={item.ingredient_id} className="py-3 text-sm">
@@ -417,51 +407,43 @@ export function ProductionPanel() {
                         </strong>{' '}
                         de {item.ingredient_name}
                       </p>
-                      {view === 'available' && (
-                        <p
-                          className={`mt-1 text-xs ${Number(item.missing_quantity) > 0 ? 'text-[#a52c42]' : 'text-muted'}`}
-                        >
-                          Disponível: {format(item.available_quantity)} {item.unit}
-                          {Number(item.missing_quantity) > 0 &&
-                            ` · Faltam ${format(item.missing_quantity)} ${item.unit} para uma receita`}
-                        </p>
-                      )}
                     </li>
                   ))}
                 </ul>
-                {view === 'recipes' && (
-                  <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={busy || recipeEditor !== undefined}
+                    onClick={() => setRecipeEditor(recipe)}
+                  >
+                    Editar receita
+                  </button>
+                  {can('production:delete') && (
                     <button
                       type="button"
-                      className="secondary-button"
-                      disabled={busy || recipeEditor !== undefined}
-                      onClick={() => setRecipeEditor(recipe)}
+                      className="secondary-button !text-[#a52c42]"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Excluir a receita ${recipe.name}? Produtos vinculados a ela ficarão sem receita.`,
+                          )
+                        ) {
+                          void mutate(`/api/production/recipes/${recipe.id}`, 'DELETE')
+                        }
+                      }}
                     >
-                      Editar receita
+                      Excluir
                     </button>
-                    {can('production:delete') && (
-                      <button
-                        type="button"
-                        className="secondary-button !text-[#a52c42]"
-                        disabled={busy}
-                        onClick={() => {
-                          if (window.confirm(`Excluir a receita ${recipe.name}?`)) {
-                            void mutate(`/api/production/recipes/${recipe.id}`, 'DELETE')
-                          }
-                        }}
-                      >
-                        Excluir
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </article>
             ))}
-            {shownRecipes.length === 0 && (
+            {data.recipes.length === 0 && (
               <div className="rounded-lg bg-paper p-6 text-sm text-muted lg:col-span-2">
-                {data.recipes.length === 0
-                  ? 'Nenhuma receita cadastrada. Abra Receitas e cadastre a primeira, mesmo sem ingredientes em estoque.'
-                  : 'Nenhuma receita tem todos os ingredientes necessários. Desmarque o filtro para conferir o que falta.'}
+                Nenhuma receita cadastrada. Use Nova receita para cadastrar a primeira, mesmo sem
+                ingredientes em estoque.
               </div>
             )}
           </div>

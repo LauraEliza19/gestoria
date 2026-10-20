@@ -245,6 +245,8 @@ def delete_recipe(
         )
     )
 
+    # Linked products remain registered, now without a recipe.
+    repository.unlink_products(db, current.organization.id, recipe.id)
     db.delete(recipe)
     db.commit()
 

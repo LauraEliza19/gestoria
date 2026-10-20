@@ -37,6 +37,9 @@ class ProductCreate(BaseModel):
     cest_code: str | None = Field(default=None, pattern=r"^\d{7}$")
     fiscal_origin: int | None = Field(default=None, ge=0, le=8)
 
+    # ---- Produção ----
+    recipe_id: uuid.UUID | None = None
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
 
@@ -64,6 +67,8 @@ class ProductUpdate(BaseModel):
     ncm_code: str | None = Field(default=None, pattern=r"^\d{8}$")
     cest_code: str | None = Field(default=None, pattern=r"^\d{7}$")
     fiscal_origin: int | None = Field(default=None, ge=0, le=8)
+
+    recipe_id: uuid.UUID | None = None
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -93,6 +98,8 @@ class ProductRead(BaseModel):
     ncm_code: str | None
     cest_code: str | None
     fiscal_origin: int | None
+
+    recipe_id: uuid.UUID | None
 
     created_at: datetime
     updated_at: datetime
