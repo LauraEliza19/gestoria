@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Product
 from app.repositories import ProductRepository
+from app.repositories import production as production_repository
 
 
 class ProductServiceError(Exception):
@@ -16,6 +17,19 @@ class InvalidPerishabilityDataError(ProductServiceError):
             "Produtos perecíveis precisam informar a validade em dias "
             "(shelf_life_days)."
         )
+
+
+class RecipeNotFoundError(ProductServiceError):
+    def __init__(self):
+        super().__init__("Receita não encontrada nesta empresa.")
+
+
+def _validate_recipe(db: Session, organization_id: uuid.UUID, values: dict) -> None:
+    recipe_id = values.get("recipe_id")
+    if recipe_id is not None and (
+        production_repository.get_recipe(db, organization_id, recipe_id) is None
+    ):
+        raise RecipeNotFoundError()
 
 
 def _validate_perishability(values: dict, existing: Product | None) -> None:
@@ -35,9 +49,11 @@ def _validate_perishability(values: dict, existing: Product | None) -> None:
 
 def create_product(db: Session, organization_id: uuid.UUID, values: dict) -> Product:
     _validate_perishability(values, existing=None)
+    _validate_recipe(db, organization_id, values)
     return ProductRepository.create(db, organization_id, values)
 
 
 def update_product(db: Session, product: Product, values: dict) -> Product:
     _validate_perishability(values, existing=product)
+    _validate_recipe(db, product.organization_id, values)
     return ProductRepository.update(db, product, values)

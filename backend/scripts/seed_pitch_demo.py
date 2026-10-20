@@ -161,6 +161,8 @@ def seed_pitch_demo(db: Session) -> None:
     db,
     organization.id,
     )
+    # Explicit id link; the cake recipe yields slices, so it stays unlinked.
+    products["pao_queijo"].recipe_id = recipes["pao_queijo"].id
 
     db.commit()
 

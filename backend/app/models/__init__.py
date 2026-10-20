@@ -10,6 +10,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Numeric,
     SmallInteger,
@@ -168,6 +169,15 @@ class Product(Base, TimestampMixin):
         ),
         Index("ix_products_org_created_at", "organization_id", "created_at"),
         Index("ix_products_org_category", "organization_id", "category"),
+        # Products point to recipes by id within the same company; deleting a
+        # recipe unlinks its products explicitly before removing it.
+        ForeignKeyConstraint(
+            ["organization_id", "recipe_id"],
+            ["production_recipes.organization_id", "production_recipes.id"],
+            ondelete="RESTRICT",
+            name="fk_product_recipe",
+        ),
+        Index("ix_products_org_recipe", "organization_id", "recipe_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -208,6 +218,9 @@ class Product(Base, TimestampMixin):
     ncm_code: Mapped[str | None] = mapped_column(String(8))
     cest_code: Mapped[str | None] = mapped_column(String(7))
     fiscal_origin: Mapped[int | None] = mapped_column(SmallInteger)
+
+    # produção
+    recipe_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
     order_items: Mapped[list[OrderItem]] = relationship(back_populates="product")
     quote_items: Mapped[list[QuoteItem]] = relationship(back_populates="product")

@@ -16,6 +16,10 @@ def order_to_read(order) -> OrderRead:
                 product_name=item.product.name if item.product else "Produto removido",
                 quantity=item.quantity,
                 unit_price=item.unit_price,
+                recipe_id=item.product.recipe_id if item.product else None,
+                unit_of_measure=(
+                    item.product.unit_of_measure if item.product else None
+                ),
             )
             for item in order.items
         ],
