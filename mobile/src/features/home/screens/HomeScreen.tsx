@@ -1,7 +1,10 @@
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,7 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/context/useAuth';
-import { colors, fontSizes, radii, spacing } from '@/theme/tokens';
+import {
+  fontSizes,
+  radii,
+  sereneColors,
+  spacing,
+} from '@/theme/tokens';
 
 import type {
   DashboardAlert as DashboardAlertItem,
@@ -21,39 +29,22 @@ import type {
 } from '../dashboardTypes';
 import { useExecutiveDashboard } from '../useExecutiveDashboard';
 
-const HEALTH_CONTENT: Record<
-  DashboardHealth,
-  {
-    label: string;
-    description: string;
-    color: string;
-    backgroundColor: string;
-  }
+const SEVERITY_COLORS: Record<
+  DashboardAlertSeverity,
+  string
 > = {
-  healthy: {
-    label: 'Tudo sob controle',
-    description: 'Nenhuma situação importante exige sua atenção agora.',
-    color: colors.success,
-    backgroundColor: '#EAF8F2',
-  },
-  attention: {
-    label: 'Sua empresa precisa de atenção',
-    description: 'Existem situações que merecem acompanhamento.',
-    color: colors.warning,
-    backgroundColor: '#FFF7E8',
-  },
-  critical: {
-    label: 'Existem pontos críticos',
-    description: 'Algumas situações podem impactar a operação.',
-    color: colors.danger,
-    backgroundColor: '#FFF0F3',
-  },
+  info: sereneColors.info,
+  warning: sereneColors.warning,
+  critical: sereneColors.danger,
 };
 
-const SEVERITY_COLORS: Record<DashboardAlertSeverity, string> = {
-  info: colors.primary,
-  warning: colors.warning,
-  critical: colors.danger,
+const EXECUTIVE_TITLES: Record<
+  DashboardHealth,
+  string
+> = {
+  healthy: 'Sua empresa está sob controle.',
+  attention: 'Há pontos para acompanhar.',
+  critical: 'Sua empresa precisa da sua atenção.',
 };
 
 function formatCurrency(value: string | null) {
@@ -70,6 +61,7 @@ function formatCurrency(value: string | null) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
+    maximumFractionDigits: 2,
   }).format(parsedValue);
 }
 
@@ -80,97 +72,215 @@ function formatUpdateTime(value: string) {
     return 'Atualizado agora';
   }
 
-  return `Atualizado às ${new Intl.DateTimeFormat('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)}`;
+  return `Atualizado às ${new Intl.DateTimeFormat(
+    'pt-BR',
+    {
+      hour: '2-digit',
+      minute: '2-digit',
+    }
+  ).format(date)}`;
 }
 
-type MetricCardProps = {
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) {
+    return 'Bom dia';
+  }
+
+  if (hour < 18) {
+    return 'Boa tarde';
+  }
+
+  return 'Boa noite';
+}
+
+type MetricProps = {
   label: string;
   value: string;
-  description: string;
-  accent: string;
+  bordered?: boolean;
 };
 
-function MetricCard({
+function Metric({
   label,
   value,
-  description,
-  accent,
-}: MetricCardProps) {
+  bordered = false,
+}: MetricProps) {
   return (
-    <View style={styles.metricCard}>
-      <View
-        style={[
-          styles.metricAccent,
-          { backgroundColor: accent },
-        ]}
-      />
+    <View
+      style={[
+        styles.metric,
+        bordered && styles.metricBordered,
+      ]}
+    >
+      <Text style={styles.metricLabel}>
+        {label}
+      </Text>
 
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricDescription}>{description}</Text>
+      <Text
+        style={styles.metricValue}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
 
-type AlertCardProps = {
+type FocusCardProps = {
   item: DashboardAlertItem;
-  onPress: (item: DashboardAlertItem) => void;
+  onOpen: () => void;
 };
 
-function AlertCard({ item, onPress }: AlertCardProps) {
-  const accent = SEVERITY_COLORS[item.severity];
+function FocusCard({ item, onOpen }: FocusCardProps) {
+  const color = SEVERITY_COLORS[item.severity];
 
   return (
-    <View style={styles.alertCard}>
-      <View
-        style={[
-          styles.alertAccent,
-          { backgroundColor: accent },
-        ]}
-      />
-
-      <View style={styles.alertHeader}>
+    <View style={styles.focusCard}>
+      <View style={styles.focusHeader}>
         <View
           style={[
-            styles.alertCount,
-            { backgroundColor: accent },
+            styles.focusDot,
+            { backgroundColor: color },
           ]}
-        >
-          <Text style={styles.alertCountText}>{item.count}</Text>
-        </View>
+        />
 
-        <View style={styles.alertTitleArea}>
-          <Text style={styles.alertTitle}>{item.title}</Text>
-          <Text style={styles.alertSource}>{item.source}</Text>
-        </View>
+        <Text style={styles.focusEyebrow}>
+          EM FOCO AGORA
+        </Text>
       </View>
 
-      <Text style={styles.alertDescription}>
+      <Text style={styles.focusTitle}>
+        {item.title}
+      </Text>
+
+      <Text style={styles.focusDescription}>
         {item.description}
       </Text>
 
-      <View style={styles.impactBox}>
-        <Text style={styles.impactLabel}>IMPACTO</Text>
-        <Text style={styles.impactText}>{item.impact}</Text>
-      </View>
+      <Text style={styles.focusImpact}>
+        {item.impact}
+      </Text>
 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={item.action_label}
-        onPress={() => onPress(item)}
+        onPress={onOpen}
         style={({ pressed }) => [
-          styles.alertButton,
-          pressed && styles.pressed,
+          styles.focusAction,
+          pressed && styles.sheetPressed,
         ]}
       >
-        <Text style={styles.alertButtonText}>
+        <Text style={styles.focusActionText}>
           {item.action_label}
         </Text>
-        <Text style={styles.alertButtonArrow}>›</Text>
+
+        <Text style={styles.focusActionArrow}>
+          ›
+        </Text>
       </Pressable>
+    </View>
+  );
+}
+
+type PriorityItemProps = {
+  item: DashboardAlertItem;
+  expanded: boolean;
+  isLast: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+};
+
+function PriorityItem({
+  item,
+  expanded,
+  isLast,
+  onToggle,
+  onOpen,
+}: PriorityItemProps) {
+  const color = SEVERITY_COLORS[item.severity];
+
+  return (
+    <View
+      style={[
+        styles.priorityItem,
+        isLast && styles.priorityItemLast,
+      ]}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Exibir detalhes de ${item.title}`}
+        accessibilityState={{ expanded }}
+        onPress={onToggle}
+        style={({ pressed }) => [
+          styles.priorityHeader,
+          pressed && styles.sheetPressed,
+        ]}
+      >
+        <View
+          style={[
+            styles.priorityDot,
+            { backgroundColor: color },
+          ]}
+        />
+
+        <View style={styles.priorityTitleArea}>
+          <Text style={styles.priorityTitle}>
+            {item.title}
+          </Text>
+
+          <Text
+            style={styles.priorityDescription}
+            numberOfLines={1}
+          >
+            {item.description}
+          </Text>
+        </View>
+
+        <Text style={styles.priorityCount}>
+          {item.count}
+        </Text>
+
+        <Text style={styles.priorityChevron}>
+          {expanded ? '⌃' : '›'}
+        </Text>
+      </Pressable>
+
+      {expanded ? (
+        <View style={styles.priorityDetails}>
+          <View style={styles.impactBox}>
+            <Text style={styles.impactLabel}>
+              IMPACTO
+            </Text>
+
+            <Text style={styles.impactText}>
+              {item.impact}
+            </Text>
+          </View>
+
+          <Text style={styles.prioritySource}>
+            Origem: {item.source}
+          </Text>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={item.action_label}
+            onPress={onOpen}
+            style={({ pressed }) => [
+              styles.priorityAction,
+              pressed && styles.sheetPressed,
+            ]}
+          >
+            <Text style={styles.priorityActionText}>
+              {item.action_label}
+            </Text>
+
+            <Text style={styles.priorityActionArrow}>
+              ›
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -178,6 +288,7 @@ function AlertCard({ item, onPress }: AlertCardProps) {
 export function HomeScreen() {
   const router = useRouter();
   const { session } = useAuth();
+
   const {
     overview,
     loading,
@@ -187,10 +298,16 @@ export function HomeScreen() {
     refresh,
   } = useExecutiveDashboard();
 
+  const [expandedAlertId, setExpandedAlertId] =
+    useState<string | null>(null);
+
   const firstName =
-    session?.full_name.trim().split(/\s+/)[0] ?? 'gestor';
-  const organizationName =
-    session?.organization.name ?? 'Sua empresa';
+    session?.full_name.trim().split(/\s+/)[0] ||
+    'Gestor';
+
+  const focusAlert = overview?.alerts[0] ?? null;
+  const priorityAlerts =
+    overview?.alerts.slice(1, 4) ?? [];
 
   function openAlert(item: DashboardAlertItem) {
     if (item.action_route === '/orders') {
@@ -200,295 +317,268 @@ export function HomeScreen() {
 
     Alert.alert(
       item.title,
-      'Este módulo será disponibilizado nas próximas etapas do aplicativo.'
+      'A tela deste módulo será integrada nas próximas etapas do aplicativo.'
     );
   }
 
-  const healthContent = overview
-    ? HEALTH_CONTENT[overview.health]
-    : null;
-
-  const summaryCards = overview
-    ? [
-        {
-          label: 'Vendas hoje',
-          value: formatCurrency(overview.summary.sales_today),
-          description: 'Pedidos concluídos hoje',
-          accent: colors.primary,
-        },
-        {
-          label: 'Pedidos em andamento',
-          value: String(
-            overview.summary.orders_in_preparation
-          ),
-          description: 'Pedidos em preparação',
-          accent: colors.primary,
-        },
-        {
-          label: 'Produção bloqueada',
-          value: String(overview.summary.blocked_recipes),
-          description: 'Receitas sem insumos suficientes',
-          accent:
-            overview.summary.blocked_recipes > 0
-              ? colors.danger
-              : colors.success,
-        },
-        {
-          label: 'Estoque crítico',
-          value: String(
-            overview.summary.critical_stock_items
-          ),
-          description: 'Produtos no limite de reposição',
-          accent:
-            overview.summary.critical_stock_items > 0
-              ? colors.danger
-              : colors.success,
-        },
-        {
-          label: 'Situação fiscal',
-          value: String(overview.summary.fiscal_attention),
-          description: 'Documentos que exigem atenção',
-          accent:
-            overview.summary.fiscal_attention > 0
-              ? colors.warning
-              : colors.success,
-        },
-        {
-          label: 'Saldo financeiro',
-          value: overview.summary.financial_available
-            ? formatCurrency(
-                overview.summary.financial_balance
-              )
-            : 'Em breve',
-          description: overview.summary.financial_available
-            ? 'Saldo financeiro atual'
-            : 'Integração financeira em desenvolvimento',
-          accent: colors.navySoft,
-        },
-      ]
-    : [];
-
-  if (
-    overview?.summary.management_available &&
-    overview.summary.active_employees !== null
-  ) {
-    summaryCards.push({
-      label: 'Funcionários ativos',
-      value: String(overview.summary.active_employees),
-      description: `${
-        overview.summary.open_employee_records ?? 0
-      } ocorrências abertas`,
-      accent:
-        (overview.summary.open_employee_records ?? 0) > 0
-          ? colors.warning
-          : colors.success,
-    });
+  function openAllAlerts() {
+    router.push('/alerts');
   }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      <StatusBar style="light" />
+
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
-            colors={[colors.primary]}
+            colors={[sereneColors.primary]}
+            progressBackgroundColor={
+              sereneColors.sheetSurface
+            }
             refreshing={refreshing}
-            tintColor={colors.primary}
+            tintColor={sereneColors.text}
             onRefresh={refresh}
           />
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.brandMark}>
-            <Text style={styles.brandMarkText}>G</Text>
-          </View>
-
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>VISÃO EXECUTIVA</Text>
-            <Text style={styles.organization} numberOfLines={1}>
-              {organizationName}
-            </Text>
-          </View>
-
-          <View style={styles.protectedBadge}>
-            <View style={styles.protectedDot} />
-            <Text style={styles.protectedText}>Protegido</Text>
-          </View>
-        </View>
-
-        <View style={styles.introduction}>
-          <Text style={styles.greeting}>Olá, {firstName}.</Text>
-          <Text style={styles.mainQuestion}>
-            Minha empresa está bem?
-          </Text>
-          <Text style={styles.introductionText}>
-            Confira agora os principais indicadores e situações
-            que precisam da sua atenção.
-          </Text>
-        </View>
-
-        {loading && !overview ? (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator
-              color={colors.primary}
-              size="large"
+        <View style={styles.hero}>
+          <View style={styles.brandRow}>
+            <Image
+              accessibilityLabel="GestorIA"
+              resizeMode="contain"
+              source={require('@/assets/images/gestoria-logo.png')}
+              style={styles.logo}
             />
-            <Text style={styles.loadingTitle}>
-              Preparando sua visão executiva
-            </Text>
-            <Text style={styles.loadingDescription}>
-              Estamos consultando os dados mais recentes da
-              empresa.
-            </Text>
-          </View>
-        ) : null}
 
-        {error && !overview ? (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>
-              Não foi possível carregar os indicadores
-            </Text>
-            <Text style={styles.errorDescription}>{error}</Text>
+            {overview ? (
+              <View style={styles.onlineStatus}>
+                <View style={styles.onlineDot} />
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={retry}
-              style={({ pressed }) => [
-                styles.retryButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.retryButtonText}>
-                Tentar novamente
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {overview && healthContent ? (
-          <>
-            {error ? (
-              <View style={styles.updateWarning}>
-                <Text style={styles.updateWarningTitle}>
-                  Não foi possível atualizar os dados
-                </Text>
-                <Text style={styles.updateWarningText}>
-                  Os últimos indicadores disponíveis continuam
-                  sendo exibidos.
+                <Text style={styles.onlineText}>
+                  Operação online
                 </Text>
               </View>
             ) : null}
+          </View>
 
-            <View
-              style={[
-                styles.healthCard,
-                {
-                  backgroundColor:
-                    healthContent.backgroundColor,
-                },
-              ]}
-            >
-              <View style={styles.healthHeader}>
-                <View
-                  style={[
-                    styles.healthIndicator,
-                    {
-                      backgroundColor: healthContent.color,
-                    },
-                  ]}
-                />
+          <View style={styles.introduction}>
+            <Text style={styles.greeting}>
+              {getGreeting()}, {firstName}
+            </Text>
 
-                <Text
-                  style={[
-                    styles.healthLabel,
-                    { color: healthContent.color },
-                  ]}
-                >
-                  {healthContent.label}
+            <Text style={styles.title}>
+              {overview
+                ? EXECUTIVE_TITLES[overview.health]
+                : 'Sua empresa em um só lugar.'}
+            </Text>
+
+            <Text style={styles.updateTime}>
+              {overview
+                ? formatUpdateTime(
+                    overview.generated_at
+                  )
+                : 'Preparando sua visão executiva'}
+            </Text>
+          </View>
+
+          {overview ? (
+            <View style={styles.metricsPanel}>
+              <View style={styles.metricsHeading}>
+                <Text style={styles.metricsTitle}>
+                  Hoje
                 </Text>
-              </View>
 
-              <Text style={styles.healthDescription}>
-                {healthContent.description}
-              </Text>
-
-              <Text style={styles.updateTime}>
-                {formatUpdateTime(overview.generated_at)}
-              </Text>
-            </View>
-
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionEyebrow}>
-                  INDICADORES
-                </Text>
-                <Text style={styles.sectionTitle}>
-                  Visão geral
-                </Text>
-              </View>
-
-              <Text style={styles.pullHint}>
-                Puxe para atualizar
-              </Text>
-            </View>
-
-            <View style={styles.metricGrid}>
-              {summaryCards.map((card) => (
-                <MetricCard
-                  key={card.label}
-                  accent={card.accent}
-                  description={card.description}
-                  label={card.label}
-                  value={card.value}
-                />
-              ))}
-            </View>
-
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionEyebrow}>
-                  PRIORIDADES
-                </Text>
-                <Text style={styles.sectionTitle}>
-                  Precisa da sua atenção
-                </Text>
-              </View>
-
-              <View style={styles.totalBadge}>
-                <Text style={styles.totalBadgeText}>
-                  {overview.alerts.length}
-                </Text>
-              </View>
-            </View>
-
-            {overview.alerts.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <Text style={styles.emptyIconText}>✓</Text>
+                <View style={styles.brandRail}>
+                  <View style={styles.brandRailCyan} />
                 </View>
+              </View>
 
-                <Text style={styles.emptyTitle}>
-                  Nenhuma pendência importante
-                </Text>
-                <Text style={styles.emptyDescription}>
-                  Sua operação não possui alertas prioritários
-                  neste momento.
-                </Text>
+              <View style={styles.metricsRow}>
+                <Metric
+                  label="Vendas"
+                  value={formatCurrency(
+                    overview.summary.sales_today
+                  )}
+                />
+
+                <Metric
+                  bordered
+                  label="Em preparo"
+                  value={String(
+                    overview.summary
+                      .orders_in_preparation
+                  )}
+                />
+
+                <Metric
+                  bordered
+                  label="Estoque crítico"
+                  value={String(
+                    overview.summary
+                      .critical_stock_items
+                  )}
+                />
               </View>
-            ) : (
-              <View style={styles.alertList}>
-                {overview.alerts.map((item) => (
-                  <AlertCard
-                    key={item.id}
-                    item={item}
-                    onPress={openAlert}
-                  />
-                ))}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.sheet}>
+          {loading && !overview ? (
+            <View style={styles.stateCard}>
+              <ActivityIndicator
+                color={sereneColors.primary}
+                size="large"
+              />
+
+              <Text style={styles.stateTitle}>
+                Preparando sua visão executiva
+              </Text>
+
+              <Text style={styles.stateDescription}>
+                Consultando os indicadores mais recentes da
+                empresa.
+              </Text>
+            </View>
+          ) : null}
+
+          {error && !overview ? (
+            <View style={styles.errorCard}>
+              <View style={styles.errorIndicator} />
+
+              <Text style={styles.errorTitle}>
+                Não foi possível carregar os indicadores
+              </Text>
+
+              <Text style={styles.errorDescription}>
+                {error}
+              </Text>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={retry}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.retryButtonText}>
+                  Tentar novamente
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {overview ? (
+            <>
+              {error ? (
+                <View style={styles.updateWarning}>
+                  <View style={styles.warningDot} />
+
+                  <View style={styles.warningContent}>
+                    <Text style={styles.warningTitle}>
+                      Não foi possível atualizar
+                    </Text>
+
+                    <Text style={styles.warningText}>
+                      Os últimos dados disponíveis continuam
+                      na tela.
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
+              <Text style={styles.sheetTitle}>
+                Em foco agora
+              </Text>
+
+              {focusAlert ? (
+                <FocusCard
+                  item={focusAlert}
+                  onOpen={() => openAlert(focusAlert)}
+                />
+              ) : (
+                <View style={styles.emptyFocus}>
+                  <View style={styles.emptyIcon}>
+                    <Text style={styles.emptyIconText}>
+                      ✓
+                    </Text>
+                  </View>
+
+                  <View style={styles.emptyContent}>
+                    <Text style={styles.emptyTitle}>
+                      Tudo em ordem por aqui
+                    </Text>
+
+                    <Text style={styles.emptyDescription}>
+                      Nenhuma pendência importante exige sua
+                      atenção neste momento.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sheetTitle}>
+                  Prioridades
+                </Text>
+
+                {overview.alerts.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver todos os alertas"
+                    onPress={openAllAlerts}
+                    style={({ pressed }) => [
+                      styles.seeAllButton,
+                      pressed && styles.sheetPressed,
+                    ]}
+                  >
+                    <Text style={styles.seeAllText}>
+                      Ver todas
+                    </Text>
+
+                    <Text style={styles.seeAllArrow}>
+                      ›
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
-            )}
-          </>
-        ) : null}
+
+              {priorityAlerts.length > 0 ? (
+                <View style={styles.priorityList}>
+                  {priorityAlerts.map((item, index) => (
+                    <PriorityItem
+                      key={item.id}
+                      expanded={
+                        expandedAlertId === item.id
+                      }
+                      isLast={
+                        index ===
+                        priorityAlerts.length - 1
+                      }
+                      item={item}
+                      onOpen={() => openAlert(item)}
+                      onToggle={() =>
+                        setExpandedAlertId((current) =>
+                          current === item.id
+                            ? null
+                            : item.id
+                        )
+                      }
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noMorePriorities}>
+                  Nenhuma outra prioridade neste momento.
+                </Text>
+              )}
+            </>
+          ) : null}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -496,125 +586,177 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: {
+    backgroundColor: sereneColors.background,
     flex: 1,
-    backgroundColor: colors.background,
   },
   content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    alignSelf: 'center',
+    flexGrow: 1,
+    maxWidth: 560,
+    paddingBottom: 104,
+    width: '100%',
   },
-  header: {
+  hero: {
+    backgroundColor: sereneColors.background,
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+  },
+  brandRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.xl,
+    justifyContent: 'space-between',
   },
-  brandMark: {
+  logo: {
+    height: 38,
+    width: 126,
+  },
+  onlineStatus: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
-  },
-  brandMarkText: {
-    color: colors.textOnDark,
-    fontSize: fontSizes.title,
-    fontWeight: '900',
-  },
-  headerText: {
-    flex: 1,
-  },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-  },
-  organization: {
-    color: colors.text,
-    fontSize: fontSizes.body,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  protectedBadge: {
-    alignItems: 'center',
-    backgroundColor: '#EAF8F2',
-    borderRadius: radii.pill,
     flexDirection: 'row',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    gap: spacing.sm,
   },
-  protectedDot: {
-    backgroundColor: colors.success,
+  onlineDot: {
+    backgroundColor: sereneColors.success,
     borderRadius: radii.pill,
-    height: 6,
-    width: 6,
+    height: 7,
+    width: 7,
   },
-  protectedText: {
-    color: colors.success,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  introduction: {
-    marginBottom: spacing.xl,
-  },
-  greeting: {
-    color: colors.textMuted,
-    fontSize: fontSizes.bodySmall,
+  onlineText: {
+    color: sereneColors.success,
+    fontSize: fontSizes.caption,
     fontWeight: '600',
   },
-  mainQuestion: {
-    color: colors.text,
-    fontSize: fontSizes.display,
-    fontWeight: '900',
-    letterSpacing: -0.8,
-    lineHeight: 38,
-    marginTop: spacing.xs,
+  introduction: {
+    marginTop: spacing.xl,
   },
-  introductionText: {
-    color: colors.textMuted,
+  greeting: {
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.body,
+    fontWeight: '500',
+  },
+  title: {
+    color: sereneColors.text,
+    fontSize: fontSizes.display,
+    fontWeight: '800',
+    letterSpacing: -0.9,
+    lineHeight: 38,
+    marginTop: spacing.sm,
+    maxWidth: 410,
+  },
+  updateTime: {
+    color: sereneColors.textSubtle,
     fontSize: fontSizes.bodySmall,
-    lineHeight: 21,
+    marginTop: spacing.md,
+  },
+  metricsPanel: {
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    marginTop: spacing.xxl,
+    overflow: 'hidden',
+  },
+  metricsHeading: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
+  metricsTitle: {
+    color: sereneColors.text,
+    fontSize: fontSizes.title,
+    fontWeight: '800',
+  },
+  brandRail: {
+    backgroundColor: sereneColors.primary,
+    borderRadius: radii.pill,
+    height: 3,
+    marginTop: spacing.md,
+    overflow: 'hidden',
+    width: 42,
+  },
+  brandRailCyan: {
+    alignSelf: 'flex-end',
+    backgroundColor: sereneColors.brandCyan,
+    height: 3,
+    width: 12,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    paddingVertical: spacing.xl,
+  },
+  metric: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: spacing.lg,
+  },
+  metricBordered: {
+    borderLeftColor: sereneColors.border,
+    borderLeftWidth: 1,
+  },
+  metricLabel: {
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.caption,
+    lineHeight: 16,
+  },
+  metricValue: {
+    color: sereneColors.text,
+    fontSize: fontSizes.subtitle,
+    fontWeight: '800',
     marginTop: spacing.sm,
   },
-  loadingCard: {
+  sheet: {
+    backgroundColor: sereneColors.sheet,
+    borderTopLeftRadius: radii.xxl,
+    borderTopRightRadius: radii.xxl,
+    flex: 1,
+    minHeight: 520,
+    paddingBottom: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+  },
+  stateCard: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.xl,
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
+    borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.xxl,
   },
-  loadingTitle: {
-    color: colors.text,
+  stateTitle: {
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
-  loadingDescription: {
-    color: colors.textMuted,
+  stateDescription: {
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
     marginTop: spacing.sm,
     textAlign: 'center',
   },
   errorCard: {
-    backgroundColor: '#FFF0F3',
-    borderColor: '#F4BCC7',
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.xl,
   },
+  errorIndicator: {
+    backgroundColor: sereneColors.danger,
+    borderRadius: radii.pill,
+    height: 3,
+    marginBottom: spacing.lg,
+    width: 36,
+  },
   errorTitle: {
-    color: colors.danger,
+    color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
   errorDescription: {
-    color: colors.text,
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
     marginTop: spacing.sm,
@@ -622,272 +764,287 @@ const styles = StyleSheet.create({
   retryButton: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: colors.danger,
+    backgroundColor: sereneColors.primary,
     borderRadius: radii.md,
     marginTop: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   retryButtonText: {
-    color: colors.textOnDark,
+    color: sereneColors.textOnPrimary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   updateWarning: {
-    backgroundColor: '#FFF7E8',
-    borderColor: '#F3D8A4',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF8E8',
+    borderColor: '#F2D79A',
     borderRadius: radii.md,
     borderWidth: 1,
-    marginBottom: spacing.md,
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.xl,
     padding: spacing.md,
   },
-  updateWarningTitle: {
-    color: colors.warning,
-    fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
-  },
-  updateWarningText: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    lineHeight: 18,
-    marginTop: spacing.xs,
-  },
-  healthCard: {
-    borderRadius: radii.xl,
-    padding: spacing.xl,
-  },
-  healthHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  healthIndicator: {
+  warningDot: {
+    backgroundColor: sereneColors.warning,
     borderRadius: radii.pill,
-    height: 10,
-    width: 10,
+    height: 8,
+    marginTop: 5,
+    width: 8,
   },
-  healthLabel: {
-    fontSize: fontSizes.subtitle,
-    fontWeight: '900',
-  },
-  healthDescription: {
-    color: colors.text,
-    fontSize: fontSizes.bodySmall,
-    lineHeight: 20,
-    marginTop: spacing.sm,
-  },
-  updateTime: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    marginTop: spacing.lg,
-  },
-  sectionHeader: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-    marginTop: spacing.xxl,
-  },
-  sectionEyebrow: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: fontSizes.title,
-    fontWeight: '900',
-    marginTop: spacing.xs,
-  },
-  pullHint: {
-    color: colors.textMuted,
-    fontSize: 10,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  metricCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    flexBasis: '47%',
-    flexGrow: 1,
-    minHeight: 150,
-    overflow: 'hidden',
-    padding: spacing.lg,
-  },
-  metricAccent: {
-    height: 4,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  metricLabel: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    fontWeight: '700',
-    marginTop: spacing.xs,
-  },
-  metricValue: {
-    color: colors.text,
-    fontSize: fontSizes.title,
-    fontWeight: '900',
-    marginTop: spacing.md,
-  },
-  metricDescription: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    lineHeight: 17,
-    marginTop: spacing.sm,
-  },
-  totalBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderRadius: radii.pill,
-    justifyContent: 'center',
-    minHeight: 30,
-    minWidth: 30,
-    paddingHorizontal: spacing.sm,
-  },
-  totalBadgeText: {
-    color: colors.primary,
-    fontSize: fontSizes.bodySmall,
-    fontWeight: '900',
-  },
-  alertList: {
-    gap: spacing.md,
-  },
-  alertCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-    padding: spacing.lg,
-    paddingLeft: spacing.xl,
-  },
-  alertAccent: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 5,
-  },
-  alertHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  alertCount: {
-    alignItems: 'center',
-    borderRadius: radii.md,
-    height: 36,
-    justifyContent: 'center',
-    minWidth: 36,
-    paddingHorizontal: spacing.sm,
-  },
-  alertCountText: {
-    color: colors.textOnDark,
-    fontSize: fontSizes.bodySmall,
-    fontWeight: '900',
-  },
-  alertTitleArea: {
+  warningContent: {
     flex: 1,
   },
-  alertTitle: {
-    color: colors.text,
-    fontSize: fontSizes.body,
-    fontWeight: '900',
-  },
-  alertSource: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    marginTop: 2,
-  },
-  alertDescription: {
-    color: colors.text,
+  warningTitle: {
+    color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    lineHeight: 20,
-    marginTop: spacing.lg,
+    fontWeight: '700',
   },
-  impactBox: {
-    backgroundColor: colors.background,
-    borderRadius: radii.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
-  },
-  impactLabel: {
-    color: colors.textMuted,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  impactText: {
-    color: colors.textMuted,
+  warningText: {
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
-    lineHeight: 18,
+    lineHeight: 17,
     marginTop: spacing.xs,
   },
-  alertButton: {
+  sheetTitle: {
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.title,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  focusCard: {
+    borderBottomColor: sereneColors.sheetBorder,
+    borderBottomWidth: 1,
+    marginTop: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  focusHeader: {
     alignItems: 'center',
-    borderTopColor: colors.border,
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  focusDot: {
+    borderRadius: radii.pill,
+    height: 11,
+    width: 11,
+  },
+  focusEyebrow: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  focusTitle: {
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.subtitle,
+    fontWeight: '800',
+    lineHeight: 24,
+    marginLeft: 23,
+    marginTop: spacing.md,
+  },
+  focusDescription: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.bodySmall,
+    lineHeight: 21,
+    marginLeft: 23,
+    marginTop: spacing.xs,
+  },
+  focusImpact: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.caption,
+    lineHeight: 18,
+    marginLeft: 23,
+    marginTop: spacing.sm,
+  },
+  focusAction: {
+    alignItems: 'center',
+    borderTopColor: sereneColors.sheetBorder,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.lg,
   },
-  alertButtonText: {
-    color: colors.primary,
+  focusActionText: {
+    color: sereneColors.primary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  alertButtonArrow: {
-    color: colors.primary,
+  focusActionArrow: {
+    color: sereneColors.primary,
     fontSize: fontSizes.title,
     lineHeight: 24,
   },
-  emptyCard: {
+  sectionHeading: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+    marginTop: spacing.xxl,
+  },
+  seeAllButton: {
+    alignItems: 'center',
+    borderRadius: radii.sm,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  seeAllText: {
+    color: sereneColors.primary,
+    fontSize: fontSizes.bodySmall,
+    fontWeight: '700',
+  },
+  seeAllArrow: {
+    color: sereneColors.primary,
+    fontSize: fontSizes.subtitle,
+  },
+  priorityList: {
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
     borderRadius: radii.lg,
     borderWidth: 1,
-    padding: spacing.xxl,
+    overflow: 'hidden',
+  },
+  priorityItem: {
+    borderBottomColor: sereneColors.sheetBorder,
+    borderBottomWidth: 1,
+  },
+  priorityItemLast: {
+    borderBottomWidth: 0,
+  },
+  priorityHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    minHeight: 76,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  priorityDot: {
+    borderRadius: radii.pill,
+    height: 9,
+    width: 9,
+  },
+  priorityTitleArea: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  priorityTitle: {
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.bodySmall,
+    fontWeight: '700',
+  },
+  priorityDescription: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.caption,
+    marginTop: spacing.xs,
+  },
+  priorityCount: {
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.body,
+    fontWeight: '800',
+    marginLeft: spacing.md,
+  },
+  priorityChevron: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.title,
+    lineHeight: 24,
+    marginLeft: spacing.md,
+  },
+  priorityDetails: {
+    backgroundColor: '#EEF3FA',
+    borderTopColor: sereneColors.sheetBorder,
+    borderTopWidth: 1,
+    padding: spacing.lg,
+  },
+  impactBox: {
+    backgroundColor: sereneColors.sheetSurface,
+    borderRadius: radii.md,
+    padding: spacing.md,
+  },
+  impactLabel: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  impactText: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.caption,
+    lineHeight: 17,
+    marginTop: spacing.xs,
+  },
+  prioritySource: {
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.caption,
+    marginTop: spacing.md,
+  },
+  priorityAction: {
+    alignItems: 'center',
+    borderRadius: radii.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  priorityActionText: {
+    color: sereneColors.primary,
+    fontSize: fontSizes.bodySmall,
+    fontWeight: '700',
+  },
+  priorityActionArrow: {
+    color: sereneColors.primary,
+    fontSize: fontSizes.title,
+    lineHeight: 24,
+  },
+  emptyFocus: {
+    alignItems: 'center',
+    borderBottomColor: sereneColors.sheetBorder,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    marginTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   emptyIcon: {
     alignItems: 'center',
-    backgroundColor: '#EAF8F2',
+    backgroundColor: '#E5F6EF',
     borderRadius: radii.pill,
-    height: 48,
+    height: 42,
     justifyContent: 'center',
-    width: 48,
+    width: 42,
   },
   emptyIconText: {
-    color: colors.success,
-    fontSize: fontSizes.title,
-    fontWeight: '900',
+    color: sereneColors.success,
+    fontSize: fontSizes.subtitle,
+    fontWeight: '800',
+  },
+  emptyContent: {
+    flex: 1,
+    marginLeft: spacing.md,
   },
   emptyTitle: {
-    color: colors.text,
-    fontSize: fontSizes.subtitle,
-    fontWeight: '900',
-    marginTop: spacing.lg,
-    textAlign: 'center',
+    color: sereneColors.sheetText,
+    fontSize: fontSizes.body,
+    fontWeight: '800',
   },
   emptyDescription: {
-    color: colors.textMuted,
+    color: sereneColors.sheetTextMuted,
+    fontSize: fontSizes.caption,
+    lineHeight: 18,
+    marginTop: spacing.xs,
+  },
+  noMorePriorities: {
+    color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 20,
-    marginTop: spacing.sm,
-    textAlign: 'center',
   },
   pressed: {
     opacity: 0.72,
+  },
+  sheetPressed: {
+    backgroundColor: sereneColors.sheetPressed,
   },
 });

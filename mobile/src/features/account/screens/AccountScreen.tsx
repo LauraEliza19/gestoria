@@ -1,8 +1,21 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/context/useAuth';
-import { colors, fontSizes, radii, spacing } from '@/theme/tokens';
+import {
+  fontSizes,
+  radii,
+  sereneColors,
+  spacing,
+} from '@/theme/tokens';
 
 const roleLabels = {
   owner: 'Proprietário',
@@ -10,10 +23,32 @@ const roleLabels = {
   member: 'Membro',
 } as const;
 
+function getInitials(fullName: string) {
+  const names = fullName.trim().split(/\s+/).filter(Boolean);
+
+  if (names.length === 0) {
+    return 'GE';
+  }
+
+  if (names.length === 1) {
+    return names[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+}
+
 export function AccountScreen() {
-  const { session, status, error, signOut } = useAuth();
+  const {
+    session,
+    status,
+    error,
+    signOut,
+  } = useAuth();
+
   const isLoading = status === 'loading';
-  const organizationName = session?.organization.name ?? 'Sua empresa';
+  const fullName = session?.full_name ?? 'Usuário';
+  const organizationName =
+    session?.organization.name ?? 'Sua empresa';
 
   async function handleSignOut() {
     try {
@@ -25,50 +60,160 @@ export function AccountScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.content}>
+      <StatusBar style="light" />
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.eyebrow}>CONTA</Text>
         <Text style={styles.title}>Seu acesso</Text>
+
         <Text style={styles.description}>
-          Confira a conta e a empresa conectadas neste aparelho.
+          Confira a conta e a empresa conectadas neste
+          aparelho.
         </Text>
 
-        <View style={styles.card}>
-          <Text style={styles.name}>{session?.full_name ?? 'Usuário'}</Text>
-          <Text style={styles.organization}>{organizationName}</Text>
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {getInitials(fullName)}
+              </Text>
+            </View>
+
+            <View style={styles.profileIdentity}>
+              <Text style={styles.name}>
+                {fullName}
+              </Text>
+
+              <Text style={styles.organization}>
+                {organizationName}
+              </Text>
+            </View>
+
+            {session ? (
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>
+                  {roleLabels[session.role]}
+                </Text>
+              </View>
+            ) : null}
+          </View>
 
           <View style={styles.divider} />
 
-          <Text style={styles.detailLabel}>E-mail</Text>
-          <Text style={styles.detailValue}>{session?.email ?? '—'}</Text>
+          <View style={styles.detailRow}>
+            <View style={styles.detailIcon}>
+              <Text style={styles.detailIconText}>@</Text>
+            </View>
 
-          <Text style={styles.detailLabel}>Perfil de acesso</Text>
-          <Text style={styles.detailValue}>{session ? roleLabels[session.role] : '—'}</Text>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>
+                E-mail
+              </Text>
+              <Text style={styles.detailValue}>
+                {session?.email ?? '—'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.detailDivider} />
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailIcon}>
+              <Text style={styles.detailIconText}>◇</Text>
+            </View>
+
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>
+                Perfil de acesso
+              </Text>
+              <Text style={styles.detailValue}>
+                {session
+                  ? roleLabels[session.role]
+                  : '—'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.detailDivider} />
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailIcon}>
+              <Text style={styles.detailIconText}>⌂</Text>
+            </View>
+
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>
+                Empresa
+              </Text>
+              <Text style={styles.detailValue}>
+                {organizationName}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {error ? (
-          <Text style={styles.error} accessibilityRole="alert">
-            {error}
-          </Text>
-        ) : null}
+        <View style={styles.securityCard}>
+          <View style={styles.securityIndicator} />
 
-        <Pressable
-          onPress={handleSignOut}
-          disabled={isLoading}
-          style={({ pressed }) => [
-            styles.logoutButton,
-            pressed && !isLoading && styles.logoutButtonPressed,
-            isLoading && styles.logoutButtonDisabled,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Sair da conta"
-        >
-          {isLoading ? (
-            <ActivityIndicator color={colors.danger} />
-          ) : (
-            <Text style={styles.logoutButtonText}>Sair da conta</Text>
-          )}
-        </Pressable>
-      </View>
+          <View style={styles.securityContent}>
+            <Text style={styles.securityTitle}>
+              Sessão protegida
+            </Text>
+
+            <Text style={styles.securityDescription}>
+              Seu acesso está vinculado à empresa e ao seu
+              perfil de permissões.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          {error ? (
+            <View
+              style={styles.errorCard}
+              accessibilityRole="alert"
+            >
+              <View style={styles.errorDot} />
+              <Text style={styles.errorText}>
+                {error}
+              </Text>
+            </View>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sair da conta"
+            disabled={isLoading}
+            onPress={handleSignOut}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed &&
+                !isLoading &&
+                styles.logoutButtonPressed,
+              isLoading &&
+                styles.logoutButtonDisabled,
+            ]}
+          >
+            {isLoading ? (
+              <ActivityIndicator
+                color={sereneColors.danger}
+              />
+            ) : (
+              <Text style={styles.logoutButtonText}>
+                Sair da conta
+              </Text>
+            )}
+          </Pressable>
+
+          <Text style={styles.logoutHint}>
+            Você precisará informar suas credenciais para
+            entrar novamente.
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -76,89 +221,218 @@ export function AccountScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: sereneColors.background,
   },
   content: {
-    flex: 1,
-    padding: spacing.xl,
+    alignSelf: 'center',
+    flexGrow: 1,
+    maxWidth: 560,
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    width: '100%',
   },
   eyebrow: {
-    color: colors.primary,
-    fontSize: fontSizes.caption,
+    color: sereneColors.primary,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.4,
-    marginTop: spacing.lg,
+    letterSpacing: 1.2,
   },
   title: {
-    color: colors.text,
-    fontSize: fontSizes.display,
+    color: sereneColors.text,
+    fontSize: 30,
     fontWeight: '800',
-    marginTop: spacing.sm,
+    letterSpacing: -0.6,
+    marginTop: spacing.xs,
   },
   description: {
-    color: colors.textMuted,
-    fontSize: fontSizes.body,
-    lineHeight: 23,
-    marginTop: spacing.sm,
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.bodySmall,
+    lineHeight: 21,
+    marginTop: spacing.md,
+    maxWidth: 390,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
+  profileCard: {
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
+    borderRadius: radii.xl,
     borderWidth: 1,
     marginTop: spacing.xxl,
     padding: spacing.xl,
   },
+  profileHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: sereneColors.primarySoft,
+    borderColor: sereneColors.primary,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  avatarText: {
+    color: '#7FA4FF',
+    fontSize: fontSizes.bodySmall,
+    fontWeight: '800',
+  },
+  profileIdentity: {
+    flex: 1,
+    marginLeft: spacing.md,
+    marginRight: spacing.sm,
+  },
   name: {
-    color: colors.text,
-    fontSize: fontSizes.title,
+    color: sereneColors.text,
+    fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
   organization: {
-    color: colors.textMuted,
-    fontSize: fontSizes.bodySmall,
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.caption,
     marginTop: spacing.xs,
   },
+  roleBadge: {
+    backgroundColor: sereneColors.primarySoft,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  roleBadgeText: {
+    color: '#7FA4FF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
   divider: {
-    backgroundColor: colors.border,
+    backgroundColor: sereneColors.border,
     height: 1,
     marginVertical: spacing.xl,
   },
-  detailLabel: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
+  detailRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  detailIcon: {
+    alignItems: 'center',
+    backgroundColor: sereneColors.surfaceMuted,
+    borderColor: sereneColors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  detailIconText: {
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.bodySmall,
     fontWeight: '700',
-    marginTop: spacing.md,
+  },
+  detailContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  detailLabel: {
+    color: sereneColors.textSubtle,
+    fontSize: 10,
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   detailValue: {
-    color: colors.text,
-    fontSize: fontSizes.body,
+    color: sereneColors.text,
+    fontSize: fontSizes.bodySmall,
     marginTop: spacing.xs,
   },
-  error: {
-    color: colors.danger,
-    fontSize: fontSizes.bodySmall,
+  detailDivider: {
+    backgroundColor: sereneColors.border,
+    height: 1,
+    marginVertical: spacing.lg,
+  },
+  securityCard: {
+    alignItems: 'flex-start',
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
     marginTop: spacing.lg,
+    padding: spacing.lg,
+  },
+  securityIndicator: {
+    backgroundColor: sereneColors.success,
+    borderRadius: radii.pill,
+    height: 9,
+    marginTop: 4,
+    width: 9,
+  },
+  securityContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  securityTitle: {
+    color: sereneColors.text,
+    fontSize: fontSizes.bodySmall,
+    fontWeight: '800',
+  },
+  securityDescription: {
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.caption,
+    lineHeight: 18,
+    marginTop: spacing.xs,
+  },
+  actions: {
+    marginTop: 'auto',
+    paddingTop: spacing.xxxl,
+  },
+  errorCard: {
+    alignItems: 'flex-start',
+    backgroundColor: '#2A171D',
+    borderColor: '#61303B',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+  },
+  errorDot: {
+    backgroundColor: sereneColors.danger,
+    borderRadius: radii.pill,
+    height: 8,
+    marginTop: 5,
+    width: 8,
+  },
+  errorText: {
+    color: sereneColors.danger,
+    flex: 1,
+    fontSize: fontSizes.caption,
+    lineHeight: 18,
   },
   logoutButton: {
     alignItems: 'center',
-    borderColor: colors.danger,
+    borderColor: sereneColors.danger,
     borderRadius: radii.md,
     borderWidth: 1,
     justifyContent: 'center',
-    marginTop: 'auto',
     minHeight: 52,
   },
   logoutButtonPressed: {
-    backgroundColor: '#FFF1F3',
+    backgroundColor: '#2A171D',
   },
   logoutButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.55,
   },
   logoutButtonText: {
-    color: colors.danger,
+    color: sereneColors.danger,
     fontSize: fontSizes.body,
     fontWeight: '800',
+  },
+  logoutHint: {
+    color: sereneColors.textSubtle,
+    fontSize: fontSizes.caption,
+    lineHeight: 18,
+    marginTop: spacing.md,
+    textAlign: 'center',
   },
 });

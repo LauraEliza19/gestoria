@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,10 +17,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  fontSizes,
+  radii,
+  sereneColors,
+  spacing,
+} from '@/theme/tokens';
+
 import type { Order, OrderStatus } from '../orderTypes';
 import { orderStatusLabels } from '../orderTypes';
 import { listOrders } from '../services/orderService';
-import { colors, fontSizes, radii, spacing } from '@/theme/tokens';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -31,22 +43,25 @@ const statusColors: Record<
   { background: string; text: string }
 > = {
   in_preparation: {
-    background: colors.primarySoft,
-    text: colors.primaryDark,
+    background: sereneColors.primarySoft,
+    text: '#7FA4FF',
   },
   completed: {
-    background: '#EAF8F2',
-    text: colors.success,
+    background: '#102A25',
+    text: sereneColors.success,
   },
   cancelled: {
-    background: '#FFF1F3',
-    text: colors.danger,
+    background: '#331C24',
+    text: sereneColors.danger,
   },
 };
 
 type OrderFilter = 'all' | OrderStatus;
 
-const filters: { label: string; value: OrderFilter }[] = [
+const filters: {
+  label: string;
+  value: OrderFilter;
+}[] = [
   { label: 'Todos', value: 'all' },
   { label: 'Em preparo', value: 'in_preparation' },
   { label: 'Concluídos', value: 'completed' },
@@ -89,7 +104,8 @@ export function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<OrderFilter>('all');
+  const [filter, setFilter] =
+    useState<OrderFilter>('all');
 
   useEffect(() => {
     let active = true;
@@ -134,13 +150,21 @@ export function OrdersScreen() {
     const normalizedQuery = normalizeSearch(query);
 
     return orders.filter((order) => {
-      const matchesFilter = filter === 'all' || order.status === filter;
+      const matchesFilter =
+        filter === 'all' || order.status === filter;
+
       const matchesQuery =
         normalizedQuery === '' ||
-        normalizeSearch(order.id).includes(normalizedQuery) ||
-        normalizeSearch(order.customer_name).includes(normalizedQuery) ||
+        normalizeSearch(order.id).includes(
+          normalizedQuery
+        ) ||
+        normalizeSearch(order.customer_name).includes(
+          normalizedQuery
+        ) ||
         order.items.some((item) =>
-          normalizeSearch(item.product_name).includes(normalizedQuery)
+          normalizeSearch(item.product_name).includes(
+            normalizedQuery
+          )
         );
 
       return matchesFilter && matchesQuery;
@@ -149,18 +173,45 @@ export function OrdersScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered} edges={['top']}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.stateTitle}>Carregando pedidos...</Text>
+      <SafeAreaView
+        style={styles.centered}
+        edges={['top']}
+      >
+        <StatusBar style="light" />
+
+        <ActivityIndicator
+          size="large"
+          color={sereneColors.primary}
+        />
+
+        <Text style={styles.stateTitle}>
+          Carregando pedidos...
+        </Text>
+
+        <Text style={styles.stateDescription}>
+          Consultando os registros mais recentes da empresa.
+        </Text>
       </SafeAreaView>
     );
   }
 
   if (error && orders.length === 0) {
     return (
-      <SafeAreaView style={styles.centered} edges={['top']}>
-        <Text style={styles.stateTitle}>Não foi possível carregar</Text>
-        <Text style={styles.stateDescription}>{error}</Text>
+      <SafeAreaView
+        style={styles.centered}
+        edges={['top']}
+      >
+        <StatusBar style="light" />
+
+        <View style={styles.errorAccent} />
+
+        <Text style={styles.stateTitle}>
+          Não foi possível carregar
+        </Text>
+
+        <Text style={styles.stateDescription}>
+          {error}
+        </Text>
 
         <Pressable
           accessibilityRole="button"
@@ -170,7 +221,9 @@ export function OrdersScreen() {
             pressed && styles.retryButtonPressed,
           ]}
         >
-          <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          <Text style={styles.retryButtonText}>
+            Tentar novamente
+          </Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -178,12 +231,15 @@ export function OrdersScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      <StatusBar style="light" />
+
       <FlatList
         data={visibleOrders}
         keyExtractor={(order) => order.id}
         contentContainerStyle={[
           styles.content,
-          visibleOrders.length === 0 && styles.emptyContent,
+          visibleOrders.length === 0 &&
+            styles.emptyContent,
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -191,16 +247,26 @@ export function OrdersScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => void reload()}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+            colors={[sereneColors.primary]}
+            progressBackgroundColor={
+              sereneColors.surface
+            }
+            tintColor={sereneColors.primary}
           />
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>OPERAÇÃO</Text>
-            <Text style={styles.title}>Pedidos</Text>
+            <Text style={styles.eyebrow}>
+              OPERAÇÃO
+            </Text>
+
+            <Text style={styles.title}>
+              Pedidos
+            </Text>
+
             <Text style={styles.description}>
-              Acompanhe os pedidos registrados na sua empresa.
+              Acompanhe os pedidos registrados na sua
+              empresa.
             </Text>
 
             <TextInput
@@ -210,8 +276,11 @@ export function OrdersScreen() {
               clearButtonMode="while-editing"
               onChangeText={setQuery}
               placeholder="Cliente, pedido ou produto"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={
+                sereneColors.textSubtle
+              }
               returnKeyType="search"
+              selectionColor={sereneColors.primary}
               style={styles.searchInput}
               value={query}
             />
@@ -221,24 +290,32 @@ export function OrdersScreen() {
               style={styles.filterRow}
             >
               {filters.map((option) => {
-                const selected = filter === option.value;
+                const selected =
+                  filter === option.value;
 
                 return (
                   <Pressable
                     key={option.value}
                     accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
-                    onPress={() => setFilter(option.value)}
+                    accessibilityState={{
+                      checked: selected,
+                    }}
+                    onPress={() =>
+                      setFilter(option.value)
+                    }
                     style={({ pressed }) => [
                       styles.filterButton,
-                      selected && styles.filterButtonSelected,
-                      pressed && styles.filterButtonPressed,
+                      selected &&
+                        styles.filterButtonSelected,
+                      pressed &&
+                        styles.filterButtonPressed,
                     ]}
                   >
                     <Text
                       style={[
                         styles.filterButtonText,
-                        selected && styles.filterButtonTextSelected,
+                        selected &&
+                          styles.filterButtonTextSelected,
                       ]}
                     >
                       {option.label}
@@ -249,22 +326,43 @@ export function OrdersScreen() {
             </View>
 
             {error ? (
-              <Text style={styles.warning} accessibilityRole="alert">
-                {error} Os pedidos já exibidos foram mantidos.
-              </Text>
+              <View
+                style={styles.warningCard}
+                accessibilityRole="alert"
+              >
+                <View style={styles.warningDot} />
+
+                <Text style={styles.warningText}>
+                  {error} Os pedidos já exibidos foram
+                  mantidos.
+                </Text>
+              </View>
             ) : null}
 
-            <Text style={styles.count}>
-              {visibleOrders.length}{' '}
-              {visibleOrders.length === 1
-                ? 'pedido encontrado'
-                : 'pedidos encontrados'}
-            </Text>
+            <View style={styles.resultSummary}>
+              <Text style={styles.count}>
+                {visibleOrders.length}{' '}
+                {visibleOrders.length === 1
+                  ? 'pedido encontrado'
+                  : 'pedidos encontrados'}
+              </Text>
+
+              <Text style={styles.refreshHint}>
+                Puxe para atualizar
+              </Text>
+            </View>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.stateTitle}>Nenhum pedido encontrado</Text>
+            <View style={styles.emptyIcon}>
+              <Text style={styles.emptyIconText}>○</Text>
+            </View>
+
+            <Text style={styles.stateTitle}>
+              Nenhum pedido encontrado
+            </Text>
+
             <Text style={styles.stateDescription}>
               {orders.length === 0
                 ? 'Os pedidos registrados no sistema aparecerão aqui.'
@@ -273,7 +371,8 @@ export function OrdersScreen() {
           </View>
         }
         renderItem={({ item: order }) => {
-          const statusStyle = statusColors[order.status];
+          const statusStyle =
+            statusColors[order.status];
 
           return (
             <View style={styles.card}>
@@ -282,6 +381,7 @@ export function OrdersScreen() {
                   <Text style={styles.orderCode}>
                     Pedido {order.id.slice(0, 8)}
                   </Text>
+
                   <Text style={styles.customerName}>
                     {order.customer_name}
                   </Text>
@@ -290,7 +390,10 @@ export function OrdersScreen() {
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: statusStyle.background },
+                    {
+                      backgroundColor:
+                        statusStyle.background,
+                    },
                   ]}
                 >
                   <Text
@@ -310,19 +413,33 @@ export function OrdersScreen() {
 
               <View style={styles.divider} />
 
-              {order.items.map((item) => (
-                <View key={item.id} style={styles.itemRow}>
-                  <Text style={styles.itemName}>{item.product_name}</Text>
-                  <Text style={styles.itemQuantity}>
-                    {item.quantity} × {formatCurrency(item.unit_price)}
-                  </Text>
-                </View>
-              ))}
+              <View style={styles.items}>
+                {order.items.map((item) => (
+                  <View
+                    key={item.id}
+                    style={styles.itemRow}
+                  >
+                    <Text style={styles.itemName}>
+                      {item.product_name}
+                    </Text>
+
+                    <Text style={styles.itemQuantity}>
+                      {item.quantity} ×{' '}
+                      {formatCurrency(item.unit_price)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
 
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalLabel}>
+                  Total
+                </Text>
+
                 <Text style={styles.totalValue}>
-                  {formatCurrency(order.total_amount)}
+                  {formatCurrency(
+                    order.total_amount
+                  )}
                 </Text>
               </View>
             </View>
@@ -336,51 +453,57 @@ export function OrdersScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: sereneColors.background,
   },
   content: {
+    alignSelf: 'center',
     gap: spacing.md,
-    padding: spacing.xl,
+    maxWidth: 560,
     paddingBottom: spacing.xxxl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    width: '100%',
   },
   emptyContent: {
     flexGrow: 1,
   },
   centered: {
-    flex: 1,
     alignItems: 'center',
+    backgroundColor: sereneColors.background,
+    flex: 1,
     justifyContent: 'center',
-    backgroundColor: colors.background,
     padding: spacing.xl,
   },
   header: {
     marginBottom: spacing.md,
   },
   eyebrow: {
-    color: colors.primary,
-    fontSize: fontSizes.caption,
+    color: sereneColors.primary,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
   },
   title: {
-    color: colors.text,
-    fontSize: fontSizes.display,
+    color: sereneColors.text,
+    fontSize: 30,
     fontWeight: '800',
-    marginTop: spacing.sm,
+    letterSpacing: -0.6,
+    marginTop: spacing.xs,
   },
   description: {
-    color: colors.textMuted,
-    fontSize: fontSizes.body,
-    lineHeight: 23,
-    marginTop: spacing.sm,
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.bodySmall,
+    lineHeight: 21,
+    marginTop: spacing.md,
+    maxWidth: 390,
   },
   searchInput: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    backgroundColor: sereneColors.surfaceMuted,
+    borderColor: sereneColors.borderStrong,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    color: colors.text,
-    fontSize: fontSizes.body,
+    color: sereneColors.text,
+    fontSize: fontSizes.bodySmall,
     marginTop: spacing.xl,
     minHeight: 50,
     paddingHorizontal: spacing.lg,
@@ -392,45 +515,72 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   filterButton: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
     borderRadius: radii.pill,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   filterButtonSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: sereneColors.primary,
+    borderColor: sereneColors.primary,
   },
   filterButtonPressed: {
-    opacity: 0.75,
+    opacity: 0.72,
   },
   filterButtonText: {
-    color: colors.textMuted,
+    color: sereneColors.textMuted,
     fontSize: fontSizes.caption,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   filterButtonTextSelected: {
-    color: colors.textOnDark,
+    color: sereneColors.textOnPrimary,
   },
-  count: {
-    color: colors.textMuted,
+  warningCard: {
+    alignItems: 'flex-start',
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+  },
+  warningDot: {
+    backgroundColor: sereneColors.warning,
+    borderRadius: radii.pill,
+    height: 8,
+    marginTop: 5,
+    width: 8,
+  },
+  warningText: {
+    color: sereneColors.textMuted,
+    flex: 1,
     fontSize: fontSizes.caption,
+    lineHeight: 18,
+  },
+  resultSummary: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: spacing.xl,
   },
-  warning: {
-    color: colors.warning,
-    fontSize: fontSizes.bodySmall,
-    lineHeight: 20,
-    marginTop: spacing.lg,
+  count: {
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.caption,
+  },
+  refreshHint: {
+    color: sereneColors.textSubtle,
+    fontSize: 10,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    padding: spacing.lg,
+    padding: spacing.xl,
   },
   cardHeader: {
     alignItems: 'flex-start',
@@ -442,12 +592,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   orderCode: {
-    color: colors.textMuted,
+    color: sereneColors.textSubtle,
     fontSize: fontSizes.caption,
     fontWeight: '600',
   },
   customerName: {
-    color: colors.text,
+    color: sereneColors.text,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
     marginTop: spacing.xs,
@@ -462,47 +612,52 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   createdAt: {
-    color: colors.textMuted,
+    color: sereneColors.textSubtle,
     fontSize: fontSizes.caption,
     marginTop: spacing.md,
   },
   divider: {
-    backgroundColor: colors.border,
+    backgroundColor: sereneColors.border,
     height: 1,
     marginVertical: spacing.lg,
   },
+  items: {
+    gap: spacing.sm,
+  },
   itemRow: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: spacing.md,
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
   },
   itemName: {
-    color: colors.text,
+    color: sereneColors.text,
     flex: 1,
     fontSize: fontSizes.bodySmall,
     fontWeight: '600',
+    lineHeight: 20,
   },
   itemQuantity: {
-    color: colors.textMuted,
+    color: sereneColors.textMuted,
     fontSize: fontSizes.bodySmall,
+    textAlign: 'right',
   },
   totalRow: {
     alignItems: 'center',
-    borderTopColor: colors.border,
+    borderTopColor: sereneColors.border,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
   },
   totalLabel: {
-    color: colors.textMuted,
+    color: sereneColors.textMuted,
     fontSize: fontSizes.bodySmall,
     fontWeight: '700',
   },
   totalValue: {
-    color: colors.text,
+    color: sereneColors.text,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
   },
@@ -512,32 +667,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xxxl,
   },
+  emptyIcon: {
+    alignItems: 'center',
+    backgroundColor: sereneColors.surface,
+    borderColor: sereneColors.border,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  emptyIconText: {
+    color: sereneColors.textMuted,
+    fontSize: fontSizes.title,
+    fontWeight: '700',
+  },
+  errorAccent: {
+    backgroundColor: sereneColors.danger,
+    borderRadius: radii.pill,
+    height: 3,
+    marginBottom: spacing.md,
+    width: 36,
+  },
   stateTitle: {
-    color: colors.text,
+    color: sereneColors.text,
     fontSize: fontSizes.subtitle,
     fontWeight: '800',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
   stateDescription: {
-    color: colors.textMuted,
+    color: sereneColors.textMuted,
     fontSize: fontSizes.bodySmall,
     lineHeight: 21,
     marginTop: spacing.sm,
+    maxWidth: 340,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: sereneColors.primary,
     borderRadius: radii.md,
     marginTop: spacing.xl,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
   retryButtonPressed: {
-    backgroundColor: colors.primaryDark,
+    backgroundColor: sereneColors.primaryPressed,
   },
   retryButtonText: {
-    color: colors.textOnDark,
+    color: sereneColors.textOnPrimary,
     fontSize: fontSizes.body,
     fontWeight: '800',
   },
