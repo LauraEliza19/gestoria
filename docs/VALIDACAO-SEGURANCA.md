@@ -1,5 +1,11 @@
 # Validação da atualização de segurança
 
+> **Registro histórico de validação.** Os números e limitações abaixo descrevem
+> a execução realizada em 2 de outubro de 2026. Eles devem ser preservados como
+> evidência daquela entrega e não representam automaticamente a suíte atual.
+> Consulte o [README principal](../README.md), [Sessões seguras](SEGURANCA-SESSOES.md)
+> e a [política de segurança](../SECURITY.md) para o estado consolidado.
+
 Data: 02/10/2026.
 
 ## Resultados
