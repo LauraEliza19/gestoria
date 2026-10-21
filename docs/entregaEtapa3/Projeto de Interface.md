@@ -1,4 +1,4 @@
-# Projeto de Interface — GestorIA
+# Projeto de Interface | GestorIA
 
 ## 1. Identificação
 
