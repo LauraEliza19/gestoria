@@ -23,7 +23,7 @@ import {
   spacing,
 } from '@/theme/tokens';
 
-type AvailableRoute = '/orders';
+type AvailableRoute = '/orders' | '/finance';
 
 type ModuleItem = {
   id: string;
@@ -127,6 +127,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         title: 'Financeiro',
         description: 'Entradas, saídas e saldo',
         symbol: 'FI',
+        route: '/finance',
       },
       {
         id: 'management',
@@ -321,14 +322,14 @@ const styles = StyleSheet.create({
   eyebrow: {
     color: sereneColors.primary,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1.2,
   },
   title: {
     color: sereneColors.text,
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
+    fontSize: 28,
+    fontWeight: '600',
+    letterSpacing: -0.3,
     marginTop: spacing.xs,
   },
   subtitle: {
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
   noticeTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   noticeText: {
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
   groupTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   groupDescription: {
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
   moduleTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.lg,
   },
 
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
   moduleStatus: {
     color: sereneColors.sheetTextMuted,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   moduleSymbolAvailable: {
     backgroundColor: sereneColors.primarySoft,

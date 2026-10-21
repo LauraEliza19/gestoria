@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   totalBadgeText: {
     color: sereneColors.primary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   stateCard: {
     alignItems: 'center',
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   stateTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   errorDescription: {
     color: sereneColors.sheetTextMuted,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: sereneColors.textOnPrimary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   updateWarning: {
     alignItems: 'flex-start',
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   alertTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.body,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   alertMetadata: {
     color: sereneColors.sheetTextMuted,
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   alertDescription: {
     color: sereneColors.sheetTextMuted,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   impactLabel: {
     color: sereneColors.sheetTextMuted,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   impactText: {
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: sereneColors.primary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   emptyCard: {
     alignItems: 'center',
@@ -495,12 +495,12 @@ const styles = StyleSheet.create({
   emptyIconText: {
     color: sereneColors.success,
     fontSize: fontSizes.title,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   emptyTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.lg,
   },
   emptyDescription: {
