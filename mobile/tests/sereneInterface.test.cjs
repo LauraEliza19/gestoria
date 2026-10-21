@@ -32,6 +32,16 @@ const copilot = read(
 const account = read(
   'src/features/account/screens/AccountScreen.tsx'
 )
+const finance = read(
+  'src/features/finance/screens/FinanceScreen.tsx'
+)
+const login = read(
+  'src/features/auth/screens/LoginScreen.tsx'
+)
+const loading = read('src/app/loading.tsx')
+const sereneLayout = read(
+  'src/components/serene/SereneLayout.tsx'
+)
 
 test('serene theme exposes the shared GestorIA palette', () => {
   const fields = [
@@ -101,11 +111,17 @@ test('bottom navigation exposes the five executive destinations', () => {
 
   assert.match(
     appLayout,
-    /backgroundColor:\s*sereneColors\.tabBar/
+    /backgroundColor:\s*sereneColors\.sheetSurface/
   )
+  assert.match(
+    appLayout,
+    /borderTopColor:\s*sereneColors\.sheetBorder/
+  )
+  assert.match(appLayout, /useSafeAreaInsets/)
   assert.match(appLayout, /tabBarShowLabel:\s*false/)
   assert.match(appLayout, /position:\s*'absolute'/)
   assert.match(appLayout, /styles\.iconContainer/)
+  assert.match(appLayout, /styles\.activeIndicator/)
 })
 
 test('orders remains available without occupying a tab', () => {
@@ -223,4 +239,36 @@ test('account keeps protected sign out behavior', () => {
   assert.match(account, /disabled=\{isLoading\}/)
   assert.match(account, /Sair da conta/)
   assert.match(account, /Sessão protegida/)
+})
+
+test('mobile typography uses a restrained scale', () => {
+  const expectedScale = [
+    /caption:\s*11/,
+    /bodySmall:\s*13/,
+    /body:\s*15/,
+    /subtitle:\s*17/,
+    /title:\s*22/,
+    /display:\s*30/,
+  ]
+
+  for (const token of expectedScale) {
+    assert.match(tokens, token)
+  }
+
+  const surfaces = [
+    sereneLayout,
+    loading,
+    login,
+    home,
+    alerts,
+    modules,
+    orders,
+    copilot,
+    account,
+    finance,
+  ]
+
+  for (const surface of surfaces) {
+    assert.doesNotMatch(surface, /fontWeight:\s*'(700|800)'/)
+  }
 })

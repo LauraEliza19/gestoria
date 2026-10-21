@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: sereneColors.primaryPressed,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   profileIdentity: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   name: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   organization: {
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   roleBadgeText: {
     color: sereneColors.primaryPressed,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   divider: {
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   detailLabel: {
     color: sereneColors.sheetTextMuted,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'uppercase',
   },
 
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   securityTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   securityDescription: {
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: '#C83E59',
     fontSize: fontSizes.body,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   logoutHint: {

@@ -5,7 +5,6 @@ import { type ComponentProps, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -145,7 +144,10 @@ function Metric({
         bordered && styles.metricBordered,
       ]}
     >
-      <Text style={styles.metricLabel}>
+      <Text
+        numberOfLines={2}
+        style={styles.metricLabel}
+      >
         {label}
       </Text>
 
@@ -423,18 +425,6 @@ export function HomeScreen() {
           </View>
 
           <View style={styles.brandRow}>
-            <View
-              accessibilityLabel="GestorIA"
-              accessibilityRole="image"
-              style={styles.brandMark}
-            >
-              <Image
-                resizeMode="contain"
-                source={require('@/assets/images/gestoria-logo.png')}
-                style={styles.brandMarkImage}
-              />
-            </View>
-
             <View style={styles.headerActions}>
               <Pressable
                 accessibilityLabel="Abrir busca geral"
@@ -764,21 +754,8 @@ const styles = StyleSheet.create({
   brandRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     zIndex: 1,
-  },
-  brandMark: {
-    height: 58,
-    overflow: 'hidden',
-    position: 'relative',
-    width: 58,
-  },
-  brandMarkImage: {
-    height: 194,
-    left: -58,
-    position: 'absolute',
-    top: -72,
-    width: 345,
   },
 
   headerActions: {
@@ -844,9 +821,9 @@ const styles = StyleSheet.create({
   title: {
     color: sereneColors.text,
     fontSize: fontSizes.display,
-    fontWeight: '800',
-    letterSpacing: -0.9,
-    lineHeight: 38,
+    fontWeight: '600',
+    letterSpacing: -0.5,
+    lineHeight: 36,
     marginTop: spacing.sm,
     maxWidth: 410,
   },
@@ -878,7 +855,7 @@ const styles = StyleSheet.create({
   metricsTitle: {
     color: sereneColors.text,
     fontSize: fontSizes.title,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   brandRail: {
     backgroundColor: sereneColors.primary,
@@ -911,11 +888,12 @@ const styles = StyleSheet.create({
     color: sereneColors.textMuted,
     fontSize: fontSizes.caption,
     lineHeight: 16,
+    minHeight: 32,
   },
   metricValue: {
     color: sereneColors.text,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.sm,
   },
   sheet: {
@@ -924,7 +902,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 36,
     flex: 1,
     minHeight: 520,
-    paddingBottom: 140,
+    paddingBottom: 116,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
   },
@@ -939,7 +917,7 @@ const styles = StyleSheet.create({
   stateTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
@@ -967,7 +945,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   errorDescription: {
     color: sereneColors.sheetTextMuted,
@@ -987,7 +965,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: sereneColors.textOnPrimary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   updateWarning: {
     alignItems: 'flex-start',
@@ -1013,7 +991,7 @@ const styles = StyleSheet.create({
   warningTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   warningText: {
     color: sereneColors.sheetTextMuted,
@@ -1023,10 +1001,10 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     color: sereneColors.sheetText,
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.7,
-    lineHeight: 34,
+    fontSize: fontSizes.title,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    lineHeight: 28,
   },
   focusCard: {
     borderBottomColor: sereneColors.sheetBorder,
@@ -1059,7 +1037,7 @@ const styles = StyleSheet.create({
   focusTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 24,
   },
 
@@ -1085,7 +1063,7 @@ const styles = StyleSheet.create({
   focusActionText: {
     color: sereneColors.primary,
     fontSize: fontSizes.body,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   sectionHeading: {
     alignItems: 'center',
@@ -1105,7 +1083,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     color: sereneColors.primary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   seeAllArrow: {
     color: sereneColors.primary,
@@ -1149,7 +1127,7 @@ const styles = StyleSheet.create({
   priorityTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.body,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 21,
   },
   priorityDescription: {
@@ -1161,7 +1139,7 @@ const styles = StyleSheet.create({
   priorityCount: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     marginLeft: spacing.md,
   },
   priorityChevron: {
@@ -1182,7 +1160,7 @@ const styles = StyleSheet.create({
   impactLabel: {
     color: sereneColors.sheetTextMuted,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   impactText: {
@@ -1208,7 +1186,7 @@ const styles = StyleSheet.create({
   priorityActionText: {
     color: sereneColors.primary,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   emptyFocus: {
     alignItems: 'center',
@@ -1229,7 +1207,7 @@ const styles = StyleSheet.create({
   emptyIconText: {
     color: sereneColors.success,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   emptyContent: {
     flex: 1,
@@ -1238,7 +1216,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.body,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   emptyDescription: {
     color: sereneColors.sheetTextMuted,

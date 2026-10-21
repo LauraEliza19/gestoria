@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   iconText: {
     color: sereneColors.textOnPrimary,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   headerText: {
     flex: 1,
@@ -454,13 +454,13 @@ const styles = StyleSheet.create({
   eyebrow: {
     color: sereneColors.primary,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   title: {
     color: sereneColors.text,
     fontSize: fontSizes.body,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: 2,
   },
   newConversationButton: {
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   newConversationText: {
     color: sereneColors.primary,
     fontSize: fontSizes.caption,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   protectedContext: {
     alignItems: 'center',
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   protectedText: {
     color: sereneColors.success,
     fontSize: fontSizes.caption,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   suggestionsSection: {
     marginTop: 0,
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   sectionHint: {
     color: sereneColors.sheetTextMuted,
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   suggestionTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   suggestionDescription: {
     color: sereneColors.sheetTextMuted,
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     textTransform: 'uppercase',
   },
   statusAnsweredText: {
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   resultTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   resultDescription: {
     color: sereneColors.sheetTextMuted,
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   resultAction: {
     color: sereneColors.primary,
     fontSize: fontSizes.caption,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.sm,
   },
   actionButton: {
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: sereneColors.primaryPressed,
     fontSize: fontSizes.caption,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   unavailableActionText: {
     color: sereneColors.sheetTextMuted,
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#C83E59',
     fontSize: fontSizes.caption,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   loadingBubble: {
     alignItems: 'center',
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: sereneColors.textOnPrimary,
     fontSize: fontSizes.title,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   pressed: {
     opacity: 0.72,
