@@ -1,5 +1,12 @@
 # 📦 GestorIA — Módulo de Clientes e Pedidos
 
+> **Registro histórico.** Este documento representa a primeira integração de
+> clientes e pedidos, em agosto de 2026. Autenticação, criação de pedidos,
+> frontend e módulos disponíveis evoluíram desde então. Consulte a
+> [Especificação do Projeto](<../Especificação do Projeto.md>), o
+> [README do backend](../backend/README.md) e o
+> [README principal](../README.md) para o estado vigente.
+
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.1.0-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
