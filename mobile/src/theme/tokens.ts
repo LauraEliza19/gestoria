@@ -78,10 +78,10 @@ export const radii = {
 } as const;
 
 export const fontSizes = {
-  caption: 12,
-  bodySmall: 14,
-  body: 16,
-  subtitle: 18,
-  title: 24,
-  display: 32,
+  caption: 11,
+  bodySmall: 13,
+  body: 15,
+  subtitle: 17,
+  title: 22,
+  display: 30,
 } as const;

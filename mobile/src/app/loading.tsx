@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   title: {
     color: sereneColors.text,
     fontSize: fontSizes.title,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: -0.4,
     textAlign: 'center',
   },
