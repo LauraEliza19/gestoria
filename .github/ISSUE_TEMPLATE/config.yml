@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentação do GestorIA
+    url: https://github.com/LauraEliza19/gestoria/tree/main/docs
+    about: Consulte arquitetura, segurança e documentação dos módulos antes de abrir uma issue.
