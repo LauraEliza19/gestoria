@@ -7,6 +7,8 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import {
   radii,
   sereneColors,
@@ -29,15 +31,16 @@ function TabIcon({
   focused,
   activeName,
   inactiveName,
-  size = 24,
+  size = 22,
 }: TabIconProps) {
   return (
-    <View
-      style={[
-        styles.iconContainer,
-        focused && styles.iconContainerFocused,
-      ]}
-    >
+    <View style={styles.iconContainer}>
+      {focused ? (
+        <View style={styles.activeIndicator}>
+          <View style={styles.activeIndicatorAccent} />
+        </View>
+      ) : null}
+
       <Ionicons
         color={
           focused
@@ -52,6 +55,9 @@ function TabIcon({
 }
 
 export default function AppLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 8);
+
   return (
     <Tabs
       screenOptions={{
@@ -60,10 +66,16 @@ export default function AppLayout() {
         tabBarHideOnKeyboard: true,
         tabBarIconStyle: styles.tabBarIcon,
         tabBarInactiveTintColor:
-          sereneColors.textSubtle,
+          sereneColors.sheetTextMuted,
         tabBarItemStyle: styles.tabBarItem,
         tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 60 + bottomInset,
+            paddingBottom: bottomInset,
+          },
+        ],
       }}
     >
       <Tabs.Screen
@@ -110,7 +122,7 @@ export default function AppLayout() {
               color={color}
               focused={focused}
               inactiveName="sparkles-outline"
-              size={25}
+              size={23}
             />
           ),
         }}
@@ -155,40 +167,53 @@ export default function AppLayout() {
           href: null,
         }}
       />
+
+      <Tabs.Screen
+        name="finance"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="finance-entry"
+        options={{
+          href: null,
+          tabBarStyle: {
+            display: 'none',
+          },
+        }}
+      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: sereneColors.tabBar,
-    borderColor: sereneColors.border,
-    borderRadius: radii.pill,
-    borderTopWidth: 0,
-    borderWidth: 1,
-    bottom: 18,
-    elevation: 14,
-    height: 68,
-    left: 24,
-    paddingBottom: 0,
-    paddingHorizontal: 8,
+    backgroundColor: sereneColors.sheetSurface,
+    borderTopColor: sereneColors.sheetBorder,
+    borderTopWidth: 1,
+    bottom: 0,
+    elevation: 18,
+    left: 0,
+    paddingHorizontal: 16,
     paddingTop: 0,
     position: 'absolute',
-    right: 24,
-    shadowColor: '#020817',
+    right: 0,
+    shadowColor: '#071225',
     shadowOffset: {
       width: 0,
-      height: 10,
+      height: -6,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
     width: 'auto',
   },
 
   tabBarItem: {
     alignItems: 'center',
     flex: 1,
-    height: 66,
+    height: 60,
     justifyContent: 'center',
     margin: 0,
     padding: 0,
@@ -196,7 +221,7 @@ const styles = StyleSheet.create({
 
   tabBarIcon: {
     alignItems: 'center',
-    height: 66,
+    height: 60,
     justifyContent: 'center',
     margin: 0,
     padding: 0,
@@ -205,20 +230,26 @@ const styles = StyleSheet.create({
 
   iconContainer: {
     alignItems: 'center',
-    borderRadius: radii.pill,
-    height: 44,
+    height: 60,
     justifyContent: 'center',
-    width: 44,
+    position: 'relative',
+    width: 52,
   },
 
-  iconContainerFocused: {
-    backgroundColor: sereneColors.sheetSurface,
-    shadowColor: '#020817',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
+  activeIndicator: {
+    backgroundColor: sereneColors.primary,
+    borderRadius: radii.pill,
+    height: 4,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
+    width: 32,
+  },
+
+  activeIndicatorAccent: {
+    alignSelf: 'flex-end',
+    backgroundColor: sereneColors.brandCyan,
+    height: 4,
+    width: 10,
   },
 });

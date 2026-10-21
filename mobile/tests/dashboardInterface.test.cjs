@@ -66,7 +66,9 @@ test('executive home uses the GestorIA visual identity', () => {
 
   assert.match(tokens, /brandCyan:/)
   assert.match(tokens, /sheet:/)
-  assert.match(screen, /gestoria-logo\.png/)
+  assert.doesNotMatch(screen, /gestoria-logo\.png/)
+  assert.match(screen, /styles\.headerActions/)
+  assert.match(screen, /minHeight:\s*32/)
   assert.match(screen, /sereneColors\.sheet/)
   assert.match(screen, /<StatusBar style="light" \/>/)
 

@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     eyebrow: {
         color: sereneColors.brandCyan,
         fontSize: fontSizes.caption,
-        fontWeight: '800',
+        fontWeight: '600',
         letterSpacing: 1.3,
         marginBottom: spacing.sm,
         textTransform: 'uppercase',
@@ -169,9 +169,9 @@ const styles = StyleSheet.create({
     title: {
         color: sereneColors.text,
         fontSize: fontSizes.display,
-        fontWeight: '800',
-        letterSpacing: -0.9,
-        lineHeight: 38,
+        fontWeight: '600',
+        letterSpacing: -0.5,
+        lineHeight: 36,
     },
 
     description: {

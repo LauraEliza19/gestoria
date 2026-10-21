@@ -42,7 +42,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/copilotInterface.test.cjs tests/dashboardInterface.test.cjs tests/sereneInterface.test.cjs",
+    "test": "node --test tests/copilotInterface.test.cjs tests/dashboardInterface.test.cjs tests/financeInterface.test.cjs tests/sereneInterface.test.cjs",
     "check": "npm run lint -- --no-cache && npm run typecheck && npm test"
   },
   "private": true

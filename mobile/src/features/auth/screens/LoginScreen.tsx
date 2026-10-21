@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     brandEyebrow: {
         color: sereneColors.brandCyan,
         fontSize: fontSizes.caption,
-        fontWeight: '800',
+        fontWeight: '600',
         letterSpacing: 1.3,
         marginBottom: spacing.sm,
     },
@@ -331,9 +331,9 @@ const styles = StyleSheet.create({
     brandTitle: {
         color: sereneColors.text,
         fontSize: fontSizes.display,
-        fontWeight: '800',
-        letterSpacing: -0.8,
-        lineHeight: 39,
+        fontWeight: '600',
+        letterSpacing: -0.4,
+        lineHeight: 36,
         maxWidth: 360,
     },
     brandDescription: {
@@ -358,14 +358,14 @@ const styles = StyleSheet.create({
     eyebrow: {
         color: sereneColors.primary,
         fontSize: fontSizes.caption,
-        fontWeight: '800',
+        fontWeight: '600',
         letterSpacing: 1.3,
     },
     title: {
         color: sereneColors.sheetText,
         fontSize: fontSizes.display,
-        fontWeight: '800',
-        letterSpacing: -0.8,
+        fontWeight: '600',
+        letterSpacing: -0.4,
         marginTop: spacing.sm,
     },
     description: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     label: {
         color: sereneColors.sheetText,
         fontSize: fontSizes.bodySmall,
-        fontWeight: '700',
+        fontWeight: '600',
         marginBottom: spacing.sm,
     },
     input: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     passwordActionText: {
         color: sereneColors.primary,
         fontSize: fontSizes.bodySmall,
-        fontWeight: '700',
+        fontWeight: '600',
     },
 
     error: {
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     loginButtonText: {
         color: sereneColors.textOnPrimary,
         fontSize: fontSizes.body,
-        fontWeight: '800',
+        fontWeight: '600',
     },
     helpButton: {
         alignItems: 'center',
@@ -490,12 +490,12 @@ const styles = StyleSheet.create({
     rememberCheck: {
         color: sereneColors.textOnPrimary,
         fontSize: 15,
-        fontWeight: '800',
+        fontWeight: '600',
         lineHeight: 17,
     },
     rememberText: {
         color: sereneColors.sheetText,
         fontSize: 15,
-        fontWeight: '700',
+        fontWeight: '600',
     },
 });

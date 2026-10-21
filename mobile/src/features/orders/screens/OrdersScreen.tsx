@@ -487,14 +487,14 @@ ordersSheet: {
   eyebrow: {
     color: sereneColors.primary,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1.2,
   },
   title: {
     color: sereneColors.text,
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
+    fontSize: 28,
+    fontWeight: '600',
+    letterSpacing: -0.3,
     marginTop: spacing.xs,
   },
   description: {
@@ -542,7 +542,7 @@ ordersSheet: {
   filterButtonText: {
     color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.caption,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   filterButtonTextSelected: {
@@ -613,7 +613,7 @@ ordersSheet: {
   customerName: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.xs,
   },
   statusBadge: {
@@ -623,7 +623,7 @@ ordersSheet: {
   },
   statusText: {
     fontSize: fontSizes.caption,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   createdAt: {
     color: sereneColors.sheetTextMuted,
@@ -668,12 +668,12 @@ ordersSheet: {
   totalLabel: {
     color: sereneColors.sheetTextMuted,
     fontSize: fontSizes.bodySmall,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   totalValue: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   empty: {
     alignItems: 'center',
@@ -695,7 +695,7 @@ ordersSheet: {
   emptyTitle: {
     color: sereneColors.sheetText,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
@@ -718,7 +718,7 @@ ordersSheet: {
   stateTitle: {
     color: sereneColors.text,
     fontSize: fontSizes.subtitle,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: spacing.lg,
     textAlign: 'center',
   },
@@ -743,6 +743,6 @@ ordersSheet: {
   retryButtonText: {
     color: sereneColors.textOnPrimary,
     fontSize: fontSizes.body,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 });
