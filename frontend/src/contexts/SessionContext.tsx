@@ -91,7 +91,14 @@ export function SessionProvider({ children }: SessionProviderProps) {
     <SessionContext.Provider
       value={{
         session,
-        can: (permission) => hasPermission(session.role, permission),
+        can: (permission) =>
+          hasPermission(session.role, permission) ||
+          (permission === 'finance:manage' &&
+            (session.role === 'owner' || session.role === 'admin')) ||
+          (permission === 'finance:read' &&
+            (session.role === 'owner' ||
+              session.role === 'admin' ||
+              (session.role === 'member' && session.finance_access_approved === true))),
       }}
     >
       {children}
