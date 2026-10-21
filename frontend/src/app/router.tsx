@@ -23,6 +23,9 @@ import { EmploymentFormPage } from '../pages/Management/EmploymentFormPage'
 import { CostCentersPage } from '../pages/Management/CostCentersPage'
 import { EmployeeFormPage } from '../pages/Management/EmployeeFormPage'
 import { CostCenterFormPage } from '../pages/Management/CostCenterFormPage'
+import { FinancePage } from '../pages/Finance/FinancePage'
+import { FinanceCategoryFormPage } from '../pages/Finance/FinanceCategoryFormPage'
+import { FinanceEntryFormPage } from '../pages/Finance/FinanceEntryFormPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, logoutSession } from '../services/session'
 import { SessionProvider } from '../contexts/SessionContext'
@@ -85,6 +88,9 @@ function PageTitle() {
       '/gestao/centros-de-custo/novo': 'GestorIA — Cadastrar centro de custo',
       '/gestao/funcionarios/novo': 'GestorIA — Cadastrar funcionário',
       '/empresa/editar': 'GestorIA — Empresa',
+      '/financeiro': 'GestorIA — Financeiro',
+      '/financeiro/categorias/nova': 'GestorIA — Nova categoria financeira',
+      '/financeiro/lancamentos/novo': 'GestorIA — Novo lançamento financeiro',
     }
 
     const isCustomerProfile =
@@ -156,6 +162,46 @@ export function AppRouter() {
         <Route path="/logout" element={<LogoutPage />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/financeiro"
+            element={
+              <PermissionGate permission="finance:read">
+                <FinancePage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/financeiro/categorias/nova"
+            element={
+              <PermissionGate permission="finance:manage">
+                <FinanceCategoryFormPage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/financeiro/categorias/:categoryId/editar"
+            element={
+              <PermissionGate permission="finance:manage">
+                <FinanceCategoryFormPage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/financeiro/lancamentos/novo"
+            element={
+              <PermissionGate permission="finance:manage">
+                <FinanceEntryFormPage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/financeiro/lancamentos/:entryId/editar"
+            element={
+              <PermissionGate permission="finance:manage">
+                <FinanceEntryFormPage />
+              </PermissionGate>
+            }
+          />
           <Route
             path="/gestao"
             element={

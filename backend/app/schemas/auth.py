@@ -57,4 +57,5 @@ class CurrentUserRead(BaseModel):
     full_name: str
     email: EmailStr
     role: str
+    finance_access_approved: bool = False
     organization: OrganizationRead

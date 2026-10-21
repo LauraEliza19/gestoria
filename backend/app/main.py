@@ -11,6 +11,7 @@ from app.api import (
     copilot,
     customers,
     dashboard,
+    finance,
     fiscal,
     management,
     management_employee_records,
@@ -57,7 +58,7 @@ app.add_middleware(
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-CSRF-Protection"],
+    allow_headers=["*"],
 )
 app.include_router(auth.router)
 app.include_router(copilot.router)
@@ -70,6 +71,7 @@ app.include_router(quotes.router)
 app.include_router(organization.router)
 app.include_router(fiscal.router)
 app.include_router(fiscal.supplier_router)
+app.include_router(finance.router)
 app.include_router(production.router)
 app.include_router(management.router)
 app.include_router(management_employee_records.router)
