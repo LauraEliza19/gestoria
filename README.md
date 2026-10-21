@@ -4,7 +4,7 @@
 
 # GestorIA
 
-### Sua empresa, sob controle — onde você estiver.
+### Sua empresa, onde você estiver.
 
 Uma plataforma de gestão empresarial que conecta operação, indicadores e decisões em experiências web e mobile.
 
