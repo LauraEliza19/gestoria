@@ -22,6 +22,14 @@
 | [Contexto do produto](<../Documento de Contexto.md>) | conhecer problema, público e decisões iniciais |
 | [README principal](../README.md) | executar o projeto e visualizar seu estado atual |
 
+### Guias por aplicação
+
+| Aplicação | Documento |
+| :--- | :--- |
+| Backend | [API, rotas, segurança e testes](../backend/README.md) |
+| Web | [módulos, rotas e execução React](../frontend/README.md) |
+| Mobile | [Expo, configuração da API e identidade Sereno](../mobile/README.md) |
+
 ---
 
 ## Produto e estratégia
@@ -68,7 +76,7 @@
 | Produção | [Produção e cozinha](PRODUCAO_COZINHA.md) | `atual` |
 | Fiscal | [Atualizações e testes](FISCAL_ATUALIZACOES_E_TESTES.md) | `atual` |
 | Pedidos | [Segurança de pedidos](SEGURANCA_PEDIDOS.md) | `atual` |
-| Financeiro | implementação e testes no código | `documentação dedicada pendente` |
+| Financeiro | [Categorias, lançamentos e saldo](FINANCEIRO.md) | `atual` |
 
 ---
 
@@ -84,9 +92,29 @@ As planilhas de Balanced Scorecard e Fluxo de Caixa serão adicionadas após con
 
 ---
 
+## Registros históricos
+
+Os documentos abaixo preservam decisões e resultados de fases anteriores. Eles
+ajudam a explicar a evolução do projeto, mas não substituem a especificação, a
+arquitetura ou os READMEs atuais:
+
+- [Protótipo frontend original](<../Documentação de Contexto/README-frontend (Lucas - 26-08).md>);
+- [Primeira integração de pedidos e clientes](<../Documentação de Contexto/README-pedidos-clientes(Lucas -26-08).md>);
+- [Tese inicial do produto](<../Documentação de Contexto/README-produto.md>);
+- [Entrega de segurança de pedidos de 08/09/2026](SEGURANCA_PEDIDOS.md);
+- [Validação de segurança](VALIDACAO-SEGURANCA.md);
+- relatórios JSON/XML de validações executadas em datas específicas.
+
+Afirmações sobre stack, quantidade de testes, pendências e caminhos de arquivos
+nesses registros devem ser interpretadas conforme a data informada no próprio
+artefato.
+
+---
+
 ## Evidências de validação
 
-Os relatórios abaixo são artefatos técnicos gerados por verificações do projeto:
+Os relatórios abaixo são artefatos técnicos históricos gerados por verificações
+do projeto. Eles não representam automaticamente o resultado da suíte atual:
 
 - `validation-results.json` e `validation-junit.xml`;
 - `fiscal-validation-results.json` e `fiscal-validation-junit.xml`;

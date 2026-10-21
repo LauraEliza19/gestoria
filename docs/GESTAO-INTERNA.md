@@ -24,9 +24,10 @@ A Gestão Interna será dividida nos seguintes submódulos:
 
 Cada submódulo deve possuir responsabilidades próprias. O Módulo Gestor poderá consolidar informações de vendas, pedidos, produção e financeiro, mas não deverá duplicar regras pertencentes a esses domínios.
 
-## 3. Entrega da primeira versão
+## 3. Estado atual
 
-A fundação da Gestão Interna foi concluída em 5 de outubro de 2026.
+A fundação da Gestão Interna foi concluída em 5 de outubro de 2026 e
+posteriormente ampliada com vínculos profissionais e registros administrativos.
 
 Funcionalidades entregues:
 
@@ -44,24 +45,31 @@ Funcionalidades entregues:
 - Estados de carregamento, erro e conteúdo vazio;
 - Interface responsiva;
 - Testes automatizados;
-- Documentação técnica.
+- Documentação técnica;
+- Advertências, ocorrências, observações e elogios;
+- Fluxos de abertura, edição, resolução e cancelamento de registros;
+- Auditoria do responsável por criar e alterar registros;
+- Resumo de funcionários, vínculos, afastamentos e centros de custo no
+  dashboard executivo.
 
 Não fazem parte desta primeira versão:
 
 - Cálculo de folha de pagamento;
 - Registro oficial de ponto;
 - Emissão de holerites;
-- Advertências e ocorrências;
 - Agenda completa;
 - Conciliação bancária;
 - Relatórios contábeis;
 - Cálculo contábil oficial de lucro ou prejuízo.
 
-## 4. Integração com o financeiro
+## 4. Relação com o Financeiro
 
-O núcleo financeiro será desenvolvido por Adryan e integrado ao painel do Módulo Gestor.
+O núcleo financeiro foi implementado por Adryan e está disponível no backend e
+na aplicação web. Ele mantém categorias, lançamentos, filtros, resumo de
+entradas, saídas e saldo, além de auditoria.
 
-A Gestão Interna poderá consumir:
+A Gestão Interna e o Financeiro permanecem como domínios independentes. Uma
+integração futura poderá consolidar:
 
 - Total de receitas;
 - Total de despesas;
@@ -69,7 +77,10 @@ A Gestão Interna poderá consumir:
 - Contas pendentes;
 - Movimentações por centro de custo.
 
-A Gestão Interna não criará modelos financeiros duplicados.
+A Gestão Interna não cria modelos financeiros duplicados. Embora vínculos
+profissionais já possam apontar para centros de custo, os lançamentos
+financeiros ainda não possuem `cost_center_id`; portanto, movimentações por
+centro de custo continuam planejadas e não devem ser exibidas como disponíveis.
 
 ## 5. Entidades iniciais
 
@@ -173,7 +184,10 @@ Matriz atual:
 | Consultar centros de custo | Sim | Sim | Não |
 | Gerenciar centros de custo | Sim | Sim | Não |
 
-As futuras permissões financeiras serão adicionadas junto ao domínio financeiro, evitando regras antecipadas ou duplicadas.
+As permissões financeiras foram adicionadas ao domínio financeiro. `owner` e
+`admin` podem gerenciar categorias e lançamentos; um `member` só pode ler o
+módulo quando seu acesso financeiro tiver sido aprovado. Essas regras não são
+duplicadas pela Gestão Interna.
 
 O frontend controla a experiência visual, mas o backend permanece como autoridade final das permissões.
 
@@ -219,6 +233,9 @@ Principais componentes:
 - `EmployeeFormPage`;
 - `EmployeeProfilePage`;
 - `EmploymentFormPage`;
+- `EmployeeRecordsPanel`;
+- `EmployeeRecordFormPage`;
+- `EmployeeRecordDetailPage`;
 - `CostCentersPage`;
 - `CostCenterFormPage`;
 - `managementTypes`;
@@ -227,16 +244,19 @@ Principais componentes:
 
 A navegação e as páginas foram preparadas para desktop, tablet e dispositivos móveis.
 
-## 9. Painel executivo inicial
+## 9. Painel executivo
 
-A primeira versão poderá apresentar:
+O painel próprio da Gestão Interna apresenta:
 
-- Quantidade de funcionários ativos;
-- Quantidade de centros de custo ativos;
-- Faturamento concluído;
-- Pedidos em produção;
-- Receitas e despesas, quando a API financeira estiver disponível;
-- Alertas operacionais.
+- quantidade total de funcionários;
+- quantidade de funcionários ativos;
+- quantidade de centros de custo ativos;
+- vínculos profissionais ativos;
+- funcionários afastados.
+
+O dashboard executivo geral também pode apresentar funcionários ativos e
+ocorrências abertas. Valores financeiros vêm exclusivamente da API financeira,
+quando o usuário possui acesso.
 
 O painel não deverá apresentar movimentação financeira como lucro contábil sem que custos, competência e demais regras tenham sido definidos.
 
@@ -251,7 +271,7 @@ O painel não deverá apresentar movimentação financeira como lucro contábil 
 - Exportações futuras deverão respeitar permissões;
 - O módulo deverá seguir as políticas de sessão e CSRF já existentes.
 
-## 11. Critérios de aceite da primeira versão
+## 11. Critérios de aceite
 
 - [x] O módulo aparece na navegação;
 - [x] O painel inicial pode ser acessado;
@@ -267,7 +287,11 @@ O painel não deverá apresentar movimentação financeira como lucro contábil 
 - [x] Ruff e o formatador foram aprovados;
 - [x] Pytest foi aprovado;
 - [x] Lint, typecheck, testes e build do frontend foram aprovados;
-- [x] A documentação foi atualizada.
+- [x] A documentação foi atualizada;
+- [x] Registros administrativos podem ser criados e consultados;
+- [x] Ocorrências abertas podem ser resolvidas ou canceladas;
+- [x] O autor e os responsáveis pelas alterações ficam registrados;
+- [x] Indicadores da equipe alimentam o dashboard executivo.
 
 ## 12. Validação técnica
 
@@ -286,19 +310,20 @@ Resultados registrados em 5 de outubro de 2026:
 - Remuneração do funcionário protegida por permissão;
 - Nenhum erro encontrado no console durante a validação da Gestão Interna.
 
-Avisos conhecidos do frontend permanecem registrados em `SessionContext`, `ProductsPage`, `OrdersPage` e `CustomersPage`. Eles não foram introduzidos por esta entrega.
+Na data dessa validação, havia cinco avisos preexistentes no frontend,
+registrados em `SessionContext`, `ProductsPage`, `OrdersPage` e
+`CustomersPage`. Essa observação é histórica e não afirma o estado atual do lint.
 
 ## 13. Evoluções posteriores
 
 Após a primeira versão:
 
 1. Agenda empresarial;
-2. Advertências e ocorrências;
-3. Armazenamento seguro de documentos;
-4. Ponto eletrônico;
-5. Holerites;
-6. Folha de pagamento;
-7. Relatórios gerenciais;
-8. Indicadores financeiros;
-9. Integração com o Copiloto;
-10. Exportação e integrações externas.
+2. Armazenamento seguro de documentos;
+3. Ponto eletrônico;
+4. Holerites;
+5. Folha de pagamento;
+6. Relatórios gerenciais;
+7. Vínculo entre lançamentos financeiros e centros de custo;
+8. Ampliação das consultas do Copiloto sobre equipe e centros de custo;
+9. Exportação e integrações externas.
