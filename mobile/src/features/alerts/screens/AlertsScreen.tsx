@@ -173,6 +173,11 @@ export function AlertsScreen() {
       return;
     }
 
+    if (item.action_route === '/products') {
+      router.push('/products');
+      return;
+    }
+
     Alert.alert(
       item.title,
       'A tela deste módulo será integrada ao aplicativo nas próximas etapas.'

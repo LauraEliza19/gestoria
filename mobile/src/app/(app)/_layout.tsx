@@ -169,6 +169,23 @@ export default function AppLayout() {
       />
 
       <Tabs.Screen
+        name="products"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="product-entry"
+        options={{
+          href: null,
+          tabBarStyle: {
+            display: 'none',
+          },
+        }}
+      />
+
+      <Tabs.Screen
         name="finance"
         options={{
           href: null,

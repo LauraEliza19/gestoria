@@ -126,4 +126,12 @@ test('dashboard only navigates to available mobile routes', () => {
     screen,
     /A tela deste módulo será integrada/
   )
+  assert.match(
+    screen,
+    /item\.action_route === '\/products'/
+  )
+  assert.match(
+    screen,
+    /router\.push\('\/products'\)/
+  )
 })

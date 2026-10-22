@@ -24,7 +24,10 @@ import {
   spacing,
 } from '@/theme/tokens';
 
-type AvailableRoute = '/orders' | '/finance';
+type AvailableRoute =
+  | '/orders'
+  | '/products'
+  | '/finance';
 
 type ModuleItem = {
   id: string;
@@ -92,6 +95,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
         title: 'Produtos',
         description: 'Catálogo, preços e dados',
         symbol: 'PR',
+        route: '/products',
       },
     ],
   },
