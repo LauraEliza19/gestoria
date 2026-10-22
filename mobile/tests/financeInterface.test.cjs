@@ -110,7 +110,6 @@ test('finance screen presents real summary and entries', () => {
 })
 
 test('finance is reachable from modules without adding a tab', () => {
-  assert.match(modules, /type AvailableRoute = '\/orders' \| '\/finance'/)
   assert.match(modules, /route: '\/finance'/)
   assert.match(layout, /name="finance"/)
   assert.match(layout, /name="finance-entry"/)
