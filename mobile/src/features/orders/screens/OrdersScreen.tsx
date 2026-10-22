@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   SereneHeader,
   SereneSheet,
@@ -104,6 +105,10 @@ function normalizeSearch(value: string) {
 }
 
 export function OrdersScreen() {
+  const {
+    pageWidth,
+    readableContentWidth,
+  } = useResponsiveLayout();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -243,6 +248,7 @@ export function OrdersScreen() {
         keyExtractor={(order) => order.id}
         contentContainerStyle={[
           styles.content,
+          { width: pageWidth },
           visibleOrders.length === 0 &&
           styles.emptyContent,
         ]}
@@ -379,7 +385,12 @@ export function OrdersScreen() {
             statusColors[order.status];
 
           return (
-            <View style={styles.card}>
+            <View
+              style={[
+                styles.card,
+                { width: readableContentWidth },
+              ]}
+            >
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeading}>
                   <Text style={styles.orderCode}>
@@ -462,11 +473,11 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     backgroundColor: sereneColors.sheet,
-    maxWidth: 560,
+    flexGrow: 1,
     paddingBottom: 140,
     width: '100%',
   },
-ordersSheet: {
+  ordersSheet: {
     minHeight: 0,
     paddingBottom: spacing.lg,
     paddingTop: spacing.lg,
@@ -588,12 +599,12 @@ ordersSheet: {
     fontSize: 10,
   },
   card: {
+    alignSelf: 'center',
     backgroundColor: sereneColors.sheetSurface,
     borderColor: sereneColors.sheetBorder,
     borderRadius: radii.xl,
     borderWidth: 1,
     marginBottom: spacing.md,
-    marginHorizontal: spacing.xl,
     padding: spacing.xl,
   },
   cardHeader: {

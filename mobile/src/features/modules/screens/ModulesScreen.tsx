@@ -15,6 +15,7 @@ import {
   SereneHeader,
   SereneSheet,
 } from '@/components/serene/SereneLayout';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 import {
   fontSizes,
@@ -148,9 +149,14 @@ const MODULE_GROUPS: ModuleGroup[] = [
 type ModuleCardProps = {
   item: ModuleItem;
   onPress: () => void;
+  wide: boolean;
 };
 
-function ModuleCard({ item, onPress }: ModuleCardProps) {
+function ModuleCard({
+  item,
+  onPress,
+  wide,
+}: ModuleCardProps) {
   const available = Boolean(item.route);
   const iconName =
     MODULE_ICONS[item.id] ?? 'apps-outline';
@@ -167,6 +173,7 @@ function ModuleCard({ item, onPress }: ModuleCardProps) {
       onPress={onPress}
       style={({ pressed }) => [
         styles.moduleCard,
+        wide && styles.moduleCardWide,
         pressed && styles.moduleCardPressed,
       ]}
     >
@@ -231,6 +238,10 @@ function ModuleCard({ item, onPress }: ModuleCardProps) {
 
 export function ModulesScreen() {
   const router = useRouter();
+  const {
+    contentMaxWidth,
+    isCompact,
+  } = useResponsiveLayout();
 
   function openModule(item: ModuleItem) {
     if (item.route) {
@@ -249,7 +260,10 @@ export function ModulesScreen() {
       <StatusBar style="light" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { maxWidth: contentMaxWidth },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <SereneHeader
@@ -297,6 +311,7 @@ export function ModulesScreen() {
                     key={item.id}
                     item={item}
                     onPress={() => openModule(item)}
+                    wide={!isCompact}
                   />
                 ))}
               </View>
@@ -316,7 +331,6 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     flexGrow: 1,
-    maxWidth: 560,
     width: '100%',
   },
   eyebrow: {
@@ -407,6 +421,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: 158,
     padding: spacing.lg,
+  },
+
+  moduleCardWide: {
+    flexBasis: '31%',
+    flexGrow: 0,
+    minWidth: 220,
   },
 
   moduleCardPressed: {
