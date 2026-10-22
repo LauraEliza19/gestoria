@@ -85,3 +85,18 @@ export const fontSizes = {
   title: 22,
   display: 30,
 } as const;
+
+export const responsiveLayout = {
+  breakpoints: {
+    medium: 768,
+    expanded: 1200,
+  },
+
+  contentMaxWidth: {
+    compact: 560,
+    medium: 960,
+    expanded: 1180,
+  },
+
+  readableContentMaxWidth: 760,
+} as const;

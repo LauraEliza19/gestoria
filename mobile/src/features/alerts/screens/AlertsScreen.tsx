@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 import {
   SereneHeader,
@@ -71,13 +72,23 @@ function formatDate(value: string | null) {
 type AlertCardProps = {
   item: DashboardAlert;
   onOpen: () => void;
+  wide: boolean;
 };
 
-function AlertCard({ item, onOpen }: AlertCardProps) {
+function AlertCard({
+  item,
+  onOpen,
+  wide,
+}: AlertCardProps) {
   const color = SEVERITY_COLORS[item.severity];
 
   return (
-    <View style={styles.alertCard}>
+    <View
+      style={[
+        styles.alertCard,
+        wide && styles.alertCardWide,
+      ]}
+    >
       <View style={styles.alertHeader}>
         <View
           style={[
@@ -144,6 +155,10 @@ function AlertCard({ item, onOpen }: AlertCardProps) {
 export function AlertsScreen() {
   const router = useRouter();
   const {
+    contentMaxWidth,
+    isCompact,
+  } = useResponsiveLayout();
+  const {
     overview,
     loading,
     refreshing,
@@ -169,7 +184,10 @@ export function AlertsScreen() {
       <StatusBar style="light" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { maxWidth: contentMaxWidth },
+        ]}
         refreshControl={
           <RefreshControl
             colors={[sereneColors.primary]}
@@ -198,7 +216,7 @@ export function AlertsScreen() {
           title="Alertas"
         />
 
-        <SereneSheet>
+        <SereneSheet style={styles.alertsSheet}>
 
           {loading && !overview ? (
             <View style={styles.stateCard}>
@@ -268,12 +286,18 @@ export function AlertsScreen() {
                   </Text>
                 </View>
               ) : (
-                <View style={styles.alertList}>
+                <View
+                  style={[
+                    styles.alertList,
+                    !isCompact && styles.alertListWide,
+                  ]}
+                >
                   {overview.alerts.map((item) => (
                     <AlertCard
                       key={item.id}
                       item={item}
                       onOpen={() => openAlert(item)}
+                      wide={!isCompact}
                     />
                   ))}
                 </View>
@@ -294,8 +318,10 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     flexGrow: 1,
-    maxWidth: 560,
     width: '100%',
+  },
+  alertsSheet: {
+    flexGrow: 1,
   },
   totalBadge: {
     alignItems: 'center',
@@ -399,10 +425,25 @@ const styles = StyleSheet.create({
   alertList: {
     gap: 0,
   },
+  alertListWide: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.lg,
+  },
   alertCard: {
     borderBottomColor: sereneColors.sheetBorder,
     borderBottomWidth: 1,
     paddingVertical: spacing.xl,
+  },
+  alertCardWide: {
+    backgroundColor: sereneColors.sheetSurface,
+    borderColor: sereneColors.sheetBorder,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    flexBasis: '48%',
+    flexGrow: 0,
+    minWidth: 300,
+    padding: spacing.xl,
   },
   alertHeader: {
     alignItems: 'center',

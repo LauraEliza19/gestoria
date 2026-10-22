@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/context/useAuth';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+
 import {
   fontSizes,
   radii,
@@ -351,6 +353,10 @@ function PriorityItem({
 export function HomeScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const {
+    contentMaxWidth,
+    horizontalGutter,
+  } = useResponsiveLayout();
 
   const {
     overview,
@@ -400,7 +406,10 @@ export function HomeScreen() {
       <StatusBar style="light" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { maxWidth: contentMaxWidth },
+        ]}
         refreshControl={
           <RefreshControl
             colors={[sereneColors.primary]}
@@ -414,7 +423,12 @@ export function HomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
+        <View
+          style={[
+            styles.hero,
+            { paddingHorizontal: horizontalGutter },
+          ]}
+        >
           <View
             pointerEvents="none"
             style={styles.heroDecoration}
@@ -536,7 +550,12 @@ export function HomeScreen() {
           ) : null}
         </View>
 
-        <View style={styles.sheet}>
+        <View
+          style={[
+            styles.sheet,
+            { paddingHorizontal: horizontalGutter },
+          ]}
+        >
           {loading && !overview ? (
             <View style={styles.stateCard}>
               <ActivityIndicator
@@ -702,14 +721,12 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     flexGrow: 1,
-    maxWidth: 560,
     width: '100%',
   },
   hero: {
     backgroundColor: sereneColors.background,
     overflow: 'hidden',
     paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     position: 'relative',
   },
@@ -903,7 +920,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 520,
     paddingBottom: 116,
-    paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
   },
   stateCard: {

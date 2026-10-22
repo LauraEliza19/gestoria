@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 import {
   SereneHeader,
@@ -43,10 +44,10 @@ const STATUS_OPTIONS: {
   label: string;
   value: FinanceEntryStatus;
 }[] = [
-  { label: 'Pendente', value: 'pending' },
-  { label: 'Realizado', value: 'paid' },
-  { label: 'Cancelado', value: 'cancelled' },
-];
+    { label: 'Pendente', value: 'pending' },
+    { label: 'Realizado', value: 'paid' },
+    { label: 'Cancelado', value: 'cancelled' },
+  ];
 
 function getToday() {
   return new Intl.DateTimeFormat('pt-BR', {
@@ -116,6 +117,8 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function FinanceEntryScreen() {
+  const { pageWidth } =
+    useResponsiveLayout();
   const router = useRouter();
   const { session } = useAuth();
   const canManage =
@@ -336,7 +339,10 @@ export function FinanceEntryScreen() {
         style={styles.keyboardArea}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { width: pageWidth },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -654,7 +660,7 @@ export function FinanceEntryScreen() {
                       style={[
                         styles.modalOption,
                         index === categories.length - 1 &&
-                          styles.modalOptionLast,
+                        styles.modalOptionLast,
                       ]}
                     >
                       <View style={styles.categoryText}>
@@ -897,7 +903,6 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     flexGrow: 1,
-    maxWidth: 560,
     width: '100%',
   },
   headerAction: {
@@ -911,6 +916,7 @@ const styles = StyleSheet.create({
     width: 42,
   },
   formSheet: {
+    flexGrow: 1,
     minHeight: 720,
     paddingBottom: spacing.xxxl,
   },
