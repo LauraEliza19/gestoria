@@ -7,6 +7,7 @@ import {
     type ViewStyle,
 } from 'react-native';
 
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
     fontSizes,
     sereneColors,
@@ -30,8 +31,18 @@ export function SereneHeader({
     children,
     style,
 }: SereneHeaderProps) {
+    const { horizontalGutter } =
+        useResponsiveLayout();
+
     return (
-        <View style={[styles.header, style]}>
+        <View
+            style={[
+                styles.header,
+                { paddingHorizontal: horizontalGutter },
+                style,
+                styles.fullWidth,
+            ]}
+        >
             <View
                 pointerEvents="none"
                 style={styles.decoration}
@@ -83,19 +94,35 @@ export function SereneSheet({
     children,
     style,
 }: SereneSheetProps) {
+    const { horizontalGutter } =
+        useResponsiveLayout();
+
     return (
-        <View style={[styles.sheet, style]}>
+        <View
+            style={[
+                styles.sheet,
+                { paddingHorizontal: horizontalGutter },
+                style,
+                styles.fullWidth,
+            ]}
+        >
             {children}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    fullWidth: {
+        alignSelf: 'stretch',
+        flexShrink: 0,
+        width: '100%',
+    },
+
+
     header: {
         backgroundColor: sereneColors.background,
         overflow: 'hidden',
         paddingBottom: spacing.xxl,
-        paddingHorizontal: spacing.xl,
         paddingTop: spacing.lg,
         position: 'relative',
     },
@@ -194,7 +221,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 36,
         minHeight: 520,
         paddingBottom: 140,
-        paddingHorizontal: spacing.xl,
         paddingTop: spacing.xxl,
         width: '100%',
     },
