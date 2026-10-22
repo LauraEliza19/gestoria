@@ -144,8 +144,8 @@ test('home presents summary before the operational sheet', () => {
   const metricsIndex = home.indexOf(
     '<View style={styles.metricsPanel}>'
   )
-  const sheetIndex = home.indexOf(
-    '<View style={styles.sheet}>'
+  const sheetIndex = home.search(
+    /<View\s+style=\{\[\s*styles\.sheet,/
   )
   const focusIndex = home.indexOf('<FocusCard')
   const prioritiesIndex = home.search(

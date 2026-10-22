@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 import {
   SereneHeader,
@@ -49,20 +50,21 @@ const TYPE_FILTERS: {
   label: string;
   value?: FinanceEntryType;
 }[] = [
-  { label: 'Todos' },
-  { label: 'Entradas', value: 'income' },
-  { label: 'Saídas', value: 'expense' },
-];
+    { label: 'Todos' },
+    { label: 'Entradas', value: 'income' },
+    { label: 'Saídas', value: 'expense' },
+  ];
+
 
 const STATUS_FILTERS: {
   label: string;
   value?: FinanceEntryStatus;
 }[] = [
-  { label: 'Todos' },
-  { label: 'Pagos', value: 'paid' },
-  { label: 'Pendentes', value: 'pending' },
-  { label: 'Cancelados', value: 'cancelled' },
-];
+    { label: 'Todos' },
+    { label: 'Pagos', value: 'paid' },
+    { label: 'Pendentes', value: 'pending' },
+    { label: 'Cancelados', value: 'cancelled' },
+  ];
 
 const STATUS_LABELS: Record<FinanceEntryStatus, string> = {
   paid: 'Pago',
@@ -195,6 +197,10 @@ function EntryRow({
 
 export function FinanceScreen() {
   const router = useRouter();
+  const {
+    pageWidth,
+    horizontalGutter,
+  } = useResponsiveLayout();
   const { session } = useAuth();
   const canManage =
     session?.role === 'owner' || session?.role === 'admin';
@@ -228,7 +234,10 @@ export function FinanceScreen() {
       <StatusBar style="light" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { width: pageWidth },
+        ]}
         refreshControl={
           <RefreshControl
             colors={[sereneColors.primary]}
@@ -477,7 +486,15 @@ export function FinanceScreen() {
             style={styles.modalBackdrop}
           />
 
-          <View style={styles.statusModal}>
+          <View
+            style={[
+              styles.statusModal,
+              {
+                paddingHorizontal: horizontalGutter,
+                width: pageWidth,
+              },
+            ]}
+          >
             <View style={styles.modalHandle} />
 
             <View style={styles.modalHeader}>
@@ -516,7 +533,7 @@ export function FinanceScreen() {
                     style={({ pressed }) => [
                       styles.statusOption,
                       index === STATUS_FILTERS.length - 1 &&
-                        styles.statusOptionLast,
+                      styles.statusOptionLast,
                       pressed && styles.pressed,
                     ]}
                   >
@@ -555,7 +572,6 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     flexGrow: 1,
-    maxWidth: 560,
     width: '100%',
   },
   balanceOverview: {
@@ -640,6 +656,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   financeSheet: {
+    flexGrow: 1,
     paddingBottom: 112,
   },
   statePanel: {
@@ -832,11 +849,8 @@ const styles = StyleSheet.create({
     backgroundColor: sereneColors.sheetSurface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxWidth: 560,
     paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
-    width: '100%',
   },
   modalHandle: {
     alignSelf: 'center',

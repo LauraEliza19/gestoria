@@ -15,6 +15,7 @@ import {
   SereneSheet,
 } from '@/components/serene/SereneLayout';
 import { useAuth } from '@/features/auth/context/useAuth';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   fontSizes,
   radii,
@@ -55,6 +56,11 @@ export function AccountScreen() {
     signOut,
   } = useAuth();
 
+  const {
+    pageWidth,
+    isCompact,
+  } = useResponsiveLayout();
+
   const isLoading = status === 'loading';
   const fullName = session?.full_name ?? 'Usuário';
   const organizationName =
@@ -76,7 +82,10 @@ export function AccountScreen() {
       <StatusBar style="light" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { width: pageWidth },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <SereneHeader
@@ -85,8 +94,18 @@ export function AccountScreen() {
           title="Seu acesso"
         />
 
-        <SereneSheet style={styles.accountSheet}>
-          <View style={styles.profileCard}>
+        <SereneSheet
+          style={[
+            styles.accountSheet,
+            !isCompact && styles.accountSheetWide,
+          ]}
+        >
+          <View
+            style={[
+              styles.profileCard,
+              !isCompact && styles.profileCardWide,
+            ]}
+          >
             <View style={styles.profileHeader}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
@@ -182,7 +201,12 @@ export function AccountScreen() {
             </View>
           </View>
 
-          <View style={styles.securityCard}>
+          <View
+            style={[
+              styles.securityCard,
+              !isCompact && styles.securityCardWide,
+            ]}
+          >
             <View style={styles.securityIndicator} />
 
             <View style={styles.securityContent}>
@@ -197,7 +221,12 @@ export function AccountScreen() {
             </View>
           </View>
 
-          <View style={styles.actions}>
+          <View
+            style={[
+              styles.actions,
+              !isCompact && styles.actionsWide,
+            ]}
+          >
             {error ? (
               <View
                 accessibilityRole="alert"
@@ -254,9 +283,7 @@ const styles = StyleSheet.create({
   content: {
     alignSelf: 'center',
     flexGrow: 1,
-    maxWidth: 560,
     paddingBottom: 0,
-    width: '100%',
   },
 
   accountSheet: {
@@ -266,6 +293,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
   },
 
+  accountSheetWide: {
+    alignContent: 'flex-start',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xl,
+  },
+
   profileCard: {
     backgroundColor: sereneColors.sheetSurface,
     borderColor: sereneColors.sheetBorder,
@@ -273,6 +307,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 0,
     padding: spacing.xl,
+  },
+
+  profileCardWide: {
+    flexBasis: '60%',
+    flexGrow: 1,
+    minWidth: 420,
   },
 
   profileHeader: {
@@ -385,6 +425,13 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
 
+  securityCardWide: {
+    flexBasis: '32%',
+    flexGrow: 1,
+    marginTop: 0,
+    minWidth: 260,
+  },
+
   securityIndicator: {
     backgroundColor: sereneColors.success,
     borderRadius: radii.pill,
@@ -414,6 +461,12 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 'auto',
     paddingTop: spacing.xxxl,
+  },
+
+  actionsWide: {
+    flexBasis: '100%',
+    marginTop: 0,
+    paddingTop: spacing.xl,
   },
 
   errorCard: {

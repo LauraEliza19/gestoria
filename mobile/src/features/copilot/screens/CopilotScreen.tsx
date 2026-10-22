@@ -19,6 +19,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 import {
   fontSizes,
@@ -52,6 +53,8 @@ function isMobilePath(path: string): path is MobilePath {
 export function CopilotScreen() {
   const router = useRouter();
   const messageScrollRef = useRef<ScrollView>(null);
+  const { readableContentWidth } =
+    useResponsiveLayout();
 
   const {
     suggestions,
@@ -115,7 +118,12 @@ export function CopilotScreen() {
 
         <SereneSheet style={styles.copilotSheet}>
           <View style={styles.suggestionsSection}>
-            <View style={styles.sectionHeader}>
+            <View
+              style={[
+                styles.sectionHeader,
+                { width: readableContentWidth },
+              ]}
+            >
               <Text style={styles.sectionTitle}>
                 Perguntas sugeridas
               </Text>
@@ -162,7 +170,10 @@ export function CopilotScreen() {
           <ScrollView
             ref={messageScrollRef}
             accessibilityLiveRegion="polite"
-            contentContainerStyle={styles.messages}
+            contentContainerStyle={[
+              styles.messages,
+              { width: readableContentWidth },
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             style={styles.messageList}
@@ -511,9 +522,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.md,
-    maxWidth: 560,
     paddingHorizontal: spacing.lg,
-    width: '100%',
   },
   sectionTitle: {
     color: sereneColors.sheetText,
@@ -563,9 +572,7 @@ const styles = StyleSheet.create({
   messages: {
     alignSelf: 'center',
     gap: spacing.md,
-    maxWidth: 560,
     padding: spacing.lg,
-    width: '100%',
   },
   messageBubble: {
     borderRadius: radii.lg,
