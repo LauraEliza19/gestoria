@@ -167,10 +167,35 @@ Crie sempre uma migration nova. Não reescreva uma migration que já possa ter s
 
 Antes de implantar, configure ao menos:
 
-- `POSTGRES_PASSWORD`;
-- `SITE_DOMAIN`;
-- `OPERATION_SIGNING_KEYS`;
-- `OPERATION_ACTIVE_KEY_ID`;
-- hosts e origens permitidos.
+| Método | Rota | Uso |
+| --- | --- | --- |
+| `POST` | `/api/auth/login` | Autenticar |
+| `GET` | `/api/auth/me` | Sessão atual |
+| `GET`/`POST`/`PATCH`/`DELETE` | `/api/products` | CRUD de produtos |
+| `GET`/`POST`/`PATCH`/`DELETE` | `/api/customers` | CRUD de clientes |
+| `GET`/`POST`/`PATCH`/`DELETE` | `/api/orders` | Pedidos e estoque |
+| `GET` | `/api/health` | Disponibilidade |
+| `GET` | `/api/finance/categories` | Categorias financeiras da empresa |
+| `POST`/`PATCH` | `/api/finance/categories` | Gerenciar categorias (`owner`/`admin`) |
+| `GET`/`POST`/`PATCH` | `/api/finance/entries` | Consultar e gerenciar lançamentos |
+| `GET` | `/api/finance/summary` | Resumo financeiro realizado |
 
-Consulte [Sessões seguras](../docs/SEGURANCA-SESSOES.md), [Segurança de pedidos](../docs/SEGURANCA_PEDIDOS.md) e a [política de segurança](../SECURITY.md).
+Excluir cliente, produto ou pedido exige papel `owner` ou `admin`. Pedidos são transacionais: estoque insuficiente gera `409` e nada é gravado.
+
+### Financeiro
+
+O módulo financeiro nunca aceita `organization_id` no payload: a empresa vem da sessão
+autenticada e todas as consultas filtram por ela. Categorias e lançamentos usam chaves
+compostas para impedir associação entre empresas. Valores devem ser positivos; o tipo
+`income` representa entrada e `expense` representa saída.
+
+As somas de `/api/finance/summary` são **realizadas**: somente lançamentos com situação
+`paid` entram em `total_income`, `total_expense` e `balance`. Lançamentos `pending` e
+`cancelled` podem ser consultados pelos filtros de situação, mas não alteram os totais.
+Os filtros disponíveis para lançamentos são período (`start_date`/`end_date`), tipo,
+situação e categoria.
+
+Proprietários e administradores podem ler e gerenciar o módulo. Membros não gerenciam;
+podem ler somente quando `organization_members.finance_access_approved` tiver sido
+aprovado. Criações e alterações de categorias e lançamentos geram eventos em
+`finance_audit_events`, sempre vinculados à organização e ao usuário que realizou a ação.
