@@ -8,7 +8,10 @@ import { QuotePrintArea } from './QuotePrintArea'
 
 type Customer = {
   id: string
+  code: string
   name: string
+  document: string | null
+  trade_name: string | null
 }
 
 type Product = {
@@ -74,6 +77,13 @@ function formatDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR')
 }
 
+function normalizeCustomerSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR')
+    .replace(/[\s./-]/g, '')
+}
 export function QuotesPage() {
   const { can, session } = useSession()
   const [searchParams] = useSearchParams()
@@ -89,8 +99,23 @@ export function QuotesPage() {
   const reviewedQuote = quotes.find((quote) => quote.id === reviewQuoteId) ?? null
 
   const [customerId, setCustomerId] = useState(selectedCustomerId)
+  const [customerSearch, setCustomerSearch] = useState('')
   const [items, setItems] = useState<DraftItem[]>([newItem()])
   const [submitting, setSubmitting] = useState(false)
+
+  const filteredCustomers = useMemo(() => {
+    const search = normalizeCustomerSearch(customerSearch)
+
+    if (!search) {
+      return customers
+    }
+
+    return customers.filter((customer) =>
+      [customer.name, customer.trade_name ?? '', customer.document ?? '', customer.code].some(
+        (value) => normalizeCustomerSearch(value).includes(search),
+      ),
+    )
+  }, [customers, customerSearch])
 
   const selectedProductIds = useMemo(
     () => new Set(items.map((item) => item.productId).filter(Boolean)),
@@ -186,6 +211,7 @@ export function QuotesPage() {
       setQuotes((current) => [created, ...current])
       setReviewQuoteId(created.id)
       setCustomerId('')
+      setCustomerSearch('')
       setItems([newItem()])
       setStatus('Orçamento criado. Confira os valores registrados antes de gerar o PDF.')
     } catch (error) {
@@ -260,22 +286,55 @@ export function QuotesPage() {
       <form className="page-card quote-form" onSubmit={createQuote}>
         <h2>Novo orçamento</h2>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <label>
-            Cliente
-            <select
-              required
-              value={customerId}
-              onChange={(event) => setCustomerId(event.target.value)}
-            >
-              <option value="">Selecione um cliente</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+          <div className="grid gap-3">
+            <label>
+              Buscar cliente
+              <input
+                type="search"
+                placeholder="Nome, CPF/CNPJ ou código do cliente"
+                value={customerSearch}
+                disabled={submitting}
+                autoComplete="off"
+                aria-describedby="customer-search-feedback"
+                onChange={(event) => {
+                  setCustomerSearch(event.target.value)
+                  setCustomerId('')
+                }}
+              />
+            </label>
+
+            <label>
+              Cliente do orçamento
+              <select
+                required
+                value={customerId}
+                disabled={submitting}
+                onChange={(event) => setCustomerId(event.target.value)}
+              >
+                <option value="">
+                  {filteredCustomers.length === 0
+                    ? 'Nenhum cliente encontrado'
+                    : 'Selecione um cliente'}
                 </option>
-              ))}
-            </select>
-          </label>
+
+                {filteredCustomers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.code} — {customer.name}
+                    {customer.document ? ` — ${customer.document}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <p id="customer-search-feedback" className="text-sm text-muted" role="status">
+              {customerSearch.trim()
+                ? filteredCustomers.length === 0
+                  ? 'Nenhum resultado. Confira o nome, documento ou código informado.'
+                  : `${filteredCustomers.length} cliente(s) encontrado(s). Selecione o cliente desejado.`
+                : 'Pesquise pelo nome, nome fantasia, CPF/CNPJ ou código e selecione um cliente.'}
+            </p>
+          </div>
 
           <label>
             Válido até

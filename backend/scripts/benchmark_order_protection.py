@@ -52,7 +52,10 @@ def main():
             OrganizationMember(organization_id=org.id, user_id=user.id, role="owner")
         )
         customer = Customer(
-            organization_id=org.id, name="Cliente sintético", phone="35900000000"
+            organization_id=org.id,
+            code="CLI-BENCH-001",
+            name="Cliente sintético",
+            phone="35900000000",
         )
         product = Product(
             organization_id=org.id,

@@ -83,6 +83,7 @@ class CustomerUpdate(BaseModel):
 class CustomerRead(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
+    code: str
     name: str
     phone: str
     is_active: bool

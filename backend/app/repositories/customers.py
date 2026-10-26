@@ -6,13 +6,14 @@ from decimal import Decimal
 from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, Order
+from app.models import Customer, Order, Organization
 
 
 @dataclass(frozen=True)
 class CustomerSummary:
     id: uuid.UUID
     organization_id: uuid.UUID
+    code: str
     name: str
     phone: str
     is_active: bool
@@ -92,6 +93,7 @@ class CustomerRepository:
             CustomerSummary(
                 id=customer.id,
                 organization_id=customer.organization_id,
+                code=customer.code,
                 name=customer.name,
                 phone=customer.phone,
                 is_active=customer.is_active,
@@ -139,7 +141,22 @@ class CustomerRepository:
 
     @staticmethod
     def create(db: Session, organization_id: uuid.UUID, values: dict) -> Customer:
-        customer = Customer(organization_id=organization_id, **values)
+        organization = db.scalar(
+            select(Organization)
+            .where(Organization.id == organization_id)
+            .with_for_update()
+        )
+        if organization is None:
+            raise ValueError("Empresa não encontrada.")
+
+        code = f"CLI-{organization.next_customer_code:06d}"
+        organization.next_customer_code += 1
+
+        customer = Customer(
+            organization_id=organization_id,
+            code=code,
+            **values,
+        )
         db.add(customer)
         db.commit()
         db.refresh(customer)

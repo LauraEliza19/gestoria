@@ -120,6 +120,7 @@ def seed_test_data(db: Session) -> None:
             ),
             Customer(
                 organization_id=other_organization.id,
+                code="CLI-TEST-001",
                 name="Cliente privado da Empresa B",
                 phone="35999999999",
             ),
