@@ -17,6 +17,9 @@ export type FinanceEntry = {
   transaction_date: string
   paid_at: string | null
   notes: string | null
+  created_at: string
+  updated_at: string
+  version: number
 }
 
 export type FinanceSummary = {
@@ -91,8 +94,25 @@ export type FinanceEntryPayload = {
   notes?: string | null
 }
 
+export type FinanceEntryUpdatePayload = Partial<FinanceEntryPayload> & {
+  expected_version: number
+}
+
+export type FinanceEntryHistory = {
+  id: string
+  event_type: 'entry_created' | 'entry_updated'
+  actor_name: string
+  created_at: string
+  version: number
+  changes: Record<string, { before: string | null; after: string | null }>
+}
+
 export function getFinanceEntry(entryId: string) {
   return apiFetch<FinanceEntry>(`/api/finance/entries/${entryId}`)
+}
+
+export function getFinanceEntryHistory(entryId: string) {
+  return apiFetch<FinanceEntryHistory[]>(`/api/finance/entries/${entryId}/history`)
 }
 
 export function createFinanceEntry(payload: FinanceEntryPayload) {
@@ -102,7 +122,7 @@ export function createFinanceEntry(payload: FinanceEntryPayload) {
   })
 }
 
-export function updateFinanceEntry(entryId: string, payload: Partial<FinanceEntryPayload>) {
+export function updateFinanceEntry(entryId: string, payload: FinanceEntryUpdatePayload) {
   return apiFetch<FinanceEntry>(`/api/finance/entries/${entryId}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
