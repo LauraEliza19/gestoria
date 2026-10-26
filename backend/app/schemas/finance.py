@@ -44,6 +44,7 @@ class FinanceEntryCreate(BaseModel):
 
 
 class FinanceEntryUpdate(BaseModel):
+    expected_version: int | None = Field(default=None, ge=1)
     category_id: uuid.UUID | None = None
     description: str | None = Field(default=None, min_length=1, max_length=200)
     amount: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
@@ -60,7 +61,17 @@ class FinanceEntryRead(FinanceEntryCreate):
     organization_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    version: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class FinanceEntryHistoryRead(BaseModel):
+    id: uuid.UUID
+    event_type: Literal["entry_created", "entry_updated"]
+    actor_name: str
+    created_at: datetime
+    version: int
+    changes: dict[str, dict[str, str | None]]
 
 
 class FinanceSummaryRead(BaseModel):
