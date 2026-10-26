@@ -71,6 +71,9 @@ class Organization(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    next_customer_code: Mapped[int] = mapped_column(
+        default=1, server_default="1", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -250,6 +253,7 @@ class Customer(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("organization_id", "id", name="uq_customers_org_id"),
         UniqueConstraint("organization_id", "phone", name="uq_customer_org_phone"),
+        UniqueConstraint("organization_id", "code", name="uq_customers_org_code"),
         Index("ix_customers_org_created_at", "organization_id", "created_at"),
         Index("ix_customers_org_name", "organization_id", "name"),
         CheckConstraint(
@@ -269,6 +273,7 @@ class Customer(Base, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     phone: Mapped[int] = mapped_column(String(30), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
