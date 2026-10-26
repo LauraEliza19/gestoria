@@ -271,31 +271,35 @@ function TopNavigation() {
                   </NavLink>
                 )}
 
-                {can('management:read') && <NavLink
-                  to="/gestao/funcionarios"
-                  onClick={closeNavigation}
-                  className={({ isActive }) =>
-                    `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                      isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
-                    }`
-                  }
-                >
-                  <Users size={18} aria-hidden="true" />
-                  Funcionários
-                </NavLink>}
+                {can('management:read') && (
+                  <NavLink
+                    to="/gestao/funcionarios"
+                    onClick={closeNavigation}
+                    className={({ isActive }) =>
+                      `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    <Users size={18} aria-hidden="true" />
+                    Funcionários
+                  </NavLink>
+                )}
 
-                {can('management:read') && <NavLink
-                  to="/gestao/centros-de-custo"
-                  onClick={closeNavigation}
-                  className={({ isActive }) =>
-                    `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                      isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
-                    }`
-                  }
-                >
-                  <Building2 size={18} aria-hidden="true" />
-                  Centros de custo
-                </NavLink>}
+                {can('management:read') && (
+                  <NavLink
+                    to="/gestao/centros-de-custo"
+                    onClick={closeNavigation}
+                    className={({ isActive }) =>
+                      `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    <Building2 size={18} aria-hidden="true" />
+                    Centros de custo
+                  </NavLink>
+                )}
               </div>
             </div>
           )}
