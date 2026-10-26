@@ -4,11 +4,7 @@ export class ApiError extends Error {
   readonly status: number
   readonly detail: unknown
 
-  constructor(
-    message: string,
-    status: number,
-    detail: unknown,
-  ) {
+  constructor(message: string, status: number, detail: unknown) {
     super(message)
     this.status = status
     this.detail = detail
@@ -30,9 +26,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
   const body = response.status === 204 ? null : await response.json().catch(() => null)
   const detail = Array.isArray(body?.detail) ? body.detail[0]?.msg : body?.detail
-  const message = typeof detail === 'object' && detail !== null
-    ? (detail as { message?: string }).message || 'Não foi possível concluir a operação.'
-    : detail
-  if (!response.ok) throw new ApiError(message || 'Não foi possível concluir a operação.', response.status, detail)
+  const message =
+    typeof detail === 'object' && detail !== null
+      ? (detail as { message?: string }).message || 'Não foi possível concluir a operação.'
+      : detail
+  if (!response.ok)
+    throw new ApiError(message || 'Não foi possível concluir a operação.', response.status, detail)
   return body as T
 }

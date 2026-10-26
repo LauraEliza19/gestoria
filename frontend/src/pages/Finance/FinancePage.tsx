@@ -204,20 +204,40 @@ export function FinancePage() {
               <label>
                 <span className="mb-1 block text-xs font-semibold text-muted">Data inicial</span>
                 <span className="relative block">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                  <input className="form-input pl-10" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+                  <CalendarDays
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                    size={16}
+                  />
+                  <input
+                    className="form-input pl-10"
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                  />
                 </span>
               </label>
               <label>
                 <span className="mb-1 block text-xs font-semibold text-muted">Data final</span>
                 <span className="relative block">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                  <input className="form-input pl-10" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+                  <CalendarDays
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                    size={16}
+                  />
+                  <input
+                    className="form-input pl-10"
+                    type="date"
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                  />
                 </span>
               </label>
               <label>
                 <span className="mb-1 block text-xs font-semibold text-muted">Tipo</span>
-                <select className="form-input" value={entryType} onChange={(event) => setEntryType(event.target.value as EntryTypeFilter)}>
+                <select
+                  className="form-input"
+                  value={entryType}
+                  onChange={(event) => setEntryType(event.target.value as EntryTypeFilter)}
+                >
                   <option value="">Todos os tipos</option>
                   <option value="income">Entradas</option>
                   <option value="expense">Saídas</option>
@@ -225,7 +245,11 @@ export function FinancePage() {
               </label>
               <label>
                 <span className="mb-1 block text-xs font-semibold text-muted">Situação</span>
-                <select className="form-input" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)}>
+                <select
+                  className="form-input"
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value as StatusFilter)}
+                >
                   <option value="">Todas as situações</option>
                   <option value="paid">Realizados</option>
                   <option value="pending">Pendentes</option>
@@ -234,9 +258,17 @@ export function FinancePage() {
               </label>
               <label>
                 <span className="mb-1 block text-xs font-semibold text-muted">Categoria</span>
-                <select className="form-input" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+                <select
+                  className="form-input"
+                  value={categoryId}
+                  onChange={(event) => setCategoryId(event.target.value)}
+                >
                   <option value="">Todas as categorias</option>
-                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
@@ -246,7 +278,9 @@ export function FinancePage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="eyebrow">Configuração</p>
-                    <h3 className="mt-1 font-display text-lg font-semibold">Categorias financeiras</h3>
+                    <h3 className="mt-1 font-display text-lg font-semibold">
+                      Categorias financeiras
+                    </h3>
                   </div>
                   <Link className="text-sm font-bold text-signal" to="/financeiro/categorias/nova">
                     Nova categoria
@@ -267,13 +301,21 @@ export function FinancePage() {
             )}
 
             {(startDate || endDate || entryType || status || categoryId) && (
-              <button className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal" type="button" onClick={clearFilters}>
+              <button
+                className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
+                type="button"
+                onClick={clearFilters}
+              >
                 <Filter size={16} aria-hidden="true" />
                 Limpar filtros
               </button>
             )}
 
-            {error && <p className="mb-5 error-banner" role="alert">{error}</p>}
+            {error && (
+              <p className="mb-5 error-banner" role="alert">
+                {error}
+              </p>
+            )}
 
             {loading ? (
               <LoadingState message="Atualizando lançamentos..." />
@@ -302,18 +344,27 @@ export function FinancePage() {
                           <small>{entry.entry_type === 'income' ? 'Entrada' : 'Saída'}</small>
                         </span>
                       </span>
-                      <span>{categoryNames.get(entry.category_id) || 'Categoria não encontrada'}</span>
+                      <span>
+                        {categoryNames.get(entry.category_id) || 'Categoria não encontrada'}
+                      </span>
                       <span>{date(entry.transaction_date)}</span>
                       <span>
-                        <span className={`fiscal-status-badge ${entry.status === 'paid' ? 'fiscal-status-success' : entry.status === 'cancelled' ? 'fiscal-status-neutral' : 'fiscal-status-warning'}`}>
+                        <span
+                          className={`fiscal-status-badge ${entry.status === 'paid' ? 'fiscal-status-success' : entry.status === 'cancelled' ? 'fiscal-status-neutral' : 'fiscal-status-warning'}`}
+                        >
                           {statusLabels[entry.status]}
                         </span>
                       </span>
-                      <strong className={`text-right ${entry.entry_type === 'income' ? 'text-[#268267]' : 'text-[#b33d50]'}`}>
+                      <strong
+                        className={`text-right ${entry.entry_type === 'income' ? 'text-[#268267]' : 'text-[#b33d50]'}`}
+                      >
                         {entry.entry_type === 'income' ? '+' : '-'} {money(entry.amount)}
                       </strong>
                       {can('finance:manage') && (
-                        <Link className="text-sm font-bold text-signal" to={`/financeiro/lancamentos/${entry.id}/editar`}>
+                        <Link
+                          className="text-sm font-bold text-signal"
+                          to={`/financeiro/lancamentos/${entry.id}/editar`}
+                        >
                           Editar
                         </Link>
                       )}
