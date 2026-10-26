@@ -19,6 +19,7 @@ const hook = read(
 const screen = read(
   'src/features/home/screens/HomeScreen.tsx'
 )
+const tokens = read('src/theme/tokens.ts')
 
 test('dashboard mobile matches the backend contract', () => {
   const fields = [
@@ -52,20 +53,42 @@ test('dashboard hook handles loading refresh and errors', () => {
   assert.match(hook, /setOverview\(response\)/)
 })
 
-test('executive home displays the main company indicators', () => {
+test('executive home uses the GestorIA visual identity', () => {
   const labels = [
-    'Vendas hoje',
-    'Pedidos em andamento',
-    'Produção bloqueada',
+    'Sua empresa está sob controle.',
+    'Hoje',
+    'Vendas',
+    'Em preparo',
     'Estoque crítico',
-    'Situação fiscal',
-    'Saldo financeiro',
-    'Precisa da sua atenção',
+    'Em foco agora',
+    'Prioridades',
   ]
+
+  assert.match(tokens, /brandCyan:/)
+  assert.match(tokens, /sheet:/)
+  assert.doesNotMatch(screen, /gestoria-logo\.png/)
+  assert.match(screen, /styles\.headerActions/)
+  assert.match(screen, /minHeight:\s*32/)
+  assert.match(screen, /sereneColors\.sheet/)
+  assert.match(screen, /<StatusBar style="light" \/>/)
 
   for (const label of labels) {
     assert.ok(screen.includes(label), `missing label: ${label}`)
   }
+})
+
+test('executive home only displays real available indicators', () => {
+  assert.match(screen, /overview\.summary\.sales_today/)
+  assert.match(
+    screen,
+    /overview\.summary\s*\.orders_in_preparation/
+  )
+  assert.match(
+    screen,
+    /overview\.summary\s*\.critical_stock_items/
+  )
+  assert.doesNotMatch(screen, /value: 'Em breve'/)
+  assert.doesNotMatch(screen, /Equilíbrio operacional/)
 })
 
 test('executive home supports refresh retry and empty states', () => {
@@ -73,8 +96,24 @@ test('executive home supports refresh retry and empty states', () => {
   assert.match(screen, /refreshing=\{refreshing\}/)
   assert.match(screen, /onRefresh=\{refresh\}/)
   assert.match(screen, /Tentar novamente/)
-  assert.match(screen, /Nenhuma pendência importante/)
-  assert.match(screen, /overview\.alerts\.map/)
+  assert.match(screen, /Tudo em ordem por aqui/)
+  assert.match(screen, /priorityAlerts\.map/)
+})
+
+test('dashboard promotes the highest priority alert', () => {
+  assert.match(screen, /overview\?\.alerts\[0\]/)
+  assert.match(screen, /function FocusCard/)
+  assert.match(screen, /item\.description/)
+  assert.match(screen, /item\.impact/)
+  assert.match(screen, /item\.action_label/)
+})
+
+test('dashboard priorities can expand their details', () => {
+  assert.match(screen, /expandedAlertId/)
+  assert.match(screen, /setExpandedAlertId/)
+  assert.match(screen, /accessibilityState=\{\{ expanded \}\}/)
+  assert.match(screen, /\{item\.impact\}/)
+  assert.match(screen, /\{item\.action_label\}/)
 })
 
 test('dashboard only navigates to available mobile routes', () => {
@@ -85,6 +124,14 @@ test('dashboard only navigates to available mobile routes', () => {
   assert.match(screen, /router\.push\('\/orders'\)/)
   assert.match(
     screen,
-    /Este módulo será disponibilizado/
+    /A tela deste módulo será integrada/
+  )
+  assert.match(
+    screen,
+    /item\.action_route === '\/products'/
+  )
+  assert.match(
+    screen,
+    /router\.push\('\/products'\)/
   )
 })

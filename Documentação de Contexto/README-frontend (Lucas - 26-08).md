@@ -1,5 +1,10 @@
 # 🎨 GestorIA — Documentação do Frontend
 
+> **Registro histórico.** Este documento descreve o protótipo HTML/CSS/JavaScript
+> criado em agosto de 2026. O frontend atual usa React, TypeScript, Vite e
+> Tailwind CSS; consulte [`frontend/README.md`](../frontend/README.md) e o
+> [README principal](../README.md) para o estado vigente.
+
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black)

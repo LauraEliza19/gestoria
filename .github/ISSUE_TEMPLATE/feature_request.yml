@@ -1,0 +1,87 @@
+name: Sugerir uma melhoria
+description: Proponha uma funcionalidade ou evolução para o GestorIA.
+title: "[Melhoria]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Uma boa proposta começa pelo problema do usuário. Explique primeiro a necessidade e depois a solução imaginada.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema ou oportunidade
+      description: Quem precisa disso e qual dificuldade será resolvida?
+      placeholder: Como gestor, preciso..., porque atualmente...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solução sugerida
+      description: Descreva o fluxo esperado sem limitar a discussão a detalhes visuais.
+      placeholder: O usuário poderia...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - Painel executivo
+        - Clientes
+        - Produtos e estoque
+        - Pedidos
+        - Orçamentos
+        - Produção
+        - Fiscal
+        - Financeiro
+        - Gestão interna
+        - Copiloto
+        - Conta e segurança
+        - Infraestrutura
+        - Documentação
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: platforms
+    attributes:
+      label: Plataformas relacionadas
+      options:
+        - label: Web
+        - label: Mobile
+        - label: Backend / API
+        - label: Banco de dados
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Como saberemos que a melhoria está pronta?
+      placeholder: |
+        - [ ] O usuário consegue...
+        - [ ] O sistema apresenta...
+        - [ ] A operação registra...
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Segurança, dados e riscos
+      description: Informe impactos em permissões, isolamento por empresa, auditoria ou integrações.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmações
+      options:
+        - label: Verifiquei se já existe uma sugestão semelhante.
+          required: true
+        - label: A proposta não depende de expor segredos no frontend ou mobile.
+          required: true

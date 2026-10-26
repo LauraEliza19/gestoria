@@ -2,6 +2,15 @@
 
 Versão: 0.2.0-security.1 | Data: 08/09/2026 | Base: último gestoria-main.zip enviado nesta conversa, com Radar e Copiloto.
 
+> **Registro histórico de entrega.** Este documento preserva o escopo, os testes e os
+> limites verificados em 8 de setembro de 2026. Ele não deve ser usado isoladamente
+> como descrição do estado atual. Desde essa entrega, o projeto migrou para sessões
+> persistidas em cookies `HttpOnly`, frontend React/TypeScript, módulos de produção,
+> fiscal, Gestão Interna e Financeiro, Copiloto controlado e aplicativo mobile.
+> Consulte o [README principal](../README.md), a
+> [Especificação do Projeto](<../Especificação do Projeto.md>) e
+> [Sessões seguras](SEGURANCA-SESSOES.md) para o estado consolidado.
+
 ## 1. Entrega e alcance
 
 Foi implementada uma primeira camada de integridade e autenticidade para a criação direta de pedidos. O backend prepara uma proposta com os dados exatos, gera um HMAC-SHA256 e só executa a confirmação correspondente. A mesma operação pode ser repetida após falha de conexão sem criar outro pedido ou baixar o estoque novamente.
@@ -220,13 +229,13 @@ Os eventos têm adulterações detectáveis enquanto as chaves e referências co
 
 A auditoria da nova API não foi incorporada ao histórico visual antigo, que continua local para outras ações. O download do último comprovante depende da referência da sessão/aba. As propostas e eventos permanecem no banco; expiração não significa exclusão automática. Retenção, limpeza e limites de frequência devem ser definidos antes de exposição pública.
 
-Continuam fora do escopo: integração real com IA, RLS, MFA, migração da sessão para cookies, endurecimento geral da implantação e assinatura de conversões de orçamento/outros módulos. Os valores padrão de JWT e credenciais demo do ambiente original continuam sendo apenas para desenvolvimento. O próximo gate é executar o Compose de testes com PostgreSQL e validar a interface antes de integrar no ambiente principal.
+Na data desta entrega, continuavam fora do escopo: integração real com IA, RLS, MFA, migração da sessão para cookies, endurecimento geral da implantação e assinatura de conversões de orçamento/outros módulos. A migração para cookies e parte do endurecimento de produção foram concluídas posteriormente; IA externa, RLS, MFA e assinatura da conversão de orçamentos permanecem fora do escopo atual.
 
 ## 9. Arquivos e referências técnicas
 
-Principais arquivos novos: app/operation_crypto.py, app/services/order_operations.py, app/api/order_operations.py, app/models/order_operation.py, schemas/order_operation.py, migration 0004_protected_order_operations.py, protected-orders.js, scripts de configuração/teste/medição e docker-compose.test.yml. Os caminhos app e schemas acima são relativos a backend; o módulo JavaScript fica em frontend/static/js/models.
+Principais arquivos novos na entrega original: app/operation_crypto.py, app/services/order_operations.py, app/api/order_operations.py, app/models/order_operation.py, schemas/order_operation.py, migration 0004_protected_order_operations.py, protected-orders.js, scripts de configuração/teste/medição e docker-compose.test.yml. Os caminhos app e schemas são relativos ao backend. O antigo módulo JavaScript foi substituído posteriormente pelo fluxo React em `frontend/src/pages/Orders/OrderFormPage.tsx`.
 
-Arquivos existentes ajustados: criação de pedidos, serialização compartilhada, arredondamento monetário, schemas, carregamento de rotas/configuração, tela de pedidos, apiFetch, Dockerfiles, Compose, README e testes anteriores que passaram a usar preparação/confirmação. constraints-tested.txt fixa as versões Python efetivamente usadas na validação. A estrutura geral de FastAPI, SQLAlchemy, Alembic e PostgreSQL foi preservada.
+Arquivos existentes ajustados na entrega: criação de pedidos, serialização compartilhada, arredondamento monetário, schemas, carregamento de rotas/configuração, tela de pedidos, cliente HTTP, Dockerfiles, Compose, README e testes anteriores que passaram a usar preparação/confirmação. `constraints-tested.txt` registra as versões Python usadas naquela validação. A estrutura geral de FastAPI, SQLAlchemy, Alembic e PostgreSQL foi preservada.
 
 Referências do desenho, sem alegação de implementação integral dos padrões:
 

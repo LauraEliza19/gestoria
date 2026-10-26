@@ -18,7 +18,12 @@ import {
     useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import { colors, fontSizes, radii, spacing } from '@/theme/tokens';
+import {
+    fontSizes,
+    radii,
+    sereneColors,
+    spacing,
+} from '@/theme/tokens';
 import { useAuth } from '@/features/auth/context/useAuth';
 
 export function LoginScreen() {
@@ -33,7 +38,7 @@ export function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [remember, setRemember] = useState(true)
+    const [remember, setRemember] = useState(true);
     const [formError, setFormError] = useState('');
 
     const isSubmitting = status === 'loading';
@@ -72,19 +77,33 @@ export function LoginScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.brandArea}>
+                        <View
+                            pointerEvents="none"
+                            style={styles.brandDecoration}
+                        >
+                            <View style={styles.brandGlow} />
+                            <View style={styles.brandRing} />
+                            <View style={styles.brandCore} />
+                        </View>
+
                         <Image
+                            accessibilityLabel="GestorIA"
+                            contentFit="contain"
                             source={require('@/assets/images/gestoria-logo.png')}
                             style={styles.logo}
-                            contentFit="contain"
-                            accessibilityLabel="GestorIA"
                         />
 
+                        <Text style={styles.brandEyebrow}>
+                            ACESSO EXECUTIVO
+                        </Text>
+
                         <Text style={styles.brandTitle}>
-                            Gestão inteligente, onde você estiver.
+                            Sua empresa, sempre por perto.
                         </Text>
 
                         <Text style={styles.brandDescription}>
-                            Acompanhe sua empresa com segurança e clareza.
+                            Decisões claras, operação segura e tudo o que importa
+                            ao seu alcance.
                         </Text>
                     </View>
 
@@ -115,13 +134,13 @@ export function LoginScreen() {
                                 }}
                                 style={styles.input}
                                 placeholder="voce@suaempresa.com.br"
-                                placeholderTextColor={colors.textMuted}
+                                placeholderTextColor={sereneColors.sheetTextMuted}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 autoComplete="email"
                                 textContentType="emailAddress"
-                                selectionColor={colors.primary}
+                                selectionColor={sereneColors.primary}
                                 accessibilityLabel="E-mail"
                             />
                         </View>
@@ -140,13 +159,15 @@ export function LoginScreen() {
                                     }}
                                     style={styles.passwordInput}
                                     placeholder="Sua senha"
-                                    placeholderTextColor={colors.textMuted}
+                                    placeholderTextColor={
+                                        sereneColors.sheetTextMuted
+                                    }
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     autoComplete="current-password"
                                     textContentType="password"
-                                    selectionColor={colors.primary}
+                                    selectionColor={sereneColors.primary}
                                     returnKeyType="done"
                                     onSubmitEditing={handleLogin}
                                     accessibilityLabel="Senha"
@@ -207,7 +228,9 @@ export function LoginScreen() {
                             accessibilityRole="button"
                         >
                             {isSubmitting ? (
-                                <ActivityIndicator color={colors.textOnDark} />
+                                <ActivityIndicator
+                                    color={sereneColors.textOnPrimary}
+                                />
                             ) : (
                                 <Text style={styles.loginButtonText}>Entrar</Text>
                             )}
@@ -236,8 +259,8 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
     screen: {
+        backgroundColor: sereneColors.background,
         flex: 1,
-        backgroundColor: colors.navy,
     },
     keyboardArea: {
         flex: 1,
@@ -246,36 +269,85 @@ const styles = StyleSheet.create({
         flexGrow: 1,
     },
     brandArea: {
-        minHeight: 260,
         justifyContent: 'center',
+        minHeight: 300,
+        overflow: 'hidden',
         paddingHorizontal: spacing.xxl,
         paddingVertical: spacing.xl,
+        position: 'relative',
+    },
+    brandDecoration: {
+        bottom: 0,
+        left: 0,
+        position: 'absolute',
+        right: 0,
+        top: 0,
+    },
+
+    brandGlow: {
+        backgroundColor: 'rgba(40, 103, 232, 0.10)',
+        borderRadius: 180,
+        height: 340,
+        left: -130,
+        position: 'absolute',
+        top: -220,
+        width: 400,
+    },
+
+    brandRing: {
+        borderColor: 'rgba(40, 103, 232, 0.15)',
+        borderRadius: 150,
+        borderWidth: 38,
+        height: 300,
+        position: 'absolute',
+        right: -160,
+        top: 80,
+        width: 300,
+    },
+
+    brandCore: {
+        backgroundColor: 'rgba(23, 174, 230, 0.05)',
+        borderRadius: 100,
+        height: 200,
+        position: 'absolute',
+        right: -100,
+        top: 130,
+        width: 200,
+    },
+
+    brandEyebrow: {
+        color: sereneColors.brandCyan,
+        fontSize: fontSizes.caption,
+        fontWeight: '600',
+        letterSpacing: 1.3,
+        marginBottom: spacing.sm,
     },
     logo: {
-        width: 300,
-        height: 150,
-        marginLeft: -48,
-        marginVertical: -28,
+        height: 86,
+        marginBottom: -8,
+        marginLeft: -90,
+        width: 280,
     },
     brandTitle: {
-        color: colors.textOnDark,
-        fontSize: fontSizes.title,
-        fontWeight: '700',
-        lineHeight: 31,
-        maxWidth: 310,
+        color: sereneColors.text,
+        fontSize: fontSizes.display,
+        fontWeight: '600',
+        letterSpacing: -0.4,
+        lineHeight: 36,
+        maxWidth: 360,
     },
     brandDescription: {
-        color: '#BCC8E8',
+        color: sereneColors.textMuted,
         fontSize: fontSizes.body,
         lineHeight: 24,
-        marginTop: spacing.sm,
-        maxWidth: 310,
+        marginTop: spacing.md,
+        maxWidth: 360,
     },
     formArea: {
         flexGrow: 1,
-        backgroundColor: colors.surface,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+        backgroundColor: sereneColors.sheet,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
         paddingHorizontal: spacing.xl,
         paddingTop: spacing.xxl,
         paddingBottom: spacing.xl,
@@ -284,20 +356,20 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xl,
     },
     eyebrow: {
-        color: colors.primary,
+        color: sereneColors.primary,
         fontSize: fontSizes.caption,
-        fontWeight: '700',
-        letterSpacing: 1.4,
+        fontWeight: '600',
+        letterSpacing: 1.3,
     },
     title: {
-        color: colors.text,
+        color: sereneColors.sheetText,
         fontSize: fontSizes.display,
-        fontWeight: '700',
-        letterSpacing: -0.8,
+        fontWeight: '600',
+        letterSpacing: -0.4,
         marginTop: spacing.sm,
     },
     description: {
-        color: colors.textMuted,
+        color: sereneColors.sheetTextMuted,
         fontSize: fontSizes.body,
         lineHeight: 24,
         marginTop: spacing.sm,
@@ -306,85 +378,87 @@ const styles = StyleSheet.create({
         marginBottom: spacing.lg,
     },
     label: {
-        color: colors.text,
+        color: sereneColors.sheetText,
         fontSize: fontSizes.bodySmall,
         fontWeight: '600',
         marginBottom: spacing.sm,
     },
     input: {
-        minHeight: 56,
+        backgroundColor: sereneColors.sheetSurface,
+        borderColor: sereneColors.sheetBorder,
+        borderRadius: radii.lg,
         borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: radii.md,
-        color: colors.text,
+        color: sereneColors.sheetText,
         fontSize: fontSizes.body,
+        minHeight: 56,
         paddingHorizontal: spacing.lg,
-        backgroundColor: colors.surface,
     },
     passwordContainer: {
-        minHeight: 56,
-        flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: sereneColors.sheetSurface,
+        borderColor: sereneColors.sheetBorder,
+        borderRadius: radii.lg,
         borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: radii.md,
-        backgroundColor: colors.surface,
+        flexDirection: 'row',
+        minHeight: 56,
     },
     passwordInput: {
+        color: sereneColors.sheetText,
         flex: 1,
-        color: colors.text,
         fontSize: fontSizes.body,
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
     },
+
     passwordAction: {
         minHeight: 48,
         justifyContent: 'center',
         paddingHorizontal: spacing.lg,
     },
     passwordActionText: {
-        color: colors.primary,
+        color: sereneColors.primary,
         fontSize: fontSizes.bodySmall,
-        fontWeight: '700',
+        fontWeight: '600',
     },
+
     error: {
-        color: colors.danger,
+        color: '#C83E59',
         fontSize: fontSizes.bodySmall,
         lineHeight: 20,
         marginBottom: spacing.lg,
     },
     loginButton: {
-        minHeight: 56,
         alignItems: 'center',
+        backgroundColor: sereneColors.primary,
+        borderRadius: radii.lg,
         justifyContent: 'center',
-        backgroundColor: colors.primary,
-        borderRadius: radii.md,
         marginTop: spacing.sm,
+        minHeight: 56,
     },
     loginButtonPressed: {
-        backgroundColor: colors.primaryDark,
+        backgroundColor: sereneColors.primaryPressed,
         transform: [{ scale: 0.99 }],
     },
     loginButtonText: {
-        color: colors.textOnDark,
+        color: sereneColors.textOnPrimary,
         fontSize: fontSizes.body,
-        fontWeight: '700',
+        fontWeight: '600',
     },
     helpButton: {
         alignItems: 'center',
         padding: spacing.lg,
     },
     helpText: {
-        color: colors.primary,
+        color: sereneColors.primary,
         fontSize: fontSizes.bodySmall,
         fontWeight: '600',
     },
     footer: {
-        color: colors.textMuted,
+        color: sereneColors.sheetTextMuted,
         fontSize: fontSizes.caption,
-        textAlign: 'center',
         marginTop: 'auto',
         paddingTop: spacing.xl,
+        textAlign: 'center',
     },
     loginButtonDisabled: {
         opacity: 0.7,
@@ -401,8 +475,8 @@ const styles = StyleSheet.create({
     },
     rememberCheckbox: {
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderColor: '#AAB4C8',
+        backgroundColor: sereneColors.sheetSurface,
+        borderColor: sereneColors.sheetBorder,
         borderRadius: 6,
         borderWidth: 2,
         height: 22,
@@ -410,18 +484,18 @@ const styles = StyleSheet.create({
         width: 22,
     },
     rememberCheckboxActive: {
-        backgroundColor: '#4169F5',
-        borderColor: '#4169F5',
+        backgroundColor: sereneColors.primary,
+        borderColor: sereneColors.primary,
     },
     rememberCheck: {
-        color: '#FFFFFF',
+        color: sereneColors.textOnPrimary,
         fontSize: 15,
-        fontWeight: '800',
+        fontWeight: '600',
         lineHeight: 17,
     },
     rememberText: {
-        color: '#111A2E',
+        color: sereneColors.sheetText,
         fontSize: 15,
-        fontWeight: '700',
+        fontWeight: '600',
     },
 });
