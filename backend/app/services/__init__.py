@@ -5,6 +5,7 @@ from app.services.dashboard import build_dashboard_overview
 from app.services.finance import (
     DuplicateFinanceCategoryError,
     FinanceCategoryUnavailableError,
+    FinanceEntryConflictError,
     create_category,
     create_entry,
     update_category,
@@ -70,6 +71,7 @@ __all__ = [
     "EmployeeUserNotMemberError",
     "EmploymentCostCenterUnavailableError",
     "FinanceCategoryUnavailableError",
+    "FinanceEntryConflictError",
     "InactiveEmployeeError",
     "InsufficientStockError",
     "InvalidEmployeeRecordStateError",

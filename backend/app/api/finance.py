@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import select
 
 from app.api.dependencies import (
     CurrentUser,
@@ -16,12 +17,15 @@ from app.schemas import (
     FinanceCategoryUpdate,
     FinanceEntryCreate,
     FinanceEntryRead,
+    FinanceEntryHistoryRead,
     FinanceEntryUpdate,
     FinanceSummaryRead,
 )
+from app.models import FinanceAuditEvent, User
 from app.services import (
     DuplicateFinanceCategoryError,
     FinanceCategoryUnavailableError,
+    FinanceEntryConflictError,
     create_category,
     create_entry,
     update_category,
@@ -99,6 +103,53 @@ def create_entry_route(payload: FinanceEntryCreate, db: DatabaseSession, current
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+@router.get("/entries/{entry_id}/history", response_model=list[FinanceEntryHistoryRead])
+def get_entry_history(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
+    require_finance_read(current)
+    entry = FinanceEntryRepository.get_for_organization(db, entry_id, current.organization.id)
+    if entry is None:
+        raise not_found("Lançamento")
+    events = db.execute(
+        select(FinanceAuditEvent, User.full_name)
+        .join(User, User.id == FinanceAuditEvent.actor_id)
+        .where(
+            FinanceAuditEvent.organization_id == current.organization.id,
+            FinanceAuditEvent.entity_id == entry_id,
+            FinanceAuditEvent.event_type.in_(("entry_created", "entry_updated")),
+        )
+        .order_by(FinanceAuditEvent.created_at.desc(), FinanceAuditEvent.id.desc())
+    ).all()
+    result = []
+    for event, actor_name in events:
+        document = event.document
+        if event.event_type == "entry_created":
+            changes = {
+                field: {"before": None, "after": value}
+                for field, value in document.items()
+                if field != "version"
+            }
+            version = 1
+        else:
+            changes = document.get("after", {})
+            before = document.get("before", {})
+            changes = {
+                field: {"before": before.get(field), "after": value}
+                for field, value in changes.items()
+                if field != "version"
+            }
+            version = int(document.get("version", 1))
+        result.append({
+            "id": event.id,
+            "event_type": event.event_type,
+            "actor_name": actor_name,
+            "created_at": event.created_at,
+            "version": version,
+            "changes": changes,
+        })
+    result.sort(key=lambda event: event["version"], reverse=True)
+    return result
+
+
 @router.get("/entries/{entry_id}", response_model=FinanceEntryRead)
 def get_entry(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
     require_finance_read(current)
@@ -113,6 +164,11 @@ def get_entry(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
 @router.patch("/entries/{entry_id}", response_model=FinanceEntryRead)
 def update_entry_route(entry_id: uuid.UUID, payload: FinanceEntryUpdate, db: DatabaseSession, current: CurrentUser):
     require_finance_manage(current)
+    if payload.expected_version is None:
+        raise HTTPException(
+            status_code=422,
+            detail="expected_version é obrigatório para atualizar um lançamento.",
+        )
     entry = FinanceEntryRepository.get_for_organization(db, entry_id, current.organization.id, for_update=True)
     if entry is None:
         raise not_found("Lançamento")
@@ -120,6 +176,16 @@ def update_entry_route(entry_id: uuid.UUID, payload: FinanceEntryUpdate, db: Dat
         return update_entry(db, entry, current.user.id, payload.model_dump(exclude_unset=True))
     except FinanceCategoryUnavailableError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except FinanceEntryConflictError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "finance_entry_conflict",
+                "message": str(exc),
+                "expected_version": exc.expected_version,
+                "current": FinanceEntryRead.model_validate(exc.entry).model_dump(mode="json"),
+            },
+        ) from exc
 
 
 @router.get("/summary", response_model=FinanceSummaryRead)
