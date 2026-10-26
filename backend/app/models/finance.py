@@ -82,6 +82,7 @@ class FinanceEntry(Base, TimestampMixin):
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
 
 
 class FinanceAuditEvent(Base):
