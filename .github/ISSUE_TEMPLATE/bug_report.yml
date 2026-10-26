@@ -1,0 +1,88 @@
+name: Relatar um problema
+description: Informe um comportamento incorreto ou uma regressão no GestorIA.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por ajudar a melhorar o GestorIA. Descreva o problema sem incluir senhas, tokens ou dados reais de clientes.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afetada
+      options:
+        - Backend / API
+        - Web
+        - Mobile
+        - Banco de dados
+        - Infraestrutura
+        - Documentação
+        - Não tenho certeza
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: O que aconteceu?
+      description: Explique o comportamento observado de forma objetiva.
+      placeholder: Ao tentar..., o sistema...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Como reproduzir
+      description: Liste somente os passos necessários para visualizar o problema.
+      placeholder: |
+        1. Acesse...
+        2. Selecione...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado
+      placeholder: O sistema deveria...
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Adicione mensagens de erro, capturas ou logs sem informações sensíveis.
+
+  - type: input
+    id: version
+    attributes:
+      label: Branch ou versão
+      placeholder: main, nome da branch ou commit
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequência
+      options:
+        - Sempre
+        - Frequentemente
+        - Às vezes
+        - Aconteceu uma vez
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmações
+      options:
+        - label: Verifiquei se já existe uma issue semelhante.
+          required: true
+        - label: Removi credenciais e dados pessoais das evidências.
+          required: true

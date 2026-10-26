@@ -1,315 +1,291 @@
 <div align="center">
 
-<img src="docs/images/logo.png" alt="Logo GestorIA" width="220"/>
+<img src="docs/images/logo.png" alt="GestorIA" width="190" />
 
 # GestorIA
 
-### A inteligência que organiza.
+### Sua empresa, onde você estiver.
 
-Plataforma de gestão empresarial com experiência orientada por inteligência artificial, desenvolvida para centralizar operações, automatizar processos e oferecer mais controle para empresas em crescimento.
+Uma plataforma de gestão empresarial que conecta operação, indicadores e decisões em experiências web e mobile.
 
-<br>
+<br />
 
-<a href="Documento%20de%20Contexto.md">
-  <img src="https://img.shields.io/badge/PROJETO-ESPECIFICAÇÃO-2563eb?style=for-the-badge" />
-</a>
+<img alt="Status do projeto" src="https://img.shields.io/badge/status-em%20desenvolvimento-2867E8?style=flat-square" />
+<img alt="Aplicação web" src="https://img.shields.io/badge/web-React%2019-071225?style=flat-square&logo=react&logoColor=17AEE6" />
+<img alt="Aplicativo mobile" src="https://img.shields.io/badge/mobile-Expo-071225?style=flat-square&logo=expo&logoColor=FFFFFF" />
+<img alt="API" src="https://img.shields.io/badge/API-FastAPI-071225?style=flat-square&logo=fastapi&logoColor=38B980" />
+<img alt="Banco de dados" src="https://img.shields.io/badge/dados-PostgreSQL-071225?style=flat-square&logo=postgresql&logoColor=4D82F0" />
 
-<a href="Documentação%20de%20Contexto/Tributos%20e%20Precificacao%20GestorIA.md">
-  <img src="https://img.shields.io/badge/FISCAL-DOCUMENTAÇÕES-ea580c?style=for-the-badge" />
-</a>
+<br /><br />
 
-<a href="docs/pdf/lean-canvas.pdf">
-  <img src="https://img.shields.io/badge/DOC-LEAN%20CANVAS-7c3aed?style=for-the-badge" />
-</a>
-
-<a href="Documentação de Contexto/Plano de Negocios GestorIA.md">
-  <img src="https://img.shields.io/badge/DOC-PLANO DE NEGOCIOS-1c3fed?style=for-the-badge" />
-</a>
-
-<br><br>
-
-<img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=000000" />
-<img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=ffffff" />
-<img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=ffffff" />
-<img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=ffffff" />
-<img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=ffffff" />
+[Visão do produto](#visão-do-produto) ·
+[Módulos](#módulos) ·
+[Arquitetura](#arquitetura) ·
+[Executar](#executar-localmente) ·
+[Documentação](#documentação) ·
+[Equipe](#equipe)
 
 </div>
 
 ---
 
-## Sobre o GestorIA
-
-O **GestorIA** é uma plataforma de gestão empresarial com foco em organização, produtividade e adaptabilidade. O sistema foi idealizado para reunir em um único ambiente recursos como:
-
-- Gestão de clientes;
-- Gestão de produtos;
-- Controle de estoque;
-- Pedidos e orçamentos;
-- Operações fiscais;
-- Indicadores e dashboards;
-- Controle de usuários e permissões;
-- Recursos de inteligência artificial.
-
-O projeto está em desenvolvimento acadêmico com estrutura de aplicação real, backend em camadas, persistência em **PostgreSQL** e isolamento de dados por empresa com arquitetura **multi-tenant**.
-
-> **Mais do que um sistema isolado, o GestorIA foi pensado como um ERP completo.**
-
----
-
 ## Visão do produto
 
-O GestorIA está sendo desenvolvido com base em quatro pilares principais:
+O **GestorIA** reúne as áreas essenciais de uma empresa em uma única plataforma. A aplicação web oferece profundidade operacional; o aplicativo mobile entrega acompanhamento executivo, alertas e decisões rápidas.
 
-| Pilar | Objetivo |
-| --- | --- |
-| **Gestão centralizada** | Reunir as principais operações da empresa em uma única plataforma |
-| **Inteligência artificial** | Tornar a interação com o sistema mais natural e eficiente |
-| **Segurança** | Proteger dados, operações e o histórico das ações realizadas |
-| **Adaptabilidade** | Permitir que o sistema acompanhe diferentes modelos de negócio |
+> **A pergunta central do produto é simples:** “Minha empresa está bem e o que precisa da minha atenção agora?”
 
----
+| Experiência web | Experiência mobile |
+| :--- | :--- |
+| Cadastros, operação detalhada e administração | Indicadores, prioridades e gestão à distância |
+| Fluxos completos por módulo | Ações rápidas e navegação contextual |
+| Uso em equipes e rotinas administrativas | Uso executivo em qualquer lugar |
 
-## Estado atual do MVP
+### Princípios
 
-Atualmente, o MVP já conta com os seguintes recursos implementados:
-
-- Autenticação com senha protegida por **Argon2** e sessões revogáveis em cookies seguros;
-- Usuários vinculados a empresas por papéis (`owner`, `admin` e `member`);
-- CRUD manual de produtos com catálogo completo, custo, estoque, validade e dados fiscais;
-- CRUD manual de clientes com dados pessoais, contato, endereço, desconto e telefone normalizado;
-- Pedidos com múltiplos produtos, preço histórico, baixa transacional e recomposição de estoque em cancelamentos e exclusões;
-- Total gasto do cliente calculado a partir dos pedidos concluídos;
-- Isolamento **multi-tenant** em todas as consultas de negócio;
-- Migrations versionadas com **Alembic**;
-- Testes automatizados da API;
-- Radar operacional com prioridades e indicadores;
-- Página do Copiloto migrada para React.
-
-Orçamentos e dados cadastrais da empresa já utilizam a API. Relatórios e interpretação por IA ainda possuem partes simuladas.
+- **Clareza:** informação importante antes da complexidade.
+- **Controle:** ações sensíveis exigem permissão e confirmação.
+- **Continuidade:** web e mobile compartilham regras e dados.
+- **Rastreabilidade:** operações críticas deixam histórico.
+- **Serenidade:** uma interface profissional, direta e sem poluição visual.
 
 ---
 
-## Segurança das operações
+## Módulos
 
-A criação direta de pedidos exige proposta assinada e confirmação. O fluxo de segurança inclui:
+| Área | Capacidades | Estado |
+| :--- | :--- | :---: |
+| **Visão executiva** | indicadores, radar operacional e prioridades | `funcional` |
+| **Clientes** | cadastro, perfil, histórico e relacionamento | `funcional` |
+| **Produtos e estoque** | catálogo, custos, quantidades e dados fiscais | `funcional` |
+| **Pedidos** | criação segura, acompanhamento e auditoria | `funcional` |
+| **Orçamentos** | propostas, estados e conversão comercial | `funcional` |
+| **Produção** | receitas, disponibilidade, fila e consumo de insumos | `funcional` |
+| **Fiscal** | documentos, fornecedores, eventos e conciliação | `funcional` |
+| **Financeiro** | categorias, lançamentos, entradas, saídas e saldo | `funcional` |
+| **Gestão interna** | funcionários, vínculos, centros de custo e ocorrências | `funcional` |
+| **Copiloto** | consultas controladas, fontes e atalhos operacionais | `MVP controlado` |
 
-- **HMAC-SHA256** com chave exclusiva do servidor;
-- Proposta com validade;
-- Idempotência;
-- Confirmação transacional;
-- Persistência de comprovante;
-- Auditoria de eventos.
+### Aplicativo mobile
 
-Pedido, estoque, comprovante e auditoria são confirmados dentro da mesma transação.
+O aplicativo já possui:
 
-> Consulte [`docs/SEGURANCA_PEDIDOS.md`](docs/SEGURANCA_PEDIDOS.md) para detalhes técnicos, contrato, limites e resultados de validação.
+- autenticação integrada à API;
+- início executivo;
+- central de alertas;
+- Copiloto controlado;
+- acompanhamento de pedidos;
+- catálogo de módulos;
+- conta, sessão e contexto da empresa.
+
+Os demais módulos estão sendo integrados progressivamente ao mobile. A interface sinaliza funções indisponíveis sem simular que elas já estão prontas.
 
 ---
 
-## Atualização fiscal — setembro de 2026
+## Copiloto GestorIA
 
-Notas de saída agora exigem pedido da mesma empresa, com destinatário, itens e valores conferidos no servidor.
+O Copiloto funciona como uma forma alternativa de consultar e navegar pelo sistema.
 
-Principais pontos da atualização fiscal:
-
-- Notas de saída vinculadas ao pedido;
-- Apenas uma saída ativa por pedido;
-- Cancelamentos preservam o histórico;
-- Entradas com fornecedor e recebimento explícito de estoque;
-- Eventos fiscais persistidos e consultáveis pela API.
-
-> Leia [`docs/FISCAL_ATUALIZACOES_E_TESTES.md`](docs/FISCAL_ATUALIZACOES_E_TESTES.md) antes de atualizar um banco existente.
-
-Revisão atual do banco:
+Exemplos:
 
 ```text
-0006_fiscal_integrity
+O que precisa da minha atenção hoje?
+Quais pedidos estão em produção?
+Quais produtos estão com estoque crítico?
+O que posso produzir com o estoque atual?
+Quantos funcionários ativos temos?
 ```
 
-> O registro de eventos externos não constitui emissão ou autorização oficial pela SEFAZ.
+O fluxo atual utiliza intenções e ferramentas controladas no backend:
+
+```mermaid
+flowchart LR
+    U[Usuário] --> M[Mensagem]
+    M --> I[Intenção permitida]
+    I --> T[Ferramenta controlada]
+    T --> S[Serviço de domínio]
+    S --> D[(Dados da empresa)]
+    D --> R[Resposta com fonte e atalho]
+
+    classDef primary fill:#2867E8,stroke:#17AEE6,color:#ffffff;
+    classDef dark fill:#071225,stroke:#29405F,color:#F6F8FC;
+    classDef light fill:#F5F7FC,stroke:#DCE3EE,color:#111827;
+
+    class U,M primary;
+    class I,T,S dark;
+    class D,R light;
+```
+
+> O MVP não fornece acesso direto do modelo ao banco e ainda não utiliza um provedor externo de inteligência artificial. A evolução deverá manter segredo no backend, isolamento por empresa, limite de uso e auditoria.
 
 ---
 
-## Tecnologias
+## Arquitetura
+
+Web e mobile consomem a mesma API. Regras de negócio, autorização e persistência permanecem no backend.
+
+```mermaid
+flowchart TB
+    subgraph Clients[Experiências]
+        W[Web · React e Vite]
+        M[Mobile · Expo e React Native]
+    end
+
+    W --> API
+    M --> API
+
+    subgraph Backend[Backend]
+        API[API REST · FastAPI]
+        SEC[Autenticação e permissões]
+        SER[Serviços e transações]
+        REP[Repositórios · SQLAlchemy]
+        API --> SEC
+        SEC --> SER
+        SER --> REP
+    end
+
+    REP --> DB[(PostgreSQL 17)]
+
+    classDef client fill:#F5F7FC,stroke:#2867E8,color:#111827;
+    classDef backend fill:#071225,stroke:#17AEE6,color:#F6F8FC;
+    classDef database fill:#10213D,stroke:#38B980,color:#F6F8FC;
+
+    class W,M client;
+    class API,SEC,SER,REP backend;
+    class DB database;
+```
+
+### Organização técnica
+
+```text
+gestoria/
+├── backend/       FastAPI, serviços, repositórios, modelos e testes
+├── frontend/      React, páginas web, serviços e componentes
+├── mobile/        Expo, rotas, funcionalidades e tema Sereno
+├── deploy/        proxy e configuração de produção
+├── docs/          decisões, validações e entregas acadêmicas
+└── docker-compose*.yml
+```
 
 | Camada | Tecnologias |
-| --- | --- |
-| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4 e Lucide React |
-| **API** | Python 3.12 e FastAPI |
-| **Persistência** | PostgreSQL 17 e SQLAlchemy 2 |
-| **Migrations** | Alembic |
-| **Autenticação** | Sessões persistidas, cookies HttpOnly e Argon2 |
-| **Ambiente** | Docker Compose |
-| **Qualidade** | Pytest, Ruff, Oxlint e Prettier |
+| :--- | :--- |
+| **Web** | React 19, TypeScript, Vite, Tailwind CSS 4 e React Router |
+| **Mobile** | React Native, Expo, Expo Router e TypeScript |
+| **API** | Python 3.12, FastAPI e Pydantic |
+| **Persistência** | PostgreSQL 17, SQLAlchemy 2 e Alembic |
+| **Infraestrutura** | Docker, Docker Compose e Caddy |
+| **Qualidade** | Pytest, Ruff, Node Test Runner, ESLint/Oxlint e Prettier |
+
+Para detalhes, consulte a [Arquitetura do Sistema](<docs/entregaEtapa3/Arquitetura do Sistema.md>).
 
 ---
 
-## Como executar o projeto
+## Segurança por padrão
+
+O GestorIA trata segurança como parte da arquitetura, não como uma etapa posterior.
+
+| Controle | Aplicação |
+| :--- | :--- |
+| **Sessões persistidas** | cookies `HttpOnly`, renovação com rotação e revogação |
+| **Senhas** | hash com Argon2 |
+| **Multiempresa** | dados filtrados pela organização da sessão |
+| **Permissões** | papéis e verificações no backend |
+| **Operações críticas** | confirmação, idempotência e transações |
+| **Auditoria** | registro de usuário, entidade, momento e resultado |
+| **Concorrência** | proteção contra duplicidade e consumo incorreto de estoque |
+| **Produção** | HTTPS, hosts/origens permitidos e documentação da API restrita |
+
+Documentos relacionados:
+
+- [Sessões seguras](docs/SEGURANCA-SESSOES.md)
+- [Segurança de pedidos](docs/SEGURANCA_PEDIDOS.md)
+- [Validação de segurança](docs/VALIDACAO-SEGURANCA.md)
+
+---
+
+## Executar localmente
 
 ### Requisitos
 
-Antes de iniciar, tenha instalado em sua máquina:
+- Docker Desktop;
+- Git;
+- Node.js para executar web ou mobile fora dos contêineres.
 
-- **Docker Desktop** aberto e em execução;
-- **Git**;
-- Opcionalmente, **Node.js** e **Python**, caso queira executar partes do projeto fora do Docker.
-
----
-
-### 1. Clonar o repositório
-
-```bash
-git clone <URL_DO_REPOSITORIO>
-cd <NOME_DO_REPOSITORIO>
-```
-
----
-
-### 2. Criar o arquivo de ambiente
-
-#### No PowerShell
+### Aplicação completa com Docker
 
 ```powershell
+git clone https://github.com/LauraEliza19/gestoria.git
+cd gestoria
+
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
-```
 
-#### No Linux ou macOS
-
-```bash
-test -f .env || cp .env.example .env
-```
-
----
-
-### 3. Inicializar a camada de segurança
-
-```bash
 docker compose run --rm security-init
-```
-
----
-
-### 4. Subir o projeto
-
-```bash
 docker compose up -d --build
 ```
 
-Esse comando irá:
+Depois da inicialização:
 
-- Construir os containers;
-- Iniciar a aplicação;
-- Iniciar o banco PostgreSQL;
-- Aplicar as migrations automaticamente;
-- Preparar as tabelas e configurações necessárias para as sessões.
+- aplicação web: `http://localhost:8000`;
+- documentação da API em desenvolvimento: `http://localhost:8000/docs`.
 
----
+Crie o primeiro administrador:
 
-### 5. Abrir o projeto
-
-Após a inicialização, acesse:
-
-- **Aplicação:** `http://localhost:8000`
-- **Documentação da API:** `http://localhost:8000/docs`
-
-Na primeira execução, crie um administrador real:
-
-```bash
+```powershell
 docker compose exec api python -m app.create_admin
 ```
 
-O comando solicitará nome, e-mail, empresa e uma senha com pelo menos 12 caracteres. A senha não é exibida no terminal.
+<details>
+<summary><strong>Executar o frontend web durante o desenvolvimento</strong></summary>
 
-Contas de demonstração ficam desabilitadas por padrão. Para habilitar dados fictícios exclusivamente no ambiente local, consulte [`docs/SEGURANCA-SESSOES.md`](docs/SEGURANCA-SESSOES.md).
-
----
-
-### 6. Como parar o projeto
-
-Para parar os containers:
-
-```bash
-docker compose down
+```powershell
+cd frontend
+npm ci
+npm run dev
 ```
 
-> **Atenção:** não utilize `docker compose down -v` se quiser preservar os dados locais do PostgreSQL, pois a opção `-v` remove o volume do banco.
+</details>
 
----
+<details>
+<summary><strong>Executar o aplicativo mobile</strong></summary>
 
-## Estrutura do banco
+Configure `mobile/.env.local` com a URL acessível da API:
 
-| Tabela | Responsabilidade |
-| --- | --- |
-| `organizations` | Empresas atendidas pela plataforma |
-| `users` | Identidade e credenciais dos usuários |
-| `organization_members` | Papel do usuário em cada empresa |
-| `products` | Catálogo e estoque isolados por empresa |
-| `customers` | Clientes isolados por empresa |
-| `orders` | Cabeçalho, cliente, status e total do pedido |
-| `order_items` | Produtos, quantidades e preços históricos do pedido |
-| `order_operations` | Propostas assinadas, idempotência e comprovantes históricos |
-| `order_audit_events` | Eventos autenticados de preparação, execução, rejeição e cancelamento |
-| `fiscal_documents` | Notas vinculadas, evidências e datas fiscais |
-| `fiscal_document_items` | Itens e valores capturados para o histórico |
-| `fiscal_events` | Ações fiscais com usuário responsável |
-| `suppliers` | Fornecedores de notas de entrada |
-| `fiscal_stock_movements` | Recebimentos e estornos de entrada |
-
-O `organization_id` delimita os dados de cada empresa. Pedidos são gravados em uma única transação: se qualquer produto não existir ou não tiver estoque suficiente, nenhuma alteração é persistida.
-
----
-
-## Organização
-
-O backend segue uma arquitetura em camadas. O frontend utiliza React com TypeScript, React Router e Tailwind CSS.
-
-```text
-frontend/
-  src/
-    app/                  roteamento e composição da aplicação
-    layouts/              layouts autenticados e de navegação
-    pages/                telas React organizadas por domínio
-    services/             cliente HTTP e autenticação
-    styles/               entrada Tailwind e tokens visuais
-    utils/                utilitários compartilhados
-  dist/                   build de produção gerado pelo Vite
-
-backend/
-  alembic/                migrations versionadas do banco
-  app/
-    api/                  controllers HTTP e rotas
-    models/               tabelas e relacionamentos SQLAlchemy
-    schemas/              validação de entrada e saída
-    repositories/         consultas e persistência
-    services/             autenticação e regras transacionais
-    security.py           senha e token
-    seed.py               dados iniciais de desenvolvimento
-  tests/                  testes de API, transações e isolamento
+```dotenv
+EXPO_PUBLIC_API_URL=http://SEU_IP_LOCAL:8000
 ```
 
-As regras transacionais permanecem nos serviços, enquanto consultas e operações de persistência ficam nos repositórios. O frontend não recebe credenciais do banco de dados.
+Em seguida:
+
+```powershell
+cd mobile
+npm ci
+npx expo start
+```
+
+Para validar no navegador:
+
+```powershell
+npx expo start --web --clear
+```
+
+</details>
+
+> Não utilize `docker compose down -v` se quiser preservar os dados locais do PostgreSQL.
 
 ---
 
-## Testes e qualidade
+## Qualidade
 
 ### Backend
 
-No PowerShell:
-
 ```powershell
 cd backend
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m ruff check --no-cache app tests alembic\versions
 .\.venv\Scripts\python.exe -m ruff format --check --no-cache app tests alembic\versions
 ```
 
-### Frontend
-
-No PowerShell:
+### Web
 
 ```powershell
 cd frontend
@@ -317,99 +293,75 @@ npm ci
 npm run check
 ```
 
-O comando `npm run check` executa as verificações de lint, tipos, testes, formatação e build de produção.
-
-Os testes locais do backend utilizam SQLite temporário com chaves estrangeiras ativadas.
-
-Para validar também migrations e concorrência no PostgreSQL 17:
-
-```bash
-docker compose -p gestoria-fiscal-tests -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
-```
-
----
-
-## Evoluir o schema
-
-Depois de alterar os modelos, gere uma nova migration em vez de editar uma migration já aplicada:
+### Mobile
 
 ```powershell
-docker compose exec api alembic revision --autogenerate -m "descricao da alteracao"
-docker compose exec api alembic upgrade head
+cd mobile
+npm ci
+npm run check
 ```
+
+Os testes cobrem APIs, autorização, isolamento entre empresas, sessões, operações transacionais, concorrência e contratos das interfaces.
 
 ---
 
-## Rotas implementadas
+## Documentação
 
-| Método | Rota | Uso |
-| --- | --- | --- |
-| `POST` | `/api/auth/login` | Autenticar usuário |
-| `GET` | `/api/auth/me` | Consultar a sessão atual |
-| `GET` | `/api/products` | Listar produtos da empresa |
-| `POST` | `/api/products` | Cadastrar produto |
-| `PATCH` | `/api/products/{id}` | Editar produto |
-| `DELETE` | `/api/products/{id}` | Excluir produto sem vínculos |
-| `GET` | `/api/customers` | Listar clientes com total gasto |
-| `POST` | `/api/customers` | Cadastrar cliente |
-| `PATCH` | `/api/customers/{id}` | Editar cliente |
-| `DELETE` | `/api/customers/{id}` | Excluir cliente sem pedidos |
-| `GET` | `/api/orders` | Listar pedidos com seus itens |
-| `POST` | `/api/orders` | Criação antiga bloqueada com HTTP 428 |
-| `POST` | `/api/orders/proposals` | Preparar proposta assinada sem alterar o estoque |
-| `POST` | `/api/orders/proposals/{id}/confirm` | Confirmar proposta e registrar o pedido uma única vez |
-| `POST` | `/api/orders/proposals/{id}/cancel` | Descartar proposta pendente |
-| `GET` | `/api/orders/proposals/{id}/receipt` | Consultar comprovante verificado |
-| `GET` | `/api/orders/security/events` | Consultar eventos autorizados e sua integridade |
-| `PATCH` | `/api/orders/{id}` | Atualizar o status do pedido |
-| `DELETE` | `/api/orders/{id}` | Excluir pedido sem histórico fiscal e recompor estoque como owner/admin |
-| `GET` | `/api/fiscal-documents` | Listar e filtrar documentos fiscais |
-| `POST` | `/api/fiscal-documents` | Registrar saída por pedido ou entrada por fornecedor e itens |
-| `PATCH` | `/api/fiscal-documents/{id}` | Registrar transição permitida com evidência externa |
-| `DELETE` | `/api/fiscal-documents/{id}` | Exclusão bloqueada com HTTP 409 e histórico preservado |
-| `GET` | `/api/fiscal-documents/{id}` | Consultar detalhes e eventos |
-| `POST` | `/api/fiscal-documents/{id}/link-order` | Conciliar saída histórica |
-| `POST` | `/api/fiscal-documents/{id}/receive` | Confirmar o recebimento de entrada uma única vez |
-| `GET/POST` | `/api/fiscal-suppliers` | Listar ou cadastrar fornecedores |
-| `PATCH` | `/api/fiscal-suppliers/{id}` | Ativar ou desativar fornecedor |
-| `GET` | `/api/health` | Verificar a disponibilidade da API |
+### Visão consolidada
+
+- [Projeto de Interface](<docs/entregaEtapa3/Projeto de Interface.md>)
+- [Arquitetura do Sistema](<docs/entregaEtapa3/Arquitetura do Sistema.md>)
+- [Análise de Ambientes — SWOT](<docs/entregaEtapa3/Análise de Ambientes (SWOT).md>)
+- [Contribuições individuais](<docs/entregaEtapa3/Contribuições individuais na implementação do projeto.md>)
+
+### Módulos e decisões
+
+- [Copiloto MVP](docs/COPILOTO-MVP.md)
+- [Gestão Interna](docs/GESTAO-INTERNA.md)
+- [Ocorrências de funcionários](docs/ADVERTENCIAS-OCORRENCIAS.md)
+- [Produção e cozinha](docs/PRODUCAO_COZINHA.md)
+- [Fiscal — atualizações e testes](docs/FISCAL_ATUALIZACOES_E_TESTES.md)
 
 ---
 
-## Conferir os clientes no PostgreSQL
+## Estado do projeto
 
-```powershell
-docker compose exec db psql -U gestoria -d gestoria
-```
+O GestorIA está em desenvolvimento acadêmico com estrutura de aplicação real.
 
-No `psql`:
+### Próximos passos
 
-```sql
-SELECT c.id, c.name, c.phone, c.created_at, o.name AS organization
-FROM customers AS c
-JOIN organizations AS o ON o.id = c.organization_id
-ORDER BY c.created_at DESC;
-```
-
-Os registros exibidos na tela de Clientes vêm de `GET /api/customers`; não existe uma lista fixa no frontend.
-
-Para sair do terminal do PostgreSQL, utilize:
-
-```text
-\q
-```
+- ampliar as jornadas operacionais do aplicativo mobile;
+- validar o financeiro integrado e adaptar sua experiência móvel;
+- conectar provedores externos sem expor segredos ao cliente;
+- realizar testes de uso com empresas-piloto;
+- formalizar observabilidade, backup e entrega contínua.
 
 ---
 
-## Observações finais
+## Equipe
 
-Antes de qualquer implantação pública:
+| Frente | Responsáveis |
+| :--- | :--- |
+| Gestão Interna, Copiloto e mobile | Lucas |
+| Experiência, documentação e fundação visual | Laura e Adryan |
+| Backend e segurança | Danilo e Lucas |
+| Evolução fiscal | Gabriel |
+| Interface fiscal | Otávio |
+| Produção e estoque | Leonardo e Kaio |
+| Interface do modo produção | Leonardo e Kaio |
+| Financeiro | Adryan |
 
-- Utilize apenas o Compose específico de produção;
-- Configure domínio e HTTPS;
-- Gere uma senha exclusiva para o PostgreSQL;
-- Gere e proteja as chaves de assinatura das operações;
-- Mantenha contas e dados de demonstração desabilitados;
-- Valide sessões, renovação, logout e restauração de backup em homologação.
+As contribuições detalhadas e suas evidências estão em [Contribuições individuais](<docs/entregaEtapa3/Contribuições individuais na implementação do projeto.md>).
 
-Consulte [`docs/SEGURANCA-SESSOES.md`](docs/SEGURANCA-SESSOES.md) para configuração e validação do ambiente produtivo.
+---
+
+<div align="center">
+
+<strong>GestorIA</strong><br />
+Gestão inteligente, segura e próxima de quem decide.
+
+<br />
+
+<sub>Web · Mobile · API · Dados por organização</sub>
+
+</div>
