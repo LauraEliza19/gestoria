@@ -86,6 +86,7 @@ def test_copilot_lists_only_current_organization_orders(
 
     customer = Customer(
         organization_id=organization.id,
+        code="CLI-TEST-002",
         name="Cliente do Copiloto",
         phone="35988887777",
     )

@@ -1147,3 +1147,72 @@ def test_order_api_rejects_invalid_status_transitions(
 
     products = client.get("/api/products", headers=headers).json()
     assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
+
+
+def test_customer_codes_are_sequential_and_listed(client: TestClient) -> None:
+    headers = login(client)
+
+    first_response = client.post(
+        "/api/customers",
+        headers=headers,
+        json={"name": "Cliente Primeiro", "phone": "35988880001"},
+    )
+    second_response = client.post(
+        "/api/customers",
+        headers=headers,
+        json={"name": "Cliente Segundo", "phone": "35988880002"},
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    first = first_response.json()
+    second = second_response.json()
+
+    assert first["code"] == "CLI-000001"
+    assert second["code"] == "CLI-000002"
+
+    updated = client.patch(
+        f"/api/customers/{first['id']}",
+        headers=headers,
+        json={"name": "Cliente Primeiro Atualizado"},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["code"] == first["code"]
+
+    listed = client.get("/api/customers", headers=headers)
+
+    assert listed.status_code == 200
+    codes_by_id = {customer["id"]: customer["code"] for customer in listed.json()}
+    assert codes_by_id[first["id"]] == "CLI-000001"
+    assert codes_by_id[second["id"]] == "CLI-000002"
+
+
+def test_customer_codes_are_independent_per_organization(
+    client: TestClient,
+) -> None:
+    company_a_headers = login(client)
+    company_b_headers = login(client, "empresa-b@gestoria.dev")
+
+    company_a_response = client.post(
+        "/api/customers",
+        headers=company_a_headers,
+        json={"name": "Novo Cliente A", "phone": "35988880003"},
+    )
+    company_b_response = client.post(
+        "/api/customers",
+        headers=company_b_headers,
+        json={"name": "Novo Cliente B", "phone": "35988880003"},
+    )
+
+    assert company_a_response.status_code == 201
+    assert company_b_response.status_code == 201
+
+    customer_a = company_a_response.json()
+    customer_b = company_b_response.json()
+
+    assert customer_a["code"] == "CLI-000001"
+    assert customer_b["code"] == "CLI-000001"
+    assert customer_a["organization_id"] != customer_b["organization_id"]
+    assert customer_a["id"] != customer_b["id"]

@@ -67,6 +67,7 @@ def test_dashboard_returns_real_company_indicators(
 
     customer = Customer(
         organization_id=organization.id,
+        code="CLI-TEST-003",
         name="Cliente do painel",
         phone="35988887777",
     )
