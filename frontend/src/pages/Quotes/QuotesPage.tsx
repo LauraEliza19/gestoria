@@ -12,6 +12,7 @@ type Customer = {
   name: string
   document: string | null
   trade_name: string | null
+  person_type: 'individual' | 'company'
 }
 
 type Product = {
@@ -58,6 +59,43 @@ const quoteStatusLabels: Record<string, string> = {
   converted: 'Convertido',
 }
 
+type CustomerSearchField = 'name' | 'code' | 'cpf' | 'cnpj'
+
+const customerSearchConfig: Record<
+  CustomerSearchField,
+  {
+    label: string
+    placeholder: string
+    hint: string
+    inputMode: 'search' | 'numeric'
+  }
+> = {
+  name: {
+    label: 'Nome',
+    placeholder: 'Digite o nome ou nome fantasia',
+    hint: 'Pesquise pelo nome ou nome fantasia do cliente.',
+    inputMode: 'search',
+  },
+  code: {
+    label: 'Código',
+    placeholder: 'Ex.: CLI-000001',
+    hint: 'Pesquise pelo código automático do cliente.',
+    inputMode: 'search',
+  },
+  cpf: {
+    label: 'CPF',
+    placeholder: 'Digite o CPF com ou sem pontuação',
+    hint: 'A pesquisa mostrará somente clientes pessoa física.',
+    inputMode: 'numeric',
+  },
+  cnpj: {
+    label: 'CNPJ',
+    placeholder: 'Digite o CNPJ com ou sem pontuação',
+    hint: 'A pesquisa mostrará somente clientes pessoa jurídica.',
+    inputMode: 'numeric',
+  },
+}
+
 async function fetchQuotes() {
   return Promise.all([
     apiFetch<Quote[]>('/api/quotes'),
@@ -100,22 +138,42 @@ export function QuotesPage() {
 
   const [customerId, setCustomerId] = useState(selectedCustomerId)
   const [customerSearch, setCustomerSearch] = useState('')
+  const [customerSearchField, setCustomerSearchField] = useState<CustomerSearchField>('name')
   const [items, setItems] = useState<DraftItem[]>([newItem()])
   const [submitting, setSubmitting] = useState(false)
+
+  const activeCustomerSearch = customerSearchConfig[customerSearchField]
+  const selectedCustomer = customers.find((customer) => customer.id === customerId) ?? null
 
   const filteredCustomers = useMemo(() => {
     const search = normalizeCustomerSearch(customerSearch)
 
-    if (!search) {
-      return customers
-    }
+    return customers.filter((customer) => {
+      if (customerSearchField === 'cpf' && customer.person_type !== 'individual') {
+        return false
+      }
 
-    return customers.filter((customer) =>
-      [customer.name, customer.trade_name ?? '', customer.document ?? '', customer.code].some(
-        (value) => normalizeCustomerSearch(value).includes(search),
-      ),
-    )
-  }, [customers, customerSearch])
+      if (customerSearchField === 'cnpj' && customer.person_type !== 'company') {
+        return false
+      }
+
+      if (!search) {
+        return true
+      }
+
+      if (customerSearchField === 'name') {
+        return [customer.name, customer.trade_name ?? ''].some((value) =>
+          normalizeCustomerSearch(value).includes(search),
+        )
+      }
+
+      if (customerSearchField === 'code') {
+        return normalizeCustomerSearch(customer.code).includes(search)
+      }
+
+      return normalizeCustomerSearch(customer.document ?? '').includes(search)
+    })
+  }, [customers, customerSearch, customerSearchField])
 
   const selectedProductIds = useMemo(
     () => new Set(items.map((item) => item.productId).filter(Boolean)),
@@ -170,7 +228,7 @@ export function QuotesPage() {
     if (submitting) return
 
     if (!customerId || !validUntil) {
-      setStatus('Selecione o cliente e a validade do orçamento.')
+      setStatus('Selecione um cliente nos resultados e informe a validade do orçamento.')
       return
     }
 
@@ -288,52 +346,115 @@ export function QuotesPage() {
 
         <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
           <div className="grid gap-3">
-            <label>
-              Buscar cliente
-              <input
-                type="search"
-                placeholder="Nome, CPF/CNPJ ou código do cliente"
-                value={customerSearch}
-                disabled={submitting}
-                autoComplete="off"
-                aria-describedby="customer-search-feedback"
-                onChange={(event) => {
-                  setCustomerSearch(event.target.value)
-                  setCustomerId('')
-                }}
-              />
-            </label>
+            <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+              <label>
+                Pesquisar por
+                <select
+                  value={customerSearchField}
+                  disabled={submitting}
+                  onChange={(event) => {
+                    setCustomerSearchField(event.target.value as CustomerSearchField)
+                    setCustomerSearch('')
+                    setCustomerId('')
+                  }}
+                >
+                  <option value="name">Nome</option>
+                  <option value="code">Código</option>
+                  <option value="cpf">CPF</option>
+                  <option value="cnpj">CNPJ</option>
+                </select>
+              </label>
 
-            <label>
-              Cliente do orçamento
-              <select
-                required
-                value={customerId}
-                disabled={submitting}
-                onChange={(event) => setCustomerId(event.target.value)}
+              <label>
+                {activeCustomerSearch.label}
+                <input
+                  type="search"
+                  inputMode={activeCustomerSearch.inputMode}
+                  placeholder={activeCustomerSearch.placeholder}
+                  value={customerSearch}
+                  disabled={submitting}
+                  autoComplete="off"
+                  aria-describedby="customer-search-feedback"
+                  onChange={(event) => {
+                    setCustomerSearch(event.target.value)
+                    setCustomerId('')
+                  }}
+                />
+              </label>
+            </div>
+
+            {customerSearch.trim() && !selectedCustomer && filteredCustomers.length > 0 && (
+              <div
+                className="max-h-64 overflow-y-auto rounded-lg border border-line bg-white p-1 shadow-sm"
+                aria-label="Resultados da pesquisa de clientes"
               >
-                <option value="">
-                  {filteredCustomers.length === 0
-                    ? 'Nenhum cliente encontrado'
-                    : 'Selecione um cliente'}
-                </option>
+                {filteredCustomers.slice(0, 8).map((customer) => (
+                  <button
+                    className="flex w-full items-start justify-between gap-4 rounded-md px-3 py-3 text-left transition hover:bg-[#f4f7ff]"
+                    key={customer.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomerId(customer.id)
 
-                {filteredCustomers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.code} — {customer.name}
-                    {customer.document ? ` — ${customer.document}` : ''}
-                  </option>
+                      if (customerSearchField === 'name') {
+                        setCustomerSearch(customer.name)
+                      } else if (customerSearchField === 'code') {
+                        setCustomerSearch(customer.code)
+                      } else {
+                        setCustomerSearch(customer.document ?? '')
+                      }
+                    }}
+                  >
+                    <span>
+                      <strong className="block text-sm">{customer.name}</strong>
+                      {customer.trade_name && (
+                        <small className="mt-1 block text-muted">{customer.trade_name}</small>
+                      )}
+                    </span>
+
+                    <span className="text-right text-xs text-muted">
+                      <strong className="block text-signal">{customer.code}</strong>
+                      {customer.document && <span>{customer.document}</span>}
+                    </span>
+                  </button>
                 ))}
-              </select>
-            </label>
+              </div>
+            )}
 
-            <p id="customer-search-feedback" className="text-sm text-muted" role="status">
-              {customerSearch.trim()
-                ? filteredCustomers.length === 0
-                  ? 'Nenhum resultado. Confira o nome, documento ou código informado.'
-                  : `${filteredCustomers.length} cliente(s) encontrado(s). Selecione o cliente desejado.`
-                : 'Pesquise pelo nome, nome fantasia, CPF/CNPJ ou código e selecione um cliente.'}
-            </p>
+            {selectedCustomer ? (
+              <div
+                id="customer-search-feedback"
+                className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                role="status"
+              >
+                <span>
+                  Cliente selecionado:{' '}
+                  <strong>
+                    {selectedCustomer.code} — {selectedCustomer.name}
+                  </strong>
+                </span>
+
+                <button
+                  className="font-semibold text-signal"
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => {
+                    setCustomerId('')
+                    setCustomerSearch('')
+                  }}
+                >
+                  Alterar
+                </button>
+              </div>
+            ) : (
+              <p id="customer-search-feedback" className="text-sm text-muted" role="status">
+                {customerSearch.trim()
+                  ? filteredCustomers.length === 0
+                    ? `Nenhum cliente encontrado por ${activeCustomerSearch.label.toLowerCase()}.`
+                    : `${filteredCustomers.length} cliente(s) encontrado(s). Clique no cliente desejado.`
+                  : activeCustomerSearch.hint}
+              </p>
+            )}
           </div>
 
           <label>
