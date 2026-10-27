@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Customer, Order, Organization
+from app.models import CopilotToolAuditLog, Customer, Order, Organization
 from app.services.copilot import recognize_intent
 
 
@@ -175,6 +175,7 @@ def test_copilot_guides_mapped_intent_without_inventing_data(
 
 def test_copilot_hides_restricted_management_actions_from_member(
     client: TestClient,
+    db: Session,
 ) -> None:
     headers = login(client, "membro@gestoria.dev")
 
@@ -184,13 +185,14 @@ def test_copilot_hides_restricted_management_actions_from_member(
         json={"message": "Quantos funcionários ativos temos?"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 403
     body = response.json()
 
-    assert body["intent"] == "active_employees"
-    assert body["status"] == "guided"
-    assert "exige permissão" in body["message"]
-    assert body["actions"] == []
+    assert "exige permissão" in body["detail"]
+    assert "actions" not in body
+    audit = db.scalar(select(CopilotToolAuditLog))
+    assert audit.status == "denied"
+    assert audit.tool_name == "active_employees"
 
 
 def test_copilot_handles_unknown_question(client: TestClient) -> None:

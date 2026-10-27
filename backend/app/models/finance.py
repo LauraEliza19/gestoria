@@ -32,7 +32,12 @@ class FinanceCategory(Base, TimestampMixin):
         UniqueConstraint(
             "organization_id", "name", name="uq_finance_category_org_name"
         ),
-        Index("ix_finance_categories_org_active_name", "organization_id", "is_active", "name"),
+        Index(
+            "ix_finance_categories_org_active_name",
+            "organization_id",
+            "is_active",
+            "name",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)

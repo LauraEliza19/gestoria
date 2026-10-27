@@ -23,21 +23,24 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.auth_session import AuthSession, LoginRateLimit  # noqa: F401
+from app.models.copilot import CopilotRateLimit, CopilotToolAuditLog
 from app.models.order_operation import OrderAuditEvent, OrderOperation
 
 __all__ = [
+    "CopilotRateLimit",
+    "CopilotToolAuditLog",
     "CostCenter",
     "Customer",
     "Employee",
     "EmployeeRecord",
     "Employment",
+    "FinanceAuditEvent",
+    "FinanceCategory",
+    "FinanceEntry",
     "FiscalDocument",
     "FiscalDocumentItem",
     "FiscalEvent",
     "FiscalStockMovement",
-    "FinanceAuditEvent",
-    "FinanceCategory",
-    "FinanceEntry",
     "Order",
     "OrderAuditEvent",
     "OrderItem",
@@ -449,6 +452,7 @@ class QuoteItem(Base, TimestampMixin):
     product: Mapped[Product] = relationship(back_populates="quote_items")
 
 
+from app.models.finance import FinanceAuditEvent, FinanceCategory, FinanceEntry
 from app.models.fiscal import (
     FiscalDocument,
     FiscalDocumentItem,
@@ -467,4 +471,3 @@ from app.models.production import (  # noqa: F401
     Recipe,
     RecipeIngredient,
 )
-from app.models.finance import FinanceAuditEvent, FinanceCategory, FinanceEntry
