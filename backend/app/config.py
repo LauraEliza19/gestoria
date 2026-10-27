@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     login_window_seconds: int = Field(default=900, ge=60, le=3600)
     login_ip_limit: int = Field(default=30, ge=1, le=1000)
     login_account_limit: int = Field(default=10, ge=1, le=100)
+    copilot_provider: Literal["local"] = "local"
+    copilot_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    copilot_rate_limit_max_requests: int = Field(default=30, ge=1, le=1000)
+    copilot_rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
     operation_signing_keys: str = Field(default="", repr=False)
     operation_active_key_id: str = "v1"
     operation_ttl_seconds: int = Field(default=300, ge=30, le=3600)
@@ -41,7 +45,9 @@ class Settings(BaseSettings):
     demo_email: str = "admin@gestoria.dev"
     demo_password: str = Field(default="", repr=False)
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", hide_input_in_errors=True
+    )
 
     @property
     def session_cookie_name(self) -> str:

@@ -1,9 +1,11 @@
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from test_api import login
 
-from app.models import OrganizationMember, User
+from app.models import CopilotToolAuditLog, OrganizationMember, User
+from app.repositories import EmployeeRecordRepository, EmployeeRepository
 
 EMPLOYEES_URL = "/api/management/employees"
 RECORDS_URL = "/api/management/employee-records"
@@ -374,3 +376,106 @@ def test_employee_record_api_validates_payload_and_filters(
         headers=owner_headers,
     )
     assert invalid_filter.status_code == 422
+
+
+def record_request(operation, employee, record):
+    records_url = f"{EMPLOYEES_URL}/{employee['id']}/records"
+    record_url = f"{RECORDS_URL}/{record['id']}"
+    return {
+        "list": ("GET", records_url, None),
+        "create": (
+            "POST",
+            records_url,
+            {
+                "record_type": "note",
+                "severity": "informational",
+                "title": "Observação",
+                "description": "Descrição do registro.",
+                "occurred_at": "2026-10-01T10:30:00-03:00",
+            },
+        ),
+        "read": ("GET", record_url, None),
+        "update": ("PATCH", record_url, {"title": "Registro revisado"}),
+        "resolve": (
+            "POST",
+            record_url + "/resolve",
+            {"resolution_notes": "Situação resolvida."},
+        ),
+        "cancel": (
+            "POST",
+            record_url + "/cancel",
+            {"cancellation_reason": "Registro incorreto."},
+        ),
+    }[operation]
+
+
+@pytest.mark.parametrize("record_type", ["warning", "incident", "commendation", "note"])
+@pytest.mark.parametrize(
+    "operation", ["list", "create", "read", "update", "resolve", "cancel"]
+)
+def test_member_cannot_access_any_employee_record_operation(
+    client, db, monkeypatch, record_type, operation
+):
+    owner_headers = login(client)
+    employee = create_employee(client, owner_headers)
+    record = create_record(
+        client, owner_headers, employee["id"], record_type=record_type
+    )
+    member_headers = login(client, "membro@gestoria.dev")
+
+    def forbidden_query(*args, **kwargs):
+        pytest.fail("A autorização deve anteceder o acesso aos registros.")
+
+    monkeypatch.setattr(EmployeeRepository, "get_for_organization", forbidden_query)
+    monkeypatch.setattr(
+        EmployeeRecordRepository, "get_for_organization", forbidden_query
+    )
+    monkeypatch.setattr(EmployeeRecordRepository, "list_for_employee", forbidden_query)
+    method, url, payload = record_request(operation, employee, record)
+    response = client.request(method, url, headers=member_headers, json=payload)
+    assert response.status_code == 403
+    assert record["description"] not in response.text
+    audit = db.scalar(select(CopilotToolAuditLog))
+    member = db.scalar(select(User).where(User.email == "membro@gestoria.dev"))
+    assert audit.status == "denied"
+    assert audit.user_id == member.id
+    assert audit.tool_name == f"employee_records.{operation}"
+    assert audit.question_id is None and audit.input_payload == {}
+
+
+@pytest.mark.parametrize(
+    "operation", ["list", "create", "read", "update", "resolve", "cancel"]
+)
+def test_administrator_can_access_every_employee_record_operation(
+    client, db, operation
+):
+    owner_headers = login(client)
+    employee = create_employee(client, owner_headers)
+    record = create_record(client, owner_headers, employee["id"])
+    user = db.scalar(select(User).where(User.email == "membro@gestoria.dev"))
+    membership = db.scalar(
+        select(OrganizationMember).where(OrganizationMember.user_id == user.id)
+    )
+    membership.role = "admin"
+    db.commit()
+    headers = login(client, user.email)
+    method, url, payload = record_request(operation, employee, record)
+    response = client.request(method, url, headers=headers, json=payload)
+    assert response.status_code == (201 if operation == "create" else 200)
+
+
+@pytest.mark.parametrize(
+    "operation", ["list", "create", "read", "update", "resolve", "cancel"]
+)
+def test_every_employee_record_operation_rejects_another_company(client, operation):
+    owner_headers = login(client)
+    employee = create_employee(client, owner_headers)
+    record = create_record(client, owner_headers, employee["id"])
+    other_headers = login(client, "empresa-b@gestoria.dev")
+    method, url, payload = record_request(operation, employee, record)
+    response = client.request(method, url, headers=other_headers, json=payload)
+    assert response.status_code == 404
+    assert record["description"] not in response.text
+    original = client.get(f"{RECORDS_URL}/{record['id']}", headers=owner_headers)
+    assert original.json()["status"] == "open"
+    assert original.json()["title"] == record["title"]

@@ -30,13 +30,26 @@ class FinanceEntryConflictError(FinanceError):
         )
 
 
-def validate_finance_category(db: Session, organization_id: uuid.UUID, category_id: uuid.UUID) -> None:
-    category = FinanceCategoryRepository.get_for_organization(db, category_id, organization_id)
+def validate_finance_category(
+    db: Session, organization_id: uuid.UUID, category_id: uuid.UUID
+) -> None:
+    category = FinanceCategoryRepository.get_for_organization(
+        db, category_id, organization_id
+    )
     if category is None or not category.is_active:
-        raise FinanceCategoryUnavailableError("A categoria não existe ou está inativa nesta empresa.")
+        raise FinanceCategoryUnavailableError(
+            "A categoria não existe ou está inativa nesta empresa."
+        )
 
 
-def _audit(db: Session, organization_id: uuid.UUID, actor_id: uuid.UUID, event_type: str, entity_id: uuid.UUID, document: dict) -> None:
+def _audit(
+    db: Session,
+    organization_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    event_type: str,
+    entity_id: uuid.UUID,
+    document: dict,
+) -> None:
     def serialize(value):
         if isinstance(value, dict):
             return {key: serialize(item) for key, item in value.items()}
@@ -44,13 +57,15 @@ def _audit(db: Session, organization_id: uuid.UUID, actor_id: uuid.UUID, event_t
             return [serialize(item) for item in value]
         return str(value) if value is not None else None
 
-    db.add(FinanceAuditEvent(
-        organization_id=organization_id,
-        actor_id=actor_id,
-        event_type=event_type,
-        entity_id=entity_id,
-        document=serialize(document),
-    ))
+    db.add(
+        FinanceAuditEvent(
+            organization_id=organization_id,
+            actor_id=actor_id,
+            event_type=event_type,
+            entity_id=entity_id,
+            document=serialize(document),
+        )
+    )
 
 
 def create_category(db, organization_id, actor_id, values):
@@ -60,7 +75,9 @@ def create_category(db, organization_id, actor_id, values):
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise DuplicateFinanceCategoryError("Já existe uma categoria com este nome nesta empresa.") from exc
+        raise DuplicateFinanceCategoryError(
+            "Já existe uma categoria com este nome nesta empresa."
+        ) from exc
     return category
 
 
@@ -69,11 +86,20 @@ def update_category(db, category: FinanceCategory, actor_id, values):
         return category
     try:
         category = FinanceCategoryRepository.update(db, category, values)
-        _audit(db, category.organization_id, actor_id, "category_updated", category.id, values)
+        _audit(
+            db,
+            category.organization_id,
+            actor_id,
+            "category_updated",
+            category.id,
+            values,
+        )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise DuplicateFinanceCategoryError("Já existe uma categoria com este nome nesta empresa.") from exc
+        raise DuplicateFinanceCategoryError(
+            "Já existe uma categoria com este nome nesta empresa."
+        ) from exc
     return category
 
 
