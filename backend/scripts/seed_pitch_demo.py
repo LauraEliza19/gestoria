@@ -30,9 +30,7 @@ from app.security import hash_password
 from app.seed import require_demo_enabled
 from app.services.production import normalize_name
 
-DEMO_NAMESPACE = uuid.UUID(
-    "860c7ee5-51ec-4e14-a535-2168cd352966"
-)
+DEMO_NAMESPACE = uuid.UUID("860c7ee5-51ec-4e14-a535-2168cd352966")
 
 PITCH_ORGANIZATION_NAME = "Padaria Aurora"
 PITCH_ORGANIZATION_SLUG = "padaria-aurora-pitch"
@@ -142,24 +140,30 @@ def seed_pitch_demo(db: Session) -> None:
     organization.state = "MG"
 
     customers = seed_customers(db, organization.id)
+
+    organization.next_customer_code = max(
+        organization.next_customer_code,
+        len(customers) + 1,
+    )
+
     products = seed_products(db, organization.id)
 
     orders = seed_orders(
-    db,
-    organization.id,
-    customers,
-    products,
+        db,
+        organization.id,
+        customers,
+        products,
     )
     quotes = seed_quotes(
-    db,
-    organization.id,
-    customers,
-    products,
+        db,
+        organization.id,
+        customers,
+        products,
     )
 
     ingredients, stock_items, recipes = seed_production(
-    db,
-    organization.id,
+        db,
+        organization.id,
     )
     # Explicit id link; the cake recipe yields slices, so it stays unlinked.
     products["pao_queijo"].recipe_id = recipes["pao_queijo"].id
@@ -211,6 +215,7 @@ def seed_customers(
 ) -> dict[str, Customer]:
     customer_data = {
         "mariana": {
+            "code": "CLI-000001",
             "name": "Mariana Oliveira",
             "phone": "35999991001",
             "whatsapp": "35999991001",
@@ -232,6 +237,7 @@ def seed_customers(
             "is_active": True,
         },
         "emporio": {
+            "code": "CLI-000002",
             "name": "Empório Serra Verde Ltda",
             "phone": "3534232001",
             "whatsapp": "3534232001",
@@ -256,6 +262,7 @@ def seed_customers(
         },
         "eventos": {
             "name": "Eventos Horizonte",
+            "code": "CLI-000003",
             "phone": "35999991003",
             "whatsapp": "35999991003",
             "email": "contato@eventoshorizonte.com.br",
@@ -279,6 +286,7 @@ def seed_customers(
         },
         "carlos": {
             "name": "Carlos Mendes",
+            "code": "CLI-000004",
             "phone": "35999991004",
             "whatsapp": "35999991004",
             "email": "carlos.mendes@example.com",
@@ -286,9 +294,7 @@ def seed_customers(
             "document": "98765432100",
             "category": "final_consumer",
             "default_discount_percent": money("0"),
-            "notes": (
-                "Novo cliente cadastrado durante campanha local."
-            ),
+            "notes": ("Novo cliente cadastrado durante campanha local."),
             "postal_code": "37550004",
             "street": "Rua das Flores",
             "number": "48",
@@ -321,9 +327,7 @@ def seed_products(
     product_data = {
         "pao_queijo": {
             "name": "Pão de queijo artesanal",
-            "description": (
-                "Pão de queijo mineiro produzido diariamente."
-            ),
+            "description": ("Pão de queijo mineiro produzido diariamente."),
             "price": money("8.50"),
             "cost_price": money("3.10"),
             "stock_quantity": money("4"),
@@ -341,9 +345,7 @@ def seed_products(
         },
         "bolo_chocolate": {
             "name": "Bolo de chocolate premium",
-            "description": (
-                "Bolo artesanal com cobertura de chocolate."
-            ),
+            "description": ("Bolo artesanal com cobertura de chocolate."),
             "price": money("45.00"),
             "cost_price": money("18.00"),
             "stock_quantity": money("16"),
@@ -361,9 +363,7 @@ def seed_products(
         },
         "cafe_especial": {
             "name": "Café especial 500 g",
-            "description": (
-                "Café torrado e moído de origem controlada."
-            ),
+            "description": ("Café torrado e moído de origem controlada."),
             "price": money("28.90"),
             "cost_price": money("17.50"),
             "stock_quantity": money("2"),
@@ -381,9 +381,7 @@ def seed_products(
         },
         "kit_corporativo": {
             "name": "Kit coffee break corporativo",
-            "description": (
-                "Seleção completa para reuniões e eventos."
-            ),
+            "description": ("Seleção completa para reuniões e eventos."),
             "price": money("129.90"),
             "cost_price": money("62.00"),
             "stock_quantity": money("12"),
@@ -401,9 +399,7 @@ def seed_products(
         },
         "suco_natural": {
             "name": "Suco natural de laranja",
-            "description": (
-                "Garrafa de 500 ml preparada no dia."
-            ),
+            "description": ("Garrafa de 500 ml preparada no dia."),
             "price": money("12.00"),
             "cost_price": money("5.20"),
             "stock_quantity": money("0"),
@@ -435,6 +431,7 @@ def seed_products(
     db.flush()
     return products
 
+
 def seed_order(
     db: Session,
     key: str,
@@ -445,10 +442,7 @@ def seed_order(
     items: list[tuple[Product, Decimal]],
 ) -> Order:
     total = sum(
-        (
-            product.price * quantity
-            for product, quantity in items
-        ),
+        (product.price * quantity for product, quantity in items),
         start=money("0"),
     )
 
@@ -552,10 +546,7 @@ def seed_quote(
     items: list[tuple[Product, Decimal]],
 ) -> Quote:
     total = sum(
-        (
-            product.price * quantity
-            for product, quantity in items
-        ),
+        (product.price * quantity for product, quantity in items),
         start=money("0"),
     )
 
@@ -648,6 +639,7 @@ def seed_quotes(
 
     db.flush()
     return quotes
+
 
 def seed_ingredients(
     db: Session,
@@ -811,8 +803,7 @@ def seed_recipe(
     existing_items = list(
         db.scalars(
             select(RecipeIngredient).where(
-                RecipeIngredient.organization_id
-                == organization_id,
+                RecipeIngredient.organization_id == organization_id,
                 RecipeIngredient.recipe_id == recipe.id,
             )
         )
@@ -892,6 +883,7 @@ def seed_production(
 
     db.flush()
     return ingredients, stock_items, recipes
+
 
 if __name__ == "__main__":
     main()
