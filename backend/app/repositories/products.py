@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Product
+from app.models import Organization, Product
 
 
 class ProductRepository:
@@ -34,7 +34,23 @@ class ProductRepository:
 
     @staticmethod
     def create(db: Session, organization_id: uuid.UUID, values: dict) -> Product:
-        product = Product(organization_id=organization_id, **values)
+        organization = db.scalar(
+            select(Organization)
+            .where(Organization.id == organization_id)
+            .with_for_update()
+        )
+
+        if organization is None:
+            raise ValueError("Empresa não encontrada.")
+
+        code = f"PRO-{organization.next_product_code:06d}"
+        organization.next_product_code += 1
+
+        product = Product(
+            organization_id=organization_id,
+            code=code,
+            **values,
+        )
         db.add(product)
         db.commit()
         db.refresh(product)

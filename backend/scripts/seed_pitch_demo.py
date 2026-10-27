@@ -147,6 +147,10 @@ def seed_pitch_demo(db: Session) -> None:
     )
 
     products = seed_products(db, organization.id)
+    organization.next_product_code = max(
+        organization.next_product_code,
+        len(products) + 1,
+    )
 
     orders = seed_orders(
         db,
@@ -326,6 +330,7 @@ def seed_products(
 ) -> dict[str, Product]:
     product_data = {
         "pao_queijo": {
+            "code": "PRO-000001",
             "name": "Pão de queijo artesanal",
             "description": ("Pão de queijo mineiro produzido diariamente."),
             "price": money("8.50"),
@@ -344,6 +349,7 @@ def seed_products(
             "is_active": True,
         },
         "bolo_chocolate": {
+            "code": "PRO-000002",
             "name": "Bolo de chocolate premium",
             "description": ("Bolo artesanal com cobertura de chocolate."),
             "price": money("45.00"),
@@ -362,6 +368,7 @@ def seed_products(
             "is_active": True,
         },
         "cafe_especial": {
+            "code": "PRO-000003",
             "name": "Café especial 500 g",
             "description": ("Café torrado e moído de origem controlada."),
             "price": money("28.90"),
@@ -380,6 +387,7 @@ def seed_products(
             "is_active": True,
         },
         "kit_corporativo": {
+            "code": "PRO-000004",
             "name": "Kit coffee break corporativo",
             "description": ("Seleção completa para reuniões e eventos."),
             "price": money("129.90"),
@@ -398,6 +406,7 @@ def seed_products(
             "is_active": True,
         },
         "suco_natural": {
+            "code": "PRO-000005",
             "name": "Suco natural de laranja",
             "description": ("Garrafa de 500 ml preparada no dia."),
             "price": money("12.00"),
