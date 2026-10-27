@@ -77,6 +77,9 @@ class Organization(Base):
     next_customer_code: Mapped[int] = mapped_column(
         default=1, server_default="1", nullable=False
     )
+    next_product_code: Mapped[int] = mapped_column(
+        default=1, server_default="1", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -145,6 +148,11 @@ class Product(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("organization_id", "id", name="uq_products_org_id"),
         UniqueConstraint("organization_id", "name", name="uq_product_org_name"),
+        UniqueConstraint(
+            "organization_id",
+            "code",
+            name="uq_products_org_code",
+        ),
         CheckConstraint("price >= 0", name="ck_product_price_nonnegative"),
         CheckConstraint("stock_quantity >= 0", name="ck_product_stock_nonnegative"),
         CheckConstraint(
@@ -196,6 +204,7 @@ class Product(Base, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -321,20 +330,35 @@ class Customer(Base, TimestampMixin):
 class Order(Base, TimestampMixin):
     __tablename__ = "orders"
     __table_args__ = (
-        UniqueConstraint("organization_id", "id", name="uq_orders_org_id"),
+        UniqueConstraint(
+            "organization_id",
+            "id",
+            name="uq_orders_org_id",
+        ),
         CheckConstraint(
             "status IN ('in_preparation', 'completed', 'cancelled')",
             name="ck_order_status",
         ),
-        CheckConstraint("total_amount >= 0", name="ck_order_total_nonnegative"),
-        Index("ix_orders_org_created_at", "organization_id", "created_at"),
+        CheckConstraint(
+            "total_amount >= 0",
+            name="ck_order_total_nonnegative",
+        ),
+        Index(
+            "ix_orders_org_created_at",
+            "organization_id",
+            "created_at",
+        ),
         Index(
             "ix_orders_org_status_created_at",
             "organization_id",
             "status",
             "created_at",
         ),
-        Index("ix_orders_org_customer", "organization_id", "customer_id"),
+        Index(
+            "ix_orders_org_customer",
+            "organization_id",
+            "customer_id",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -393,7 +417,35 @@ class Quote(Base, TimestampMixin):
             "status IN ('pending', 'approved', 'rejected', 'converted')",
             name="ck_quote_status",
         ),
-        CheckConstraint("total_amount >= 0", name="ck_quote_total_nonnegative"),
+        CheckConstraint(
+            "total_amount >= 0",
+            name="ck_quote_total_nonnegative",
+        ),
+        CheckConstraint(
+            "gross_amount >= 0",
+            name="ck_quote_gross_nonnegative",
+        ),
+        CheckConstraint(
+            "discount_amount >= 0",
+            name="ck_quote_discount_nonnegative",
+        ),
+        CheckConstraint(
+            "general_discount_percent >= 0 AND general_discount_percent <= 100",
+            name="ck_quote_general_discount_range",
+        ),
+        CheckConstraint(
+            "payment_terms IN ('cash', 'installments')",
+            name="ck_quote_payment_terms",
+        ),
+        CheckConstraint(
+            "("
+            "payment_terms = 'cash' AND installment_count = 1"
+            ") OR ("
+            "payment_terms = 'installments' "
+            "AND installment_count BETWEEN 2 AND 24"
+            ")",
+            name="ck_quote_installment_count",
+        ),
         Index("ix_quotes_org_created_at", "organization_id", "created_at"),
         Index(
             "ix_quotes_org_status_created_at",
@@ -415,11 +467,46 @@ class Quote(Base, TimestampMixin):
         ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
-    valid_until: Mapped[datetime] = mapped_column(Date, nullable=False)
-    total_amount: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2), default=0, nullable=False
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="pending",
+        nullable=False,
     )
+    valid_until: Mapped[datetime] = mapped_column(
+        Date,
+        nullable=False,
+    )
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        default=0,
+        nullable=False,
+    )
+    gross_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        default=0,
+        nullable=False,
+    )
+    discount_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        default=0,
+        nullable=False,
+    )
+    general_discount_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2),
+        default=0,
+        nullable=False,
+    )
+    payment_terms: Mapped[str] = mapped_column(
+        String(20),
+        default="cash",
+        nullable=False,
+    )
+    installment_count: Mapped[int] = mapped_column(
+        SmallInteger,
+        default=1,
+        nullable=False,
+    )
+
     converted_order_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         ForeignKey("orders.id", ondelete="SET NULL"),
@@ -434,8 +521,18 @@ class Quote(Base, TimestampMixin):
 class QuoteItem(Base, TimestampMixin):
     __tablename__ = "quote_items"
     __table_args__ = (
-        CheckConstraint("quantity > 0", name="ck_quote_item_quantity_positive"),
-        CheckConstraint("unit_price >= 0", name="ck_quote_item_price_nonnegative"),
+        CheckConstraint(
+            "quantity > 0",
+            name="ck_quote_item_quantity_positive",
+        ),
+        CheckConstraint(
+            "unit_price >= 0",
+            name="ck_quote_item_price_nonnegative",
+        ),
+        CheckConstraint(
+            "discount_percent >= 0 AND discount_percent <= 100",
+            name="ck_quote_item_discount_range",
+        ),
         Index("ix_quote_items_quote_id", "quote_id"),
         Index("ix_quote_items_product_id", "product_id"),
     )
@@ -453,6 +550,11 @@ class QuoteItem(Base, TimestampMixin):
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    discount_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2),
+        default=0,
+        nullable=False,
+    )
     quote: Mapped[Quote] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="quote_items")
 

@@ -76,6 +76,7 @@ class ProductUpdate(BaseModel):
 class ProductRead(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
+    code: str
     name: str
     description: str | None
     price: Money

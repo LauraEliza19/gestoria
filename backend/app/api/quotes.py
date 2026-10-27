@@ -4,12 +4,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import QuoteRepository
-from app.schemas import (
-    QuoteCreate,
-    QuoteItemRead,
-    QuoteRead,
-    QuoteStatusUpdate,
-)
+from app.schemas import QuoteCreate, QuoteRead, QuoteStatusUpdate
 from app.services import (
     CustomerNotFoundError,
     InsufficientStockError,
@@ -22,6 +17,7 @@ from app.services import (
     delete_quote_record,
     update_quote_status,
 )
+from app.services.quote_serialization import quote_to_read
 
 router = APIRouter(prefix="/api/quotes", tags=["quotes"])
 
@@ -30,33 +26,6 @@ def quote_not_found() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Orçamento não encontrado.",
-    )
-
-
-def _build_quote_read(quote) -> QuoteRead:
-    item_reads = [
-        QuoteItemRead(
-            id=item.id,
-            product_id=item.product_id,
-            product_name=(item.product.name if item.product else "Produto removido"),
-            quantity=item.quantity,
-            unit_price=item.unit_price,
-        )
-        for item in quote.items
-    ]
-
-    return QuoteRead(
-        id=quote.id,
-        organization_id=quote.organization_id,
-        customer_id=quote.customer_id,
-        customer_name=(quote.customer.name if quote.customer else "Cliente removido"),
-        status=quote.status,
-        valid_until=quote.valid_until,
-        total_amount=quote.total_amount,
-        converted_order_id=quote.converted_order_id,
-        items=item_reads,
-        created_at=quote.created_at,
-        updated_at=quote.updated_at,
     )
 
 
@@ -72,7 +41,7 @@ def list_quotes(
         db,
         current.organization.id,
     )
-    return [_build_quote_read(quote) for quote in quotes]
+    return [quote_to_read(quote) for quote in quotes]
 
 
 @router.post(
@@ -92,6 +61,9 @@ def create_quote_route(
             payload.customer_id,
             payload.valid_until,
             payload.items,
+            general_discount_percent=payload.general_discount_percent,
+            payment_terms=payload.payment_terms,
+            installment_count=payload.installment_count,
         )
     except (
         CustomerNotFoundError,
@@ -102,7 +74,7 @@ def create_quote_route(
             detail=str(exc),
         ) from exc
 
-    return _build_quote_read(quote)
+    return quote_to_read(quote)
 
 
 @router.patch(
@@ -139,7 +111,7 @@ def update_status_route(
             detail=str(exc),
         ) from exc
 
-    return _build_quote_read(quote)
+    return quote_to_read(quote)
 
 
 @router.post(
@@ -184,7 +156,7 @@ def convert_quote_route(
             detail=str(exc),
         ) from exc
 
-    return _build_quote_read(quote)
+    return quote_to_read(quote)
 
 
 @router.delete(
