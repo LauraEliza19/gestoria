@@ -29,6 +29,10 @@ services:
       ALLOWED_ORIGINS: '["https://${SITE_DOMAIN}"]'
       OPERATION_SIGNING_KEYS: ${OPERATION_SIGNING_KEYS:?Gere a chave de operações}
       OPERATION_ACTIVE_KEY_ID: ${OPERATION_ACTIVE_KEY_ID:-v1}
+      COPILOT_PROVIDER: ${COPILOT_PROVIDER:-local}
+      COPILOT_API_KEY: ${COPILOT_API_KEY:-}
+      COPILOT_RATE_LIMIT_MAX_REQUESTS: ${COPILOT_RATE_LIMIT_MAX_REQUESTS:-30}
+      COPILOT_RATE_LIMIT_WINDOW_SECONDS: ${COPILOT_RATE_LIMIT_WINDOW_SECONDS:-60}
       FRONTEND_DIR: /frontend
     command: >-
       sh -c "alembic upgrade head && python -m app.production_setup &&

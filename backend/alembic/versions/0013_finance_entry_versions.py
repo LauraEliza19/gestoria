@@ -8,7 +8,6 @@ import sqlalchemy as sa
 
 from alembic import op
 
-
 revision = "0013_finance_entry_versions"
 down_revision = "2bde4cefcdec"
 branch_labels = None
