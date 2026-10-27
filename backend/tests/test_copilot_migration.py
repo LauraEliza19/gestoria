@@ -23,6 +23,8 @@ from app.schemas.copilot import (
 )
 
 REVISION = "0014_copilot_security_gateway"
+CUSTOMER_CODES_REVISION = "0014_customer_codes"
+MERGE_REVISION = "b48621729e7d"
 PREVIOUS = "0013_finance_entry_versions"
 
 
@@ -34,10 +36,16 @@ def migration():
     return module
 
 
-def test_gateway_is_the_only_head_and_follows_finance_merge():
+def test_gateway_and_customer_codes_are_joined_in_a_single_head():
     scripts = ScriptDirectory.from_config(Config("alembic.ini"))
-    assert scripts.get_heads() == [REVISION]
+
+    assert scripts.get_heads() == [MERGE_REVISION]
+    assert set(scripts.get_revision(MERGE_REVISION).down_revision) == {
+        REVISION,
+        CUSTOMER_CODES_REVISION,
+    }
     assert scripts.get_revision(REVISION).down_revision == PREVIOUS
+    assert scripts.get_revision(CUSTOMER_CODES_REVISION).down_revision == PREVIOUS
     assert scripts.get_revision(PREVIOUS).down_revision == "2bde4cefcdec"
     assert set(scripts.get_revision("2bde4cefcdec").down_revision) == {
         "0012_finance_module",
@@ -205,7 +213,7 @@ def test_online_gateway_upgrade_from_previous_head_and_persistence(monkeypatch):
         with engine.connect() as connection:
             assert (
                 connection.scalar(sa.text("SELECT version_num FROM alembic_version"))
-                == REVISION
+                == MERGE_REVISION
             )
             assert (
                 connection.scalar(
