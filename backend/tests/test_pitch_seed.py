@@ -91,6 +91,22 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
             == expected
         )
 
+    customer_codes = set(
+        db.scalars(
+            select(Customer.code).where(
+                Customer.organization_id == organization.id,
+            )
+        )
+    )
+
+    assert customer_codes == {
+        "CLI-000001",
+        "CLI-000002",
+        "CLI-000003",
+        "CLI-000004",
+    }
+    assert organization.next_customer_code == 5
+
     order_ids = select(Order.id).where(
         Order.organization_id == organization.id,
     )
