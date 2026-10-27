@@ -17,28 +17,46 @@ type Customer = {
 
 type Product = {
   id: string
+  code: string
   name: string
   price: string
 }
 
+type ProductSearchField = 'name' | 'code'
+
+type PaymentTerms = 'cash' | 'installments'
+
 type DraftItem = {
   key: string
   productId: string
+  productSearch: string
+  productSearchField: ProductSearchField
   quantity: string
+  discountPercent: string
 }
 
 function newItem(): DraftItem {
   return {
     key: crypto.randomUUID(),
     productId: '',
+    productSearch: '',
+    productSearchField: 'name',
     quantity: '1',
+    discountPercent: '0',
   }
 }
 
 type QuoteItem = {
+  id: string
+  product_id: string
+  product_code: string
   product_name: string
   quantity: string
   unit_price: string
+  discount_percent: string
+  gross_amount: string
+  discount_amount: string
+  total_amount: string
 }
 
 type Quote = {
@@ -47,7 +65,13 @@ type Quote = {
   status: string
   created_at: string
   valid_until: string
+  gross_amount: string
+  general_discount_percent: string
+  discount_amount: string
   total_amount: string
+  payment_terms: PaymentTerms
+  installment_count: number
+  installment_amount: string
   converted_order_id?: string | null
   items: QuoteItem[]
 }
@@ -96,6 +120,26 @@ const customerSearchConfig: Record<
   },
 }
 
+const productSearchConfig: Record<
+  ProductSearchField,
+  {
+    label: string
+    placeholder: string
+    hint: string
+  }
+> = {
+  name: {
+    label: 'Nome',
+    placeholder: 'Digite o nome do produto',
+    hint: 'Pesquise pelo nome cadastrado no catálogo.',
+  },
+  code: {
+    label: 'Código',
+    placeholder: 'Ex.: PRO-000001',
+    hint: 'Pesquise pelo código automático do produto.',
+  },
+}
+
 async function fetchQuotes() {
   return Promise.all([
     apiFetch<Quote[]>('/api/quotes'),
@@ -115,13 +159,28 @@ function formatDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR')
 }
 
-function normalizeCustomerSearch(value: string): string {
+function normalizeSearch(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('pt-BR')
     .replace(/[\s./-]/g, '')
 }
+
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+function isValidPercentage(value: string): boolean {
+  if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
+    return false
+  }
+
+  const percentage = Number(value)
+
+  return Number.isFinite(percentage) && percentage >= 0 && percentage <= 100
+}
+
 export function QuotesPage() {
   const { can, session } = useSession()
   const [searchParams] = useSearchParams()
@@ -140,13 +199,16 @@ export function QuotesPage() {
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerSearchField, setCustomerSearchField] = useState<CustomerSearchField>('name')
   const [items, setItems] = useState<DraftItem[]>([newItem()])
+  const [generalDiscountPercent, setGeneralDiscountPercent] = useState('0')
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>('cash')
+  const [installmentCount, setInstallmentCount] = useState('2')
   const [submitting, setSubmitting] = useState(false)
 
   const activeCustomerSearch = customerSearchConfig[customerSearchField]
   const selectedCustomer = customers.find((customer) => customer.id === customerId) ?? null
 
   const filteredCustomers = useMemo(() => {
-    const search = normalizeCustomerSearch(customerSearch)
+    const search = normalizeSearch(customerSearch)
 
     return customers.filter((customer) => {
       if (customerSearchField === 'cpf' && customer.person_type !== 'individual') {
@@ -163,15 +225,15 @@ export function QuotesPage() {
 
       if (customerSearchField === 'name') {
         return [customer.name, customer.trade_name ?? ''].some((value) =>
-          normalizeCustomerSearch(value).includes(search),
+          normalizeSearch(value).includes(search),
         )
       }
 
       if (customerSearchField === 'code') {
-        return normalizeCustomerSearch(customer.code).includes(search)
+        return normalizeSearch(customer.code).includes(search)
       }
 
-      return normalizeCustomerSearch(customer.document ?? '').includes(search)
+      return normalizeSearch(customer.document ?? '').includes(search)
     })
   }, [customers, customerSearch, customerSearchField])
 
@@ -180,19 +242,51 @@ export function QuotesPage() {
     [items],
   )
 
-  const estimatedTotal = useMemo(
-    () =>
-      items.reduce((total, item) => {
-        const product = products.find((candidate) => candidate.id === item.productId)
-        return total + Number(product?.price ?? 0) * Number(item.quantity || 0)
-      }, 0),
-    [items, products],
-  )
+  const estimatedAmounts = useMemo(() => {
+    let grossAmount = 0
+    let amountAfterItemDiscounts = 0
 
-  function updateItem(key: string, field: 'productId' | 'quantity', value: string) {
-    setItems((current) =>
-      current.map((item) => (item.key === key ? { ...item, [field]: value } : item)),
+    for (const item of items) {
+      const product = products.find((candidate) => candidate.id === item.productId)
+      const quantity = Number(item.quantity || 0)
+      const discountPercent = isValidPercentage(item.discountPercent)
+        ? Number(item.discountPercent)
+        : 0
+
+      const itemGrossAmount = roundMoney(Number(product?.price ?? 0) * quantity)
+      const itemDiscountAmount = roundMoney((itemGrossAmount * discountPercent) / 100)
+      const itemTotalAmount = roundMoney(itemGrossAmount - itemDiscountAmount)
+
+      grossAmount += itemGrossAmount
+      amountAfterItemDiscounts += itemTotalAmount
+    }
+
+    grossAmount = roundMoney(grossAmount)
+    amountAfterItemDiscounts = roundMoney(amountAfterItemDiscounts)
+
+    const validGeneralDiscount = isValidPercentage(generalDiscountPercent)
+      ? Number(generalDiscountPercent)
+      : 0
+
+    const generalDiscountAmount = roundMoney(
+      (amountAfterItemDiscounts * validGeneralDiscount) / 100,
     )
+    const totalAmount = roundMoney(amountAfterItemDiscounts - generalDiscountAmount)
+    const discountAmount = roundMoney(grossAmount - totalAmount)
+
+    const installments =
+      paymentTerms === 'installments' ? Math.max(2, Number(installmentCount) || 2) : 1
+
+    return {
+      grossAmount,
+      discountAmount,
+      totalAmount,
+      installmentAmount: roundMoney(totalAmount / installments),
+    }
+  }, [generalDiscountPercent, installmentCount, items, paymentTerms, products])
+
+  function updateItem(key: string, values: Partial<Omit<DraftItem, 'key'>>) {
+    setItems((current) => current.map((item) => (item.key === key ? { ...item, ...values } : item)))
   }
 
   function addItem() {
@@ -237,16 +331,32 @@ export function QuotesPage() {
         !item.productId ||
         !/^\d+(?:\.\d{1,3})?$/.test(item.quantity) ||
         Number(item.quantity) <= 0 ||
-        Number(item.quantity) > 1_000_000,
+        Number(item.quantity) > 1_000_000 ||
+        !isValidPercentage(item.discountPercent),
     )
 
     if (invalidItem) {
-      setStatus('Selecione os produtos e informe quantidades válidas, com até três casas decimais.')
+      setStatus('Selecione os produtos, informe quantidades válidas e descontos entre 0% e 100%.')
       return
     }
 
     if (selectedProductIds.size !== items.length) {
       setStatus('Cada produto deve aparecer somente uma vez no orçamento.')
+      return
+    }
+
+    if (!isValidPercentage(generalDiscountPercent)) {
+      setStatus('Informe um desconto geral entre 0% e 100%, com até duas casas decimais.')
+      return
+    }
+
+    const installments = Number(installmentCount)
+
+    if (
+      paymentTerms === 'installments' &&
+      (!Number.isInteger(installments) || installments < 2 || installments > 24)
+    ) {
+      setStatus('Informe uma quantidade entre 2 e 24 parcelas.')
       return
     }
 
@@ -259,9 +369,13 @@ export function QuotesPage() {
         body: JSON.stringify({
           customer_id: customerId,
           valid_until: validUntil,
+          general_discount_percent: Number(generalDiscountPercent),
+          payment_terms: paymentTerms,
+          installment_count: paymentTerms === 'installments' ? Number(installmentCount) : 1,
           items: items.map((item) => ({
             product_id: item.productId,
             quantity: Number(item.quantity),
+            discount_percent: Number(item.discountPercent),
           })),
         }),
       })
@@ -271,6 +385,9 @@ export function QuotesPage() {
       setCustomerId('')
       setCustomerSearch('')
       setItems([newItem()])
+      setGeneralDiscountPercent('0')
+      setPaymentTerms('cash')
+      setInstallmentCount('2')
       setStatus('Orçamento criado. Confira os valores registrados antes de gerar o PDF.')
     } catch (error) {
       setStatus(getErrorMessage(error, 'Não foi possível criar o orçamento.'))
@@ -486,36 +603,149 @@ export function QuotesPage() {
           <div className="grid gap-3">
             {items.map((item, index) => {
               const selectedProduct = products.find((product) => product.id === item.productId)
+
+              const activeProductSearch = productSearchConfig[item.productSearchField]
+
+              const normalizedProductSearch = normalizeSearch(item.productSearch)
+
+              const filteredProducts = products.filter((product) => {
+                const selectedInAnotherItem =
+                  item.productId !== product.id && selectedProductIds.has(product.id)
+
+                if (selectedInAnotherItem) {
+                  return false
+                }
+
+                if (!normalizedProductSearch) {
+                  return true
+                }
+
+                const searchableValue =
+                  item.productSearchField === 'code' ? product.code : product.name
+
+                return normalizeSearch(searchableValue).includes(normalizedProductSearch)
+              })
               const quantityValue = Number(item.quantity)
-              const subtotal =
+              const itemDiscountPercent = isValidPercentage(item.discountPercent)
+                ? Number(item.discountPercent)
+                : 0
+
+              const grossSubtotal = roundMoney(
                 Number(selectedProduct?.price ?? 0) *
-                (Number.isFinite(quantityValue) ? quantityValue : 0)
+                  (Number.isFinite(quantityValue) ? quantityValue : 0),
+              )
+              const itemDiscountAmount = roundMoney((grossSubtotal * itemDiscountPercent) / 100)
+              const subtotal = roundMoney(grossSubtotal - itemDiscountAmount)
 
               return (
                 <div
-                  className="grid items-end gap-3 rounded-lg border border-line bg-[#fbfcff] p-4 md:grid-cols-[minmax(0,1fr)_130px_130px_44px]"
+                  className="grid items-end gap-3 rounded-lg border border-line bg-[#fbfcff] p-4 lg:grid-cols-[minmax(0,1fr)_120px_120px_130px_44px]"
                   key={item.key}
                 >
-                  <label>
-                    Produto {index + 1}
-                    <select
-                      value={item.productId}
-                      onChange={(event) => updateItem(item.key, 'productId', event.target.value)}
-                    >
-                      <option value="">Selecione um produto</option>
-                      {products.map((product) => (
-                        <option
-                          disabled={
-                            item.productId !== product.id && selectedProductIds.has(product.id)
+                  <div className="grid gap-2">
+                    <div className="grid gap-2 sm:grid-cols-[120px_minmax(0,1fr)]">
+                      <label>
+                        Pesquisar por
+                        <select
+                          value={item.productSearchField}
+                          disabled={submitting}
+                          onChange={(event) =>
+                            updateItem(item.key, {
+                              productId: '',
+                              productSearch: '',
+                              productSearchField: event.target.value as ProductSearchField,
+                            })
                           }
-                          key={product.id}
-                          value={product.id}
                         >
-                          {product.name} — {formatMoney(product.price)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                          <option value="name">Nome</option>
+                          <option value="code">Código</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        {activeProductSearch.label}
+                        <input
+                          type="search"
+                          autoComplete="off"
+                          disabled={submitting}
+                          placeholder={activeProductSearch.placeholder}
+                          value={item.productSearch}
+                          onChange={(event) =>
+                            updateItem(item.key, {
+                              productId: '',
+                              productSearch: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {item.productSearch.trim() &&
+                      !selectedProduct &&
+                      filteredProducts.length > 0 && (
+                        <div className="max-h-52 overflow-y-auto rounded-lg border border-line bg-white p-1 shadow-sm">
+                          {filteredProducts.slice(0, 8).map((product) => (
+                            <button
+                              className="flex w-full items-center justify-between gap-4 rounded-md px-3 py-3 text-left transition hover:bg-[#f4f7ff]"
+                              key={product.id}
+                              type="button"
+                              onClick={() =>
+                                updateItem(item.key, {
+                                  productId: product.id,
+                                  productSearch:
+                                    item.productSearchField === 'code'
+                                      ? product.code
+                                      : product.name,
+                                })
+                              }
+                            >
+                              <span>
+                                <strong className="block text-sm">{product.name}</strong>
+
+                                <small className="text-muted">{product.code}</small>
+                              </span>
+
+                              <strong className="text-sm text-signal">
+                                {formatMoney(product.price)}
+                              </strong>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                    {selectedProduct ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                        <span>
+                          Produto selecionado:{' '}
+                          <strong>
+                            {selectedProduct.code} — {selectedProduct.name}
+                          </strong>
+                        </span>
+
+                        <button
+                          className="font-semibold text-signal"
+                          type="button"
+                          disabled={submitting}
+                          onClick={() =>
+                            updateItem(item.key, {
+                              productId: '',
+                              productSearch: '',
+                            })
+                          }
+                        >
+                          Alterar
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted" role="status">
+                        {item.productSearch.trim()
+                          ? filteredProducts.length === 0
+                            ? `Nenhum produto encontrado por ${activeProductSearch.label.toLowerCase()}.`
+                            : `${filteredProducts.length} produto(s) encontrado(s).`
+                          : activeProductSearch.hint}
+                      </p>
+                    )}
+                  </div>
 
                   <label>
                     Quantidade
@@ -524,13 +754,40 @@ export function QuotesPage() {
                       step="0.001"
                       type="number"
                       value={item.quantity}
-                      onChange={(event) => updateItem(item.key, 'quantity', event.target.value)}
+                      onChange={(event) =>
+                        updateItem(item.key, {
+                          quantity: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Desconto (%)
+                    <input
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      type="number"
+                      value={item.discountPercent}
+                      onChange={(event) =>
+                        updateItem(item.key, {
+                          discountPercent: event.target.value,
+                        })
+                      }
                     />
                   </label>
 
                   <div className="pb-3">
-                    <span className="block text-xs text-muted">Subtotal</span>
+                    <span className="block text-xs text-muted">Total do item</span>
+
                     <strong>{formatMoney(String(subtotal))}</strong>
+
+                    {itemDiscountAmount > 0 && (
+                      <small className="mt-1 block text-muted">
+                        Desconto de {formatMoney(String(itemDiscountAmount))}
+                      </small>
+                    )}
                   </div>
 
                   <button
@@ -547,10 +804,78 @@ export function QuotesPage() {
             })}
           </div>
 
-          <div className="mt-5 flex justify-between border-t border-line pt-4">
-            <span>Prévia do total</span>
-            <strong>{formatMoney(String(estimatedTotal))}</strong>
+          <div className="mt-5 grid gap-4 border-t border-line pt-5 md:grid-cols-3">
+            <label>
+              Condição de pagamento
+              <select
+                value={paymentTerms}
+                disabled={submitting}
+                onChange={(event) => setPaymentTerms(event.target.value as PaymentTerms)}
+              >
+                <option value="cash">À vista</option>
+                <option value="installments">Crediário parcelado</option>
+              </select>
+            </label>
+
+            <label>
+              {paymentTerms === 'cash' ? 'Desconto à vista (%)' : 'Desconto geral (%)'}
+              <input
+                min="0"
+                max="100"
+                step="0.01"
+                type="number"
+                value={generalDiscountPercent}
+                disabled={submitting}
+                onChange={(event) => setGeneralDiscountPercent(event.target.value)}
+              />
+            </label>
+
+            {paymentTerms === 'installments' ? (
+              <label>
+                Quantidade de parcelas
+                <input
+                  min="2"
+                  max="24"
+                  step="1"
+                  type="number"
+                  value={installmentCount}
+                  disabled={submitting}
+                  onChange={(event) => setInstallmentCount(event.target.value)}
+                />
+              </label>
+            ) : (
+              <div className="rounded-lg border border-line bg-[#fbfcff] p-4">
+                <span className="block text-xs text-muted">Pagamento</span>
+                <strong>Parcela única</strong>
+              </div>
+            )}
           </div>
+
+          <div className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-3">
+            <div>
+              <span className="block text-xs text-muted">Valor bruto</span>
+              <strong>{formatMoney(String(estimatedAmounts.grossAmount))}</strong>
+            </div>
+
+            <div>
+              <span className="block text-xs text-muted">Descontos</span>
+              <strong>− {formatMoney(String(estimatedAmounts.discountAmount))}</strong>
+            </div>
+
+            <div className="sm:text-right">
+              <span className="block text-xs text-muted">Total do orçamento</span>
+              <strong className="text-lg text-signal">
+                {formatMoney(String(estimatedAmounts.totalAmount))}
+              </strong>
+            </div>
+          </div>
+
+          {paymentTerms === 'installments' && (
+            <p className="mt-3 text-right text-sm font-semibold text-signal">
+              {installmentCount || '0'} parcelas de{' '}
+              {formatMoney(String(estimatedAmounts.installmentAmount))}
+            </p>
+          )}
 
           <p className="mt-2 text-xs text-muted">
             Prévia baseada nos preços atuais do catálogo. O valor salvo pelo servidor será usado no
@@ -566,69 +891,128 @@ export function QuotesPage() {
       {status && <p className="table-status">{status}</p>}
       {reviewedQuote && (
         <section className="page-card mb-6" aria-labelledby="quote-review-title">
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="primary-button"
-              onClick={() => setPrintQuoteId(reviewedQuote.id)}
-              type="button"
-            >
-              Gerar PDF
-            </button>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-signal">
+                Revisão da proposta
+              </span>
+              <h2 id="quote-review-title">Orçamento de {reviewedQuote.customer_name}</h2>
+            </div>
 
-            <button
-              className="secondary-button"
-              onClick={() => setReviewQuoteId(null)}
-              type="button"
-            >
-              Fechar revisão
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="primary-button"
+                onClick={() => setPrintQuoteId(reviewedQuote.id)}
+                type="button"
+              >
+                Gerar PDF
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() => setReviewQuoteId(null)}
+                type="button"
+              >
+                Fechar revisão
+              </button>
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-4 border-y border-line py-4 md:grid-cols-2">
+          <div className="mt-6 grid gap-4 border-y border-line py-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <span className="block text-xs text-muted">Cliente</span>
               <strong>{reviewedQuote.customer_name}</strong>
             </div>
+
             <div>
               <span className="block text-xs text-muted">Válido até</span>
               <strong>{formatDate(reviewedQuote.valid_until)}</strong>
             </div>
+
+            <div>
+              <span className="block text-xs text-muted">Condição</span>
+              <strong>
+                {reviewedQuote.payment_terms === 'cash'
+                  ? 'À vista'
+                  : `${reviewedQuote.installment_count}x de ${formatMoney(
+                      reviewedQuote.installment_amount,
+                    )}`}
+              </strong>
+            </div>
+
+            <div>
+              <span className="block text-xs text-muted">Status</span>
+              <strong>{quoteStatusLabels[reviewedQuote.status] || reviewedQuote.status}</strong>
+            </div>
           </div>
 
           <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[580px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b border-line text-xs uppercase text-muted">
+                  <th className="py-3 pr-4">Código</th>
                   <th className="py-3 pr-4">Produto</th>
                   <th className="py-3 pr-4">Quantidade</th>
                   <th className="py-3 pr-4">Preço unitário</th>
-                  <th className="py-3 text-right">Subtotal</th>
+                  <th className="py-3 pr-4">Desconto</th>
+                  <th className="py-3 text-right">Total</th>
                 </tr>
               </thead>
+
               <tbody>
-                {reviewedQuote.items.map((item, index) => (
-                  <tr className="border-b border-line" key={`${item.product_name}-${index}`}>
+                {reviewedQuote.items.map((item) => (
+                  <tr className="border-b border-line" key={item.id}>
+                    <td className="py-3 pr-4">{item.product_code}</td>
                     <td className="py-3 pr-4">{item.product_name}</td>
                     <td className="py-3 pr-4">{item.quantity}</td>
                     <td className="py-3 pr-4">{formatMoney(item.unit_price)}</td>
-                    <td className="py-3 text-right">
-                      {formatMoney(String(Number(item.quantity) * Number(item.unit_price)))}
+                    <td className="py-3 pr-4">
+                      {Number(item.discount_percent).toLocaleString('pt-BR', {
+                        maximumFractionDigits: 2,
+                      })}
+                      %
                     </td>
+                    <td className="py-3 text-right">{formatMoney(item.total_amount)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-5 flex justify-between border-t border-line pt-4">
-            <span>Total confirmado pelo sistema</span>
-            <strong className="font-display text-xl">
-              {formatMoney(reviewedQuote.total_amount)}
-            </strong>
+          <div className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-3">
+            <div>
+              <span className="block text-xs text-muted">Valor bruto</span>
+              <strong>{formatMoney(reviewedQuote.gross_amount)}</strong>
+            </div>
+
+            <div>
+              <span className="block text-xs text-muted">Descontos totais</span>
+              <strong>− {formatMoney(reviewedQuote.discount_amount)}</strong>
+            </div>
+
+            <div className="sm:text-right">
+              <span className="block text-xs text-muted">Total confirmado</span>
+              <strong className="font-display text-xl text-signal">
+                {formatMoney(reviewedQuote.total_amount)}
+              </strong>
+            </div>
           </div>
 
+          {Number(reviewedQuote.general_discount_percent) > 0 && (
+            <p className="mt-3 text-sm text-muted">
+              {reviewedQuote.payment_terms === 'cash' ? 'Desconto à vista' : 'Desconto geral'}:{' '}
+              <strong>
+                {Number(reviewedQuote.general_discount_percent).toLocaleString('pt-BR', {
+                  maximumFractionDigits: 2,
+                })}
+                %
+              </strong>
+            </p>
+          )}
+
           <p className="mt-3 text-xs text-muted">
-            Os preços acima foram registrados no momento da criação do orçamento.
+            Os preços, descontos e condições acima foram registrados no momento da criação do
+            orçamento.
           </p>
         </section>
       )}

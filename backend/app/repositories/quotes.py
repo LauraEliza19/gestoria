@@ -73,13 +73,22 @@ class QuoteRepository:
         organization_id: uuid.UUID,
         customer_id: uuid.UUID,
         valid_until,
+        *,
+        general_discount_percent: Decimal = Decimal(0),
+        payment_terms: str = "cash",
+        installment_count: int = 1,
     ) -> Quote:
         quote = Quote(
             organization_id=organization_id,
             customer_id=customer_id,
             status="pending",
             valid_until=valid_until,
+            gross_amount=0,
+            discount_amount=0,
             total_amount=0,
+            general_discount_percent=general_discount_percent,
+            payment_terms=payment_terms,
+            installment_count=installment_count,
         )
         db.add(quote)
         db.flush()
@@ -124,13 +133,15 @@ class QuoteItemRepository:
         quote_id: uuid.UUID,
         product_id: uuid.UUID,
         quantity: Decimal,
-        unit_price,
+        unit_price: Decimal,
+        discount_percent: Decimal = Decimal(0),
     ) -> QuoteItem:
         item = QuoteItem(
             quote_id=quote_id,
             product_id=product_id,
             quantity=quantity,
             unit_price=unit_price,
+            discount_percent=discount_percent,
         )
         db.add(item)
         db.flush()

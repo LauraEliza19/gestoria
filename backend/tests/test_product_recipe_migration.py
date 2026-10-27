@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from alembic.config import Config
 from sqlalchemy import inspect, text
@@ -5,7 +7,6 @@ from sqlalchemy.orm import Session
 from test_fiscal_migration import migrated_database, seed
 
 from alembic import command
-from app.models import Product
 from app.models.production import Recipe
 
 
@@ -23,14 +24,40 @@ def test_link_migration_only_downgrades_without_links(monkeypatch):
             )
             db.add(recipe)
             db.flush()
-            db.add(
-                Product(
-                    organization_id=org,
-                    name="Pão francês",
-                    price=1,
-                    recipe_id=recipe.id,
-                )
+            db.execute(
+                text(
+                    """
+                    INSERT INTO products (
+                        id,
+                        organization_id,
+                        name,
+                        price,
+                        stock_quantity,
+                        is_active,
+                        recipe_id
+                    )
+                    VALUES (
+                        :id,
+                        :organization_id,
+                        :name,
+                        :price,
+                        :stock_quantity,
+                        :is_active,
+                        :recipe_id
+                    )
+                    """
+                ),
+                {
+                    "id": uuid.uuid4(),
+                    "organization_id": org,
+                    "name": "Pão francês",
+                    "price": 1,
+                    "stock_quantity": 0,
+                    "is_active": True,
+                    "recipe_id": recipe.id,
+                },
             )
+
             db.commit()
         with pytest.raises(RuntimeError, match="Product recipe downgrade blocked"):
             command.downgrade(Config("alembic.ini"), "0011_employee_records")

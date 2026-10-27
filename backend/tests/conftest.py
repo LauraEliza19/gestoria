@@ -114,6 +114,7 @@ def seed_test_data(db: Session) -> None:
         [
             Product(
                 organization_id=other_organization.id,
+                code="PRO-OTHER-001",
                 name="Produto privado da Empresa B",
                 price=10,
                 stock_quantity=1,
