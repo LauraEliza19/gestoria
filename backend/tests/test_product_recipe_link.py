@@ -120,6 +120,7 @@ def test_database_rejects_recipe_from_another_company(client, db):
     db.add(
         Product(
             organization_id=org,
+            code="PRO-INVALID-001",
             name="Produto inválido",
             price=1,
             recipe_id=uuid.UUID(foreign),

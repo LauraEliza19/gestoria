@@ -1216,3 +1216,88 @@ def test_customer_codes_are_independent_per_organization(
     assert customer_b["code"] == "CLI-000001"
     assert customer_a["organization_id"] != customer_b["organization_id"]
     assert customer_a["id"] != customer_b["id"]
+
+
+def test_product_codes_are_sequential_and_listed(client: TestClient) -> None:
+    headers = login(client)
+
+    first_response = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Primeiro",
+            "price": "10.00",
+            "stock_quantity": 5,
+        },
+    )
+    second_response = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Segundo",
+            "price": "20.00",
+            "stock_quantity": 8,
+        },
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    first = first_response.json()
+    second = second_response.json()
+
+    assert first["code"] == "PRO-000001"
+    assert second["code"] == "PRO-000002"
+
+    updated = client.patch(
+        f"/api/products/{first['id']}",
+        headers=headers,
+        json={"name": "Produto Primeiro Atualizado"},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["code"] == first["code"]
+
+    listed = client.get("/api/products", headers=headers)
+
+    assert listed.status_code == 200
+    codes_by_id = {product["id"]: product["code"] for product in listed.json()}
+    assert codes_by_id[first["id"]] == "PRO-000001"
+    assert codes_by_id[second["id"]] == "PRO-000002"
+
+
+def test_product_codes_are_independent_per_organization(
+    client: TestClient,
+) -> None:
+    company_a_headers = login(client)
+    company_b_headers = login(client, "empresa-b@gestoria.dev")
+
+    company_a_response = client.post(
+        "/api/products",
+        headers=company_a_headers,
+        json={
+            "name": "Produto da Empresa A",
+            "price": "15.00",
+            "stock_quantity": 3,
+        },
+    )
+    company_b_response = client.post(
+        "/api/products",
+        headers=company_b_headers,
+        json={
+            "name": "Produto da Empresa B",
+            "price": "18.00",
+            "stock_quantity": 4,
+        },
+    )
+
+    assert company_a_response.status_code == 201
+    assert company_b_response.status_code == 201
+
+    product_a = company_a_response.json()
+    product_b = company_b_response.json()
+
+    assert product_a["code"] == "PRO-000001"
+    assert product_b["code"] == "PRO-000001"
+    assert product_a["organization_id"] != product_b["organization_id"]
+    assert product_a["id"] != product_b["id"]

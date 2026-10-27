@@ -21,6 +21,7 @@ from app.services import (
     create_quote,
     update_quote_status,
 )
+from app.services.quote_serialization import quote_to_read
 from app.services.quotes import business_today
 
 
@@ -334,3 +335,84 @@ def test_quote_cannot_be_converted_twice(db: Session) -> None:
     db.refresh(quote)
     assert quote.status == "converted"
     assert quote.converted_order_id == first_order_id
+
+
+def test_quote_applies_item_and_general_discounts_and_preserves_total(
+    db: Session,
+) -> None:
+    organization = db.scalar(
+        select(Organization).where(Organization.slug == "empresa-a")
+    )
+    assert organization is not None
+
+    customer = CustomerRepository.create(
+        db,
+        organization.id,
+        {
+            "name": "Cliente Condições Comerciais",
+            "phone": "35922220001",
+        },
+    )
+
+    product = ProductRepository.create(
+        db,
+        organization.id,
+        {
+            "name": "Produto com Desconto",
+            "price": Decimal("100.00"),
+            "stock_quantity": Decimal(10),
+            "is_active": True,
+        },
+    )
+
+    quote = create_quote(
+        db,
+        organization.id,
+        customer.id,
+        business_today() + timedelta(days=7),
+        [
+            QuoteItemCreate(
+                product_id=product.id,
+                quantity=Decimal(2),
+                discount_percent=Decimal("10.00"),
+            )
+        ],
+        general_discount_percent=Decimal("5.00"),
+        payment_terms="installments",
+        installment_count=3,
+    )
+
+    assert quote.gross_amount == Decimal("200.00")
+    assert quote.discount_amount == Decimal("29.00")
+    assert quote.total_amount == Decimal("171.00")
+    assert quote.general_discount_percent == Decimal("5.00")
+    assert quote.payment_terms == "installments"
+    assert quote.installment_count == 3
+
+    assert len(quote.items) == 1
+    assert quote.items[0].unit_price == Decimal("100.00")
+    assert quote.items[0].discount_percent == Decimal("10.00")
+
+    quote_read = quote_to_read(quote)
+
+    assert quote_read.items[0].gross_amount == Decimal("200.00")
+    assert quote_read.items[0].discount_amount == Decimal("20.00")
+    assert quote_read.items[0].total_amount == Decimal("180.00")
+    assert quote_read.installment_amount == Decimal("57.00")
+
+    update_quote_status(db, quote, "approved")
+    converted_quote = convert_quote_to_order(db, quote)
+
+    assert converted_quote.converted_order_id is not None
+
+    order = OrderRepository.get_for_organization(
+        db,
+        converted_quote.converted_order_id,
+        organization.id,
+    )
+    assert order is not None
+    assert order.total_amount == Decimal("171.00")
+    assert order.items[0].unit_price == Decimal("85.50")
+
+    db.refresh(product)
+    assert product.stock_quantity == Decimal(8)

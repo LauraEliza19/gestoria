@@ -21,6 +21,7 @@ def test_product_status_is_derived_from_stock_and_active_flag(
 ) -> None:
     product = Product(
         organization_id=uuid.uuid4(),
+        code="PRO-MODEL-001",
         name="Café",
         price=Decimal("12.50"),
         stock_quantity=stock_quantity,

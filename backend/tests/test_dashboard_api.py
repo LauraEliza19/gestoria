@@ -78,6 +78,7 @@ def test_dashboard_returns_real_company_indicators(
         [
             Product(
                 organization_id=organization.id,
+                code="PRO-DASH-001",
                 name="Produto crítico",
                 price=Decimal("15.00"),
                 stock_quantity=Decimal(1),

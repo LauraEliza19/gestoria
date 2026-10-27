@@ -60,6 +60,7 @@ def main():
         )
         product = Product(
             organization_id=org.id,
+            code="PRO-BENCH-001",
             name="Produto sintético",
             price=12.50,
             stock_quantity=args.iterations + 10,

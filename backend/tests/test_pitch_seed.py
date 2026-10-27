@@ -107,6 +107,23 @@ def test_pitch_seed_is_idempotent(db: Session) -> None:
     }
     assert organization.next_customer_code == 5
 
+    product_codes = set(
+        db.scalars(
+            select(Product.code).where(
+                Product.organization_id == organization.id,
+            )
+        )
+    )
+
+    assert product_codes == {
+        "PRO-000001",
+        "PRO-000002",
+        "PRO-000003",
+        "PRO-000004",
+        "PRO-000005",
+    }
+    assert organization.next_product_code == 6
+
     order_ids = select(Order.id).where(
         Order.organization_id == organization.id,
     )
