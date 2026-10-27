@@ -10,18 +10,18 @@ from app.api.dependencies import (
     require_finance_manage,
     require_finance_read,
 )
+from app.models import FinanceAuditEvent, User
 from app.repositories import FinanceCategoryRepository, FinanceEntryRepository
 from app.schemas import (
     FinanceCategoryCreate,
     FinanceCategoryRead,
     FinanceCategoryUpdate,
     FinanceEntryCreate,
-    FinanceEntryRead,
     FinanceEntryHistoryRead,
+    FinanceEntryRead,
     FinanceEntryUpdate,
     FinanceSummaryRead,
 )
-from app.models import FinanceAuditEvent, User
 from app.services import (
     DuplicateFinanceCategoryError,
     FinanceCategoryUnavailableError,
@@ -45,11 +45,19 @@ def list_categories(db: DatabaseSession, current: CurrentUser):
     return FinanceCategoryRepository.list_for_organization(db, current.organization.id)
 
 
-@router.post("/categories", response_model=FinanceCategoryRead, status_code=status.HTTP_201_CREATED)
-def create_category_route(payload: FinanceCategoryCreate, db: DatabaseSession, current: CurrentUser):
+@router.post(
+    "/categories",
+    response_model=FinanceCategoryRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_category_route(
+    payload: FinanceCategoryCreate, db: DatabaseSession, current: CurrentUser
+):
     require_finance_manage(current)
     try:
-        return create_category(db, current.organization.id, current.user.id, payload.model_dump())
+        return create_category(
+            db, current.organization.id, current.user.id, payload.model_dump()
+        )
     except DuplicateFinanceCategoryError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -66,13 +74,22 @@ def get_category(category_id: uuid.UUID, db: DatabaseSession, current: CurrentUs
 
 
 @router.patch("/categories/{category_id}", response_model=FinanceCategoryRead)
-def update_category_route(category_id: uuid.UUID, payload: FinanceCategoryUpdate, db: DatabaseSession, current: CurrentUser):
+def update_category_route(
+    category_id: uuid.UUID,
+    payload: FinanceCategoryUpdate,
+    db: DatabaseSession,
+    current: CurrentUser,
+):
     require_finance_manage(current)
-    category = FinanceCategoryRepository.get_for_organization(db, category_id, current.organization.id)
+    category = FinanceCategoryRepository.get_for_organization(
+        db, category_id, current.organization.id
+    )
     if category is None:
         raise not_found("Categoria")
     try:
-        return update_category(db, category, current.user.id, payload.model_dump(exclude_unset=True))
+        return update_category(
+            db, category, current.user.id, payload.model_dump(exclude_unset=True)
+        )
     except DuplicateFinanceCategoryError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -84,21 +101,34 @@ def list_entries(
     start_date: date | None = None,
     end_date: date | None = None,
     entry_type: str | None = Query(default=None, pattern="^(income|expense)$"),
-    status_filter: str | None = Query(default=None, alias="status", pattern="^(pending|paid|cancelled)$"),
+    status_filter: str | None = Query(
+        default=None, alias="status", pattern="^(pending|paid|cancelled)$"
+    ),
     category_id: uuid.UUID | None = None,
 ):
     require_finance_read(current)
     return FinanceEntryRepository.list_for_organization(
-        db, current.organization.id, start_date=start_date, end_date=end_date,
-        entry_type=entry_type, status=status_filter, category_id=category_id,
+        db,
+        current.organization.id,
+        start_date=start_date,
+        end_date=end_date,
+        entry_type=entry_type,
+        status=status_filter,
+        category_id=category_id,
     )
 
 
-@router.post("/entries", response_model=FinanceEntryRead, status_code=status.HTTP_201_CREATED)
-def create_entry_route(payload: FinanceEntryCreate, db: DatabaseSession, current: CurrentUser):
+@router.post(
+    "/entries", response_model=FinanceEntryRead, status_code=status.HTTP_201_CREATED
+)
+def create_entry_route(
+    payload: FinanceEntryCreate, db: DatabaseSession, current: CurrentUser
+):
     require_finance_manage(current)
     try:
-        return create_entry(db, current.organization.id, current.user.id, payload.model_dump())
+        return create_entry(
+            db, current.organization.id, current.user.id, payload.model_dump()
+        )
     except FinanceCategoryUnavailableError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -106,7 +136,9 @@ def create_entry_route(payload: FinanceEntryCreate, db: DatabaseSession, current
 @router.get("/entries/{entry_id}/history", response_model=list[FinanceEntryHistoryRead])
 def get_entry_history(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
     require_finance_read(current)
-    entry = FinanceEntryRepository.get_for_organization(db, entry_id, current.organization.id)
+    entry = FinanceEntryRepository.get_for_organization(
+        db, entry_id, current.organization.id
+    )
     if entry is None:
         raise not_found("Lançamento")
     events = db.execute(
@@ -138,14 +170,16 @@ def get_entry_history(entry_id: uuid.UUID, db: DatabaseSession, current: Current
                 if field != "version"
             }
             version = int(document.get("version", 1))
-        result.append({
-            "id": event.id,
-            "event_type": event.event_type,
-            "actor_name": actor_name,
-            "created_at": event.created_at,
-            "version": version,
-            "changes": changes,
-        })
+        result.append(
+            {
+                "id": event.id,
+                "event_type": event.event_type,
+                "actor_name": actor_name,
+                "created_at": event.created_at,
+                "version": version,
+                "changes": changes,
+            }
+        )
     result.sort(key=lambda event: event["version"], reverse=True)
     return result
 
@@ -162,18 +196,27 @@ def get_entry(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
 
 
 @router.patch("/entries/{entry_id}", response_model=FinanceEntryRead)
-def update_entry_route(entry_id: uuid.UUID, payload: FinanceEntryUpdate, db: DatabaseSession, current: CurrentUser):
+def update_entry_route(
+    entry_id: uuid.UUID,
+    payload: FinanceEntryUpdate,
+    db: DatabaseSession,
+    current: CurrentUser,
+):
     require_finance_manage(current)
     if payload.expected_version is None:
         raise HTTPException(
             status_code=422,
             detail="expected_version é obrigatório para atualizar um lançamento.",
         )
-    entry = FinanceEntryRepository.get_for_organization(db, entry_id, current.organization.id, for_update=True)
+    entry = FinanceEntryRepository.get_for_organization(
+        db, entry_id, current.organization.id, for_update=True
+    )
     if entry is None:
         raise not_found("Lançamento")
     try:
-        return update_entry(db, entry, current.user.id, payload.model_dump(exclude_unset=True))
+        return update_entry(
+            db, entry, current.user.id, payload.model_dump(exclude_unset=True)
+        )
     except FinanceCategoryUnavailableError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except FinanceEntryConflictError as exc:
@@ -183,7 +226,9 @@ def update_entry_route(entry_id: uuid.UUID, payload: FinanceEntryUpdate, db: Dat
                 "code": "finance_entry_conflict",
                 "message": str(exc),
                 "expected_version": exc.expected_version,
-                "current": FinanceEntryRead.model_validate(exc.entry).model_dump(mode="json"),
+                "current": FinanceEntryRead.model_validate(exc.entry).model_dump(
+                    mode="json"
+                ),
             },
         ) from exc
 
@@ -199,6 +244,10 @@ def financial_summary(
 ):
     require_finance_read(current)
     return FinanceEntryRepository.summary(
-        db, current.organization.id, start_date=start_date, end_date=end_date,
-        entry_type=entry_type, category_id=category_id,
+        db,
+        current.organization.id,
+        start_date=start_date,
+        end_date=end_date,
+        entry_type=entry_type,
+        category_id=category_id,
     )

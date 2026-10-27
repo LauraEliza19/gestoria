@@ -3,7 +3,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.api.dependencies import CurrentUser, DatabaseSession, require_role
+from app.api.dependencies import (
+    CurrentUser,
+    DatabaseSession,
+    require_employee_record_access,
+)
 from app.repositories import EmployeeRecordRepository, EmployeeRepository
 from app.schemas import (
     EmployeeRecordCancel,
@@ -77,7 +81,7 @@ def list_employee_records(
     record_status: EmployeeRecordStatusFilter = None,
     record_type: EmployeeRecordType | None = None,
 ) -> list[EmployeeRecordSummaryRead]:
-    require_role(current, {"owner", "admin"})
+    require_employee_record_access(db, current, "list")
 
     employee = EmployeeRepository.get_for_organization(
         db,
@@ -108,7 +112,7 @@ def create_employee_record_route(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> EmployeeRecordRead:
-    require_role(current, {"owner", "admin"})
+    require_employee_record_access(db, current, "create")
 
     employee = EmployeeRepository.get_for_organization(
         db,
@@ -140,7 +144,7 @@ def get_employee_record(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> EmployeeRecordRead:
-    require_role(current, {"owner", "admin"})
+    require_employee_record_access(db, current, "read")
 
     employee_record = EmployeeRecordRepository.get_for_organization(
         db,
@@ -164,7 +168,7 @@ def update_employee_record_route(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> EmployeeRecordRead:
-    require_role(current, {"owner", "admin"})
+    require_employee_record_access(db, current, "update")
 
     employee_record = EmployeeRecordRepository.get_for_organization(
         db,
@@ -199,7 +203,7 @@ def resolve_employee_record_route(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> EmployeeRecordRead:
-    require_role(current, {"owner", "admin"})
+    require_employee_record_access(db, current, "resolve")
 
     employee_record = EmployeeRecordRepository.get_for_organization(
         db,
@@ -234,7 +238,7 @@ def cancel_employee_record_route(
     db: DatabaseSession,
     current: CurrentUser,
 ) -> EmployeeRecordRead:
-    require_role(current, {"owner", "admin"})
+    require_employee_record_access(db, current, "cancel")
 
     employee_record = EmployeeRecordRepository.get_for_organization(
         db,

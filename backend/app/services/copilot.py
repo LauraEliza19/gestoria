@@ -1,108 +1,62 @@
+import time
 import unicodedata
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
+from types import MappingProxyType
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.repositories import CopilotRepository
 from app.schemas.copilot import (
     CopilotActionRead,
+    CopilotAuditStatus,
+    CopilotAuditWrite,
     CopilotChatResponse,
     CopilotConfirmationRead,
     CopilotIntent,
     CopilotItemRead,
+    CopilotNoArguments,
+    CopilotOrdersArguments,
+    CopilotOrdersResult,
+    CopilotProviderRequest,
+    CopilotProviderResponse,
     CopilotToolRead,
 )
+from app.services.copilot_audit import record_tool_audit
+from app.services.copilot_provider import GUIDED_RESPONSES, CopilotAIProvider
+from app.services.copilot_rate_limit import consume_copilot_request
 
-GUIDED_RESPONSES: dict[CopilotIntent, tuple[str, str, str, str]] = {
-    "daily_priorities": (
-        (
-            "A consulta automática de prioridades ainda não está disponível. "
-            "Use a visão geral para acompanhar os principais indicadores."
-        ),
-        "open-dashboard",
-        "Abrir visão geral",
-        "/dashboard",
-    ),
-    "critical_stock": (
-        (
-            "A consulta automática de estoque crítico ainda não está disponível. "
-            "Confira os saldos e alertas no cadastro de produtos."
-        ),
-        "open-products",
-        "Abrir produtos",
-        "/produtos",
-    ),
-    "quotes_follow_up": (
-        (
-            "A consulta automática de orçamentos ainda não está disponível. "
-            "Confira propostas pendentes e seus vencimentos no módulo de orçamentos."
-        ),
-        "open-quotes",
-        "Abrir orçamentos",
-        "/orcamentos",
-    ),
-    "fiscal_attention": (
-        (
-            "A consulta automática fiscal ainda não está disponível. "
-            "Confira documentos em processamento ou rejeitados no módulo fiscal."
-        ),
-        "open-fiscal",
-        "Abrir notas fiscais",
-        "/notas-fiscais",
-    ),
-    "production_availability": (
-        (
-            "A consulta automática de disponibilidade ainda não está disponível no Copiloto. "
-            "O painel de produção mostra receitas disponíveis e insumos faltantes."
-        ),
-        "open-production",
-        "Abrir modo produção",
-        "/modo-fabrica",
-    ),
-    "sales_today": (
-        (
-            "A consulta automática de vendas do dia ainda não está disponível. "
-            "Use a visão geral para acompanhar os resultados da operação."
-        ),
-        "open-dashboard",
-        "Abrir visão geral",
-        "/dashboard",
-    ),
-    "top_customers": (
-        (
-            "A consulta automática dos principais clientes ainda não está disponível. "
-            "Acesse clientes para consultar históricos e valores."
-        ),
-        "open-customers",
-        "Abrir clientes",
-        "/clientes",
-    ),
-    "active_employees": (
-        (
-            "A consulta automática de funcionários ainda não está disponível. "
-            "Use a Gestão Interna para consultar a equipe."
-        ),
-        "open-employees",
-        "Abrir funcionários",
-        "/gestao/funcionarios",
-    ),
-    "cost_centers_summary": (
-        (
-            "A consulta automática de centros de custo ainda não está disponível. "
-            "Use a Gestão Interna para consultar as áreas cadastradas."
-        ),
-        "open-cost-centers",
-        "Abrir centros de custo",
-        "/gestao/centros-de-custo",
-    ),
-}
 
-MANAGEMENT_INTENTS = {
-    "active_employees",
-    "cost_centers_summary",
-}
+@dataclass(frozen=True)
+class CopilotToolDefinition:
+    arguments_schema: type[CopilotNoArguments] | type[CopilotOrdersArguments]
+    requires_admin: bool = False
+
+
+# Closed policy registry. A provider cannot select or register a tool, invent
+# arguments, change roles or supply organization_id. Unknown prompts only guide.
+COPILOT_TOOLS = MappingProxyType(
+    {
+        "daily_priorities": CopilotToolDefinition(CopilotNoArguments),
+        "orders_in_preparation": CopilotToolDefinition(CopilotOrdersArguments),
+        "critical_stock": CopilotToolDefinition(CopilotNoArguments),
+        "quotes_follow_up": CopilotToolDefinition(CopilotNoArguments),
+        "fiscal_attention": CopilotToolDefinition(CopilotNoArguments),
+        "production_availability": CopilotToolDefinition(CopilotNoArguments),
+        "sales_today": CopilotToolDefinition(CopilotNoArguments, requires_admin=True),
+        "top_customers": CopilotToolDefinition(CopilotNoArguments),
+        "active_employees": CopilotToolDefinition(
+            CopilotNoArguments, requires_admin=True
+        ),
+        "cost_centers_summary": CopilotToolDefinition(
+            CopilotNoArguments, requires_admin=True
+        ),
+    }
+)
 
 
 def normalize_prompt(message: str) -> str:
@@ -199,86 +153,20 @@ def build_response(
     )
 
 
-def answer_orders_in_preparation(
-    db: Session,
-    organization_id: uuid.UUID,
-) -> CopilotChatResponse:
-    total, orders = CopilotRepository.list_orders_in_preparation(
-        db,
-        organization_id,
-    )
+def _reject_secret_output(response: CopilotChatResponse) -> None:
+    secret = settings.copilot_api_key.get_secret_value()
 
-    items = [
-        CopilotItemRead(
-            id=order.id,
-            title=order.customer.name,
-            description=(
-                f"Pedido {str(order.id)[:8].upper()} · "
-                f"{format_currency(order.total_amount)} · "
-                f"{order.created_at.strftime('%d/%m/%Y %H:%M')}"
-            ),
-            path="/pedidos",
-        )
-        for order in orders
-    ]
+    def contains_secret(value):
+        if isinstance(value, str):
+            return secret in value
+        if isinstance(value, dict):
+            return any(contains_secret(item) for item in value.values())
+        if isinstance(value, list | tuple):
+            return any(contains_secret(item) for item in value)
+        return False
 
-    if total == 0:
-        message = "Não há pedidos em preparo neste momento."
-        tool_status = "empty"
-    elif total == 1:
-        message = "Existe 1 pedido em preparo."
-        tool_status = "success"
-    else:
-        message = f"Existem {total} pedidos em preparo."
-        tool_status = "success"
-
-    return build_response(
-        intent="orders_in_preparation",
-        status="answered",
-        message=message,
-        tool=CopilotToolRead(
-            name="orders_in_preparation",
-            status=tool_status,
-        ),
-        items=items,
-        actions=[
-            build_action(
-                "open-orders",
-                "Abrir pedidos",
-                "/pedidos",
-            )
-        ],
-    )
-
-
-def answer_guided_intent(
-    intent: CopilotIntent,
-    role: str,
-) -> CopilotChatResponse:
-    if intent in MANAGEMENT_INTENTS and role not in {"owner", "admin"}:
-        return build_response(
-            intent=intent,
-            status="guided",
-            message=(
-                "Esta consulta pertence à Gestão Interna e exige permissão "
-                "de proprietário ou administrador."
-            ),
-        )
-
-    message, action_id, action_label, path = GUIDED_RESPONSES[intent]
-
-    return build_response(
-        intent=intent,
-        status="guided",
-        message=message,
-        actions=[
-            build_action(
-                action_id,
-                action_label,
-                path,
-            )
-        ],
-    )
+    if secret and contains_secret(response.model_dump(mode="json")):
+        raise ValueError("Resposta do provedor recusada.")
 
 
 def answer_copilot(
@@ -286,31 +174,111 @@ def answer_copilot(
     organization_id: uuid.UUID,
     role: str,
     message: str,
+    *,
+    user_id: uuid.UUID,
+    provider: CopilotAIProvider,
 ) -> CopilotChatResponse:
+    started = time.perf_counter()
     intent = recognize_intent(message)
+    definition = COPILOT_TOOLS.get(intent)
+    arguments = definition.arguments_schema() if definition else CopilotNoArguments()
 
-    if intent == "orders_in_preparation":
-        return answer_orders_in_preparation(
+    def audit(status: CopilotAuditStatus) -> None:
+        record_tool_audit(
             db,
-            organization_id,
+            organization_id=organization_id,
+            user_id=user_id,
+            entry=CopilotAuditWrite(
+                question_id=intent,
+                tool_name=intent,
+                input_payload=arguments,
+                status=status,
+                execution_time_ms=min(
+                    2147483647, max(0, int((time.perf_counter() - started) * 1000))
+                ),
+            ),
         )
 
-    if intent in GUIDED_RESPONSES:
-        return answer_guided_intent(intent, role)
+    try:
+        consume_copilot_request(db, organization_id=organization_id, user_id=user_id)
+    except HTTPException as exc:
+        if exc.status_code != 429:
+            raise
+        audit("rate_limited")
+        raise
+    except Exception:  # noqa: BLE001 -- fail closed without leaking plugin/DB errors
+        db.rollback()
+        audit("error")
+        raise HTTPException(
+            503, "Copiloto indisponível. Tente novamente mais tarde."
+        ) from None
 
-    return build_response(
-        intent="unknown",
-        status="guided",
-        message=(
-            "Ainda não reconheço essa pergunta. Posso orientar consultas sobre "
-            "pedidos, estoque, orçamentos, notas fiscais, produção, vendas, "
-            "clientes, funcionários e centros de custo."
-        ),
-        actions=[
-            build_action(
-                "open-dashboard",
-                "Abrir visão geral",
-                "/dashboard",
+    if definition and definition.requires_admin and role not in {"owner", "admin"}:
+        audit("denied")
+        raise HTTPException(
+            403,
+            "Esta consulta exige permissão de proprietário ou administrador.",
+        )
+
+    try:
+        items = []
+        tool = None
+        order_count = None
+        if intent == "orders_in_preparation" and intent in COPILOT_TOOLS:
+            # Validate tool inputs before touching the repository, then validate
+            # its output before constructing either provider or HTTP payloads.
+            tool_arguments = CopilotOrdersArguments.model_validate(arguments)
+            result = CopilotOrdersResult.model_validate(
+                CopilotRepository.list_orders_in_preparation(
+                    db, organization_id=organization_id, arguments=tool_arguments
+                )
             )
-        ],
-    )
+            order_count = result.total
+            items = [
+                CopilotItemRead(
+                    id=order.id,
+                    title=order.customer_name,
+                    description=(
+                        f"Pedido {str(order.id)[:8].upper()} · "
+                        f"{format_currency(order.total_amount)} · "
+                        f"{order.created_at.strftime('%d/%m/%Y %H:%M')}"
+                    ),
+                    path="/pedidos",
+                )
+                for order in result.orders
+            ]
+            tool = CopilotToolRead(
+                name="orders_in_preparation",
+                status="empty" if result.total == 0 else "success",
+            )
+            action = ("open-orders", "Abrir pedidos", "/pedidos")
+        elif intent in COPILOT_TOOLS and intent in GUIDED_RESPONSES:
+            action = GUIDED_RESPONSES[intent][1:]
+        else:
+            intent = "unknown"
+            action = ("open-dashboard", "Abrir visão geral", "/dashboard")
+
+        context = CopilotProviderRequest(intent=intent, order_count=order_count)
+        presentation = CopilotProviderResponse.model_validate(
+            provider.generate_response(context)
+        )
+        response = build_response(
+            intent=intent,
+            status="answered" if tool else "guided",
+            message=presentation.message,
+            tool=tool,
+            items=items,
+            actions=[build_action(*action)],
+        )
+        _reject_secret_output(response)
+    except Exception:  # noqa: BLE001 -- fail closed without leaking plugin/DB errors
+        # Roll back failed database work before writing a durable error event.
+        # Never persist the prompt, provider output, SQL or exception text.
+        db.rollback()
+        audit("error")
+        raise HTTPException(
+            503, "Copiloto indisponível. Tente novamente mais tarde."
+        ) from None
+
+    audit("executed")
+    return response

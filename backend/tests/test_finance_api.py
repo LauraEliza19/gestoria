@@ -91,7 +91,10 @@ def test_finance_summary_filters_and_audit(client: TestClient, db: Session) -> N
         "category_created",
         "entry_created",
     }
-    assert all(event.organization_id == audit_events[0].organization_id for event in audit_events)
+    assert all(
+        event.organization_id == audit_events[0].organization_id
+        for event in audit_events
+    )
 
 
 def test_finance_entry_rejects_stale_form_version(client: TestClient) -> None:
@@ -153,13 +156,19 @@ def test_finance_isolation_and_member_permission(
     category = create_category(client, owner_headers, "Privada")
     entry = create_entry(client, owner_headers, category["id"])
 
-    assert client.get("/api/finance/categories", headers=member_headers).status_code == 403
+    assert (
+        client.get("/api/finance/categories", headers=member_headers).status_code == 403
+    )
     assert client.get("/api/finance/entries", headers=member_headers).status_code == 403
-    assert client.patch(
-        f"/api/finance/entries/{entry['id']}",
-        headers=member_headers,
-        json={"description": "Acesso indevido"},
-    ).status_code == 403
+    assert (
+        client.patch(
+            f"/api/finance/entries/{entry['id']}",
+            headers=member_headers,
+            json={"description": "Acesso indevido"},
+        ).status_code
+        == 403
+    )
+
 
 def test_finance_member_approved_can_read_but_not_manage(
     client: TestClient,
@@ -170,17 +179,22 @@ def test_finance_member_approved_can_read_but_not_manage(
     category = create_category(client, owner_headers, "Leitura")
     create_entry(client, owner_headers, category["id"])
 
-    member = db.scalar(select(OrganizationMember).where(OrganizationMember.role == "member"))
+    member = db.scalar(
+        select(OrganizationMember).where(OrganizationMember.role == "member")
+    )
     assert member is not None
     member.finance_access_approved = True
     db.commit()
 
     assert client.get("/api/finance/entries", headers=member_headers).status_code == 200
-    assert client.post(
-        "/api/finance/categories",
-        headers=member_headers,
-        json={"name": "Sem gerenciamento"},
-    ).status_code == 403
+    assert (
+        client.post(
+            "/api/finance/categories",
+            headers=member_headers,
+            json={"name": "Sem gerenciamento"},
+        ).status_code
+        == 403
+    )
 
 
 def test_finance_rejects_cross_organization_category_and_invalid_amount(
@@ -242,10 +256,13 @@ def test_finance_duplicate_category_rolls_back_without_audit(
     assert db.scalars(
         select(FinanceCategory).where(FinanceCategory.name == "Única")
     ).one()
-    assert len(
-        db.scalars(
-            select(FinanceAuditEvent).where(
-                FinanceAuditEvent.event_type == "category_created"
-            )
-        ).all()
-    ) == 1
+    assert (
+        len(
+            db.scalars(
+                select(FinanceAuditEvent).where(
+                    FinanceAuditEvent.event_type == "category_created"
+                )
+            ).all()
+        )
+        == 1
+    )
