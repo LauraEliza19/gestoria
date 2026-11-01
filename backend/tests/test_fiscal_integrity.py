@@ -497,3 +497,18 @@ def test_item_failure_rolls_back_document_and_audit(client, db, monkeypatch):
     assert client.post(URL, headers=h, json=outgoing(order)).status_code == 409
     for model in (FiscalDocument, FiscalDocumentItem, FiscalEvent):
         assert db.scalar(select(func.count()).select_from(model)) == 0
+
+
+def test_history_exposes_actor_name_and_email_instead_of_only_uuid(client):
+    h, _customer, _product, order = setup_sale(client)
+    me = client.get("/api/auth/me", headers=h).json()
+    doc = create(client, h, outgoing(order, number="901"))
+    event = doc["events"][0]
+    assert event["actor_id"] == me["id"]
+    assert event["actor_name"] == me["full_name"]
+    assert event["actor_email"] == me["email"]
+    assert doc["created_by_name"] == me["full_name"]
+    assert doc["created_by_email"] == me["email"]
+    listed = client.get(URL, headers=h).json()
+    same = next(item for item in listed if item["id"] == doc["id"])
+    assert same["events"][0]["actor_name"] == me["full_name"]

@@ -74,8 +74,14 @@ export function FiscalModal({
       >
         <header className="fiscal-modal-header">
           <h2 id="fiscal-modal-title">{title}</h2>
-          <button className="detail-close" type="button" aria-label="Fechar" onClick={onClose}>
-            <X size={20} />
+          <button
+            className="detail-close"
+            type="button"
+            aria-label="Fechar janela"
+            title="Fechar (Esc)"
+            onClick={onClose}
+          >
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
 

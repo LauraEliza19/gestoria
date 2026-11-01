@@ -37,6 +37,7 @@ export function FiscalToolbar({
           className="secondary-button"
           disabled={!hasSelection}
           type="button"
+          title="Imprimir DANFE simplificado das notas selecionadas"
           onClick={onPrint}
         >
           <Printer size={16} aria-hidden="true" />
@@ -47,6 +48,7 @@ export function FiscalToolbar({
           className="secondary-button"
           disabled={!hasSelection}
           type="button"
+          title="Copiar as chaves de acesso das notas selecionadas"
           onClick={onCopyKeys}
         >
           <Copy size={16} aria-hidden="true" />
