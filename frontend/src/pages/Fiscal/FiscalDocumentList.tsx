@@ -130,6 +130,13 @@ export function FiscalDocumentList({
       >
         {label}
         <Icon size={13} aria-hidden="true" />
+        <span className="sr-only">
+          {active
+            ? sort.direction === 'asc'
+              ? ' (ordem crescente)'
+              : ' (ordem decrescente)'
+            : ' (clique para ordenar)'}
+        </span>
       </button>
     )
   }
@@ -222,14 +229,18 @@ export function FiscalDocumentList({
                   <small>{formatFiscalTime(lastIteration)}</small>
                 </span>
 
-                <span className="fiscal-options">
+                <span
+                  className="fiscal-options"
+                  role="group"
+                  aria-label={`Opções da NF ${document.number}`}
+                >
                   <button
                     type="button"
                     title="Detalhes da nota"
                     aria-label={`Detalhes da NF ${document.number}`}
                     onClick={() => onOpen(document, 'details')}
                   >
-                    <Search size={16} />
+                    <Search size={16} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -237,7 +248,7 @@ export function FiscalDocumentList({
                     aria-label={`Visualizar DANFE da NF ${document.number}`}
                     onClick={() => onOpen(document, 'danfe')}
                   >
-                    <FileText size={16} />
+                    <FileText size={16} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -245,7 +256,7 @@ export function FiscalDocumentList({
                     aria-label={`Histórico da NF ${document.number}`}
                     onClick={() => onOpen(document, 'history')}
                   >
-                    <History size={16} />
+                    <History size={16} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -253,7 +264,7 @@ export function FiscalDocumentList({
                     aria-label={`Ciclo de vida da NF ${document.number}`}
                     onClick={() => onOpen(document, 'lifecycle')}
                   >
-                    <Waypoints size={16} />
+                    <Waypoints size={16} aria-hidden="true" />
                   </button>
                   {canEdit && document.allowed_statuses.length > 0 && (
                     <button
@@ -262,13 +273,17 @@ export function FiscalDocumentList({
                       aria-label={`Atualizar situação da NF ${document.number}`}
                       onClick={() => onOpen(document, 'details', 'actions')}
                     >
-                      <PenLine size={16} />
+                      <PenLine size={16} aria-hidden="true" />
                     </button>
                   )}
                 </span>
 
                 <span className="fiscal-status-cell">
-                  <span className="fiscal-steps">
+                  <span
+                    className="fiscal-steps"
+                    role="list"
+                    aria-label={`Etapas da NF ${document.number}`}
+                  >
                     {fiscalSteps(document).map((step) => {
                       const Icon = STEP_ICONS[step.state]
 
@@ -278,7 +293,7 @@ export function FiscalDocumentList({
                           className={`fiscal-step fiscal-step-${step.state}`}
                           title={`${step.label}: ${step.detail}`}
                           aria-label={`${step.label}: ${step.detail}`}
-                          role="img"
+                          role="listitem"
                         >
                           <Icon size={14} strokeWidth={3} aria-hidden="true" />
                         </span>
@@ -297,18 +312,20 @@ export function FiscalDocumentList({
             <button
               type="button"
               aria-label="Primeira página"
+              title="Primeira página"
               disabled={currentPage === 1}
               onClick={() => setPage(1)}
             >
-              <ChevronsLeft size={16} />
+              <ChevronsLeft size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
               aria-label="Página anterior"
+              title="Página anterior"
               disabled={currentPage === 1}
               onClick={() => setPage(currentPage - 1)}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
             <span>
               {currentPage} / {pageCount}
@@ -316,18 +333,20 @@ export function FiscalDocumentList({
             <button
               type="button"
               aria-label="Próxima página"
+              title="Próxima página"
               disabled={currentPage === pageCount}
               onClick={() => setPage(currentPage + 1)}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
               aria-label="Última página"
+              title="Última página"
               disabled={currentPage === pageCount}
               onClick={() => setPage(pageCount)}
             >
-              <ChevronsRight size={16} />
+              <ChevronsRight size={16} aria-hidden="true" />
             </button>
 
             <select

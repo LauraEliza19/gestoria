@@ -395,3 +395,376 @@ export function downloadTextFile(filename: string, content: string, mime: string
   link.click()
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+// ---------------------------------------------------------------------------
+// Validação e formatação de documentos (CPF/CNPJ), CEP, telefone e unidades.
+// ---------------------------------------------------------------------------
+
+export function onlyDigits(value: string | null | undefined): string {
+  return (value || '').replace(/\D/g, '')
+}
+
+function allSameDigits(digits: string): boolean {
+  return /^(\d)\1+$/.test(digits)
+}
+
+export function isValidCpf(value: string | null | undefined): boolean {
+  const digits = onlyDigits(value)
+
+  if (digits.length !== 11 || allSameDigits(digits)) {
+    return false
+  }
+
+  const checkDigit = (length: number) => {
+    let sum = 0
+    for (let index = 0; index < length; index += 1) {
+      sum += Number(digits[index]) * (length + 1 - index)
+    }
+    const rest = (sum * 10) % 11
+    return rest === 10 ? 0 : rest
+  }
+
+  return checkDigit(9) === Number(digits[9]) && checkDigit(10) === Number(digits[10])
+}
+
+export function isValidCnpj(value: string | null | undefined): boolean {
+  const digits = onlyDigits(value)
+
+  if (digits.length !== 14 || allSameDigits(digits)) {
+    return false
+  }
+
+  const checkDigit = (length: number) => {
+    const weights =
+      length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    const sum = weights.reduce((total, weight, index) => total + Number(digits[index]) * weight, 0)
+    const rest = sum % 11
+    return rest < 2 ? 0 : 11 - rest
+  }
+
+  return checkDigit(12) === Number(digits[12]) && checkDigit(13) === Number(digits[13])
+}
+
+// Retorna a mensagem de erro do CPF/CNPJ ou string vazia quando o documento é válido.
+export function taxIdError(value: string | null | undefined): string {
+  const digits = onlyDigits(value)
+
+  if (!digits) {
+    return 'Informe o CPF ou CNPJ.'
+  }
+
+  if (digits.length !== 11 && digits.length !== 14) {
+    return `Quantidade de dígitos inválida (${digits.length}). CPF tem 11 dígitos e CNPJ tem 14.`
+  }
+
+  if (digits.length === 11 && !isValidCpf(digits)) {
+    return 'CPF inválido: confira os dígitos verificadores.'
+  }
+
+  if (digits.length === 14 && !isValidCnpj(digits)) {
+    return 'CNPJ inválido: confira os dígitos verificadores.'
+  }
+
+  return ''
+}
+
+export function isValidTaxId(value: string | null | undefined): boolean {
+  return taxIdError(value) === ''
+}
+
+// Máscara progressiva para digitação: até 11 dígitos usa CPF, acima disso CNPJ.
+export function maskTaxIdInput(value: string): string {
+  const digits = onlyDigits(value).slice(0, 14)
+
+  if (digits.length <= 11) {
+    return digits
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
+  }
+
+  return digits
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+}
+
+export function formatCep(value: string | null | undefined): string {
+  const digits = onlyDigits(value)
+  return digits.length === 8 ? digits.replace(/(\d{5})(\d{3})/, '$1-$2') : value || ''
+}
+
+export function formatPhone(value: string | null | undefined): string {
+  let digits = onlyDigits(value)
+
+  if (digits.length > 11 && digits.startsWith('55')) {
+    digits = digits.slice(2)
+  }
+
+  if (digits.length === 11) {
+    return digits.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+
+  if (digits.length === 10) {
+    return digits.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  }
+
+  if (digits.length === 9) {
+    return digits.replace(/(\d{5})(\d{4})/, '$1-$2')
+  }
+
+  if (digits.length === 8) {
+    return digits.replace(/(\d{4})(\d{4})/, '$1-$2')
+  }
+
+  return value || ''
+}
+
+export const FISCAL_UNITS = ['un', 'kg', 'g', 'l'] as const
+
+const UNIT_ALIASES: Record<string, string> = {
+  un: 'un',
+  und: 'un',
+  unid: 'un',
+  unit: 'un',
+  units: 'un',
+  unidade: 'un',
+  unidades: 'un',
+  pc: 'un',
+  pç: 'un',
+  peca: 'un',
+  peça: 'un',
+  kg: 'kg',
+  kgs: 'kg',
+  quilo: 'kg',
+  quilos: 'kg',
+  quilograma: 'kg',
+  quilogramas: 'kg',
+  kilograma: 'kg',
+  g: 'g',
+  gr: 'g',
+  grs: 'g',
+  grama: 'g',
+  gramas: 'g',
+  l: 'l',
+  lt: 'l',
+  lts: 'l',
+  litro: 'l',
+  litros: 'l',
+}
+
+// Padroniza a unidade de medida para exibição: un, kg, g ou l.
+export function formatUnit(value: string | null | undefined): string {
+  const key = (value || '').trim().toLowerCase().replace(/\.$/, '')
+
+  if (!key) {
+    return 'un'
+  }
+
+  return UNIT_ALIASES[key] || key
+}
+
+export const FISCAL_UNIT_NAMES: Record<string, string> = {
+  un: 'unidade',
+  kg: 'quilograma',
+  g: 'grama',
+  l: 'litro',
+}
+
+// ---------------------------------------------------------------------------
+// Chave de acesso, CFOP e campos obrigatórios do formulário.
+// ---------------------------------------------------------------------------
+
+export const ACCESS_KEY_LENGTH = 44
+
+export function accessKeyError(value: string | null | undefined): string {
+  const digits = onlyDigits(value)
+
+  if (!value) {
+    return ''
+  }
+
+  if (digits.length !== (value || '').length) {
+    return 'A chave de acesso deve conter somente números.'
+  }
+
+  if (digits.length !== ACCESS_KEY_LENGTH) {
+    return `A chave de acesso deve ter 44 dígitos (informados: ${digits.length}).`
+  }
+
+  return ''
+}
+
+export function cfopError(value: string | null | undefined): string {
+  const text = (value || '').trim()
+
+  if (!text) {
+    return ''
+  }
+
+  return /^[1-7]\.?\d{3}$/.test(text)
+    ? ''
+    : 'CFOP deve ter 4 dígitos e começar com 1 a 7 (ex.: 5102).'
+}
+
+export const CFOP_EXAMPLES = [
+  { code: '5102', label: 'Venda de mercadoria adquirida de terceiros (dentro do estado)' },
+  { code: '5101', label: 'Venda de produção do estabelecimento (dentro do estado)' },
+  { code: '6102', label: 'Venda de mercadoria adquirida de terceiros (fora do estado)' },
+  { code: '1102', label: 'Compra para comercialização (dentro do estado)' },
+  { code: '5405', label: 'Venda de mercadoria com substituição tributária' },
+]
+
+export const OPERATION_NATURE_EXAMPLES = [
+  'Venda de mercadoria',
+  'Venda de produção do estabelecimento',
+  'Compra para comercialização',
+  'Devolução de compra',
+  'Remessa para conserto',
+]
+
+export function fiscalDocumentFormErrors(
+  form: FiscalFormState,
+  items: FiscalDraftItem[] = [],
+): Partial<Record<keyof FiscalFormState | 'items', string>> {
+  const errors: Partial<Record<keyof FiscalFormState | 'items', string>> = {}
+
+  if (form.document_type === 'saida' && !form.order_id) {
+    errors.order_id = 'Selecione o pedido vinculado.'
+  }
+
+  if (form.document_type === 'entrada') {
+    if (!form.supplier_id) {
+      errors.supplier_id = 'Selecione o fornecedor.'
+    }
+
+    const invalidItem = items.some(
+      (item) =>
+        !item.product_id ||
+        !(Number(item.quantity) > 0) ||
+        item.unit_price === '' ||
+        !(Number(item.unit_price) >= 0),
+    )
+
+    if (items.length === 0 || invalidItem) {
+      errors.items = 'Informe produto, quantidade e valor unitário de todos os itens.'
+    }
+  }
+
+  if (!form.number.trim()) errors.number = 'Informe o número da nota.'
+  if (!form.series.trim()) errors.series = 'Informe a série.'
+  if (!form.issue_date) errors.issue_date = 'Informe a data de emissão.'
+
+  const cfop = cfopError(form.cfop)
+  if (cfop) errors.cfop = cfop
+
+  const key = accessKeyError(form.access_key)
+  if (key) errors.access_key = key
+
+  return errors
+}
+
+// Compara o formulário atual com o estado de quando foi aberto.
+export function isFiscalFormDirty(
+  form: FiscalFormState,
+  baseline: FiscalFormState,
+  items: FiscalDraftItem[] = [],
+  baselineItems: FiscalDraftItem[] = [],
+  supplierDraft: { name: string; document: string } = { name: '', document: '' },
+): boolean {
+  const changedForm = (Object.keys(baseline) as (keyof FiscalFormState)[]).some(
+    (field) => (form[field] ?? '') !== (baseline[field] ?? ''),
+  )
+  const changedItems = JSON.stringify(items) !== JSON.stringify(baselineItems)
+  const changedSupplier = Boolean(supplierDraft.name.trim() || supplierDraft.document.trim())
+
+  return changedForm || changedItems || changedSupplier
+}
+
+export const UNSAVED_FORM_MESSAGE =
+  'Existem dados não salvos no formulário. Deseja realmente fechar e descartar as alterações?'
+
+// ---------------------------------------------------------------------------
+// Eventos fiscais: validação e confirmação de ações irreversíveis.
+// ---------------------------------------------------------------------------
+
+export const CRITICAL_FISCAL_STATUSES = ['Cancelada', 'Rejeitada', 'Denegada', 'Inutilizada']
+
+export function fiscalEventNeedsProtocol(status: string, currentStatus: string): boolean {
+  return status === 'Autorizada' || (status === 'Cancelada' && currentStatus === 'Autorizada')
+}
+
+export function isFiscalEventFormValid(
+  form: { status: string; occurred_at: string; protocol: string; reason: string },
+  currentStatus: string,
+  allowedStatuses?: string[],
+): boolean {
+  if (!form.status) {
+    return false
+  }
+
+  if (allowedStatuses && !allowedStatuses.includes(form.status)) {
+    return false
+  }
+
+  const dated = ['Autorizada', 'Cancelada'].includes(form.status)
+
+  if (dated && !form.occurred_at) {
+    return false
+  }
+
+  if (fiscalEventNeedsProtocol(form.status, currentStatus) && !form.protocol.trim()) {
+    return false
+  }
+
+  if (form.protocol.length > 120) {
+    return false
+  }
+
+  if (form.status === 'Cancelada') {
+    const reason = form.reason.trim()
+    if (reason.length < 3 || reason.length > 500) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const CRITICAL_ACTION_TEXT: Record<string, string> = {
+  Cancelada: 'cancelar',
+  Rejeitada: 'registrar a rejeição de',
+  Denegada: 'registrar a denegação de',
+  Inutilizada: 'inutilizar a numeração de',
+}
+
+// Retorna a pergunta de confirmação para eventos críticos, ou null quando não precisa confirmar.
+export function fiscalStatusConfirmation(status: string, documentLabel: string): string | null {
+  const action = CRITICAL_ACTION_TEXT[status]
+
+  if (!action) {
+    return null
+  }
+
+  return `Tem certeza de que deseja ${action} ${documentLabel}? Esta ação fica registrada no histórico fiscal e não pode ser desfeita.`
+}
+
+// ---------------------------------------------------------------------------
+// Responsável (nome e e-mail) nos eventos.
+// ---------------------------------------------------------------------------
+
+export function fiscalActorLabel(person: {
+  name?: string | null
+  email?: string | null
+  id?: string | null
+}): { name: string; email: string } {
+  if (person.name || person.email) {
+    return { name: person.name || person.email || '', email: person.name ? person.email || '' : '' }
+  }
+
+  return {
+    name: person.id ? `Usuário ${person.id.slice(0, 8)}` : 'Não registrado',
+    email: '',
+  }
+}

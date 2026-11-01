@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import type { FiscalLinkFormState, FiscalOrder } from './fiscalTypes'
 import { formatFiscalMoney } from './fiscalUtils'
+import { RequiredMark } from './FiscalRequired'
 
 type FiscalLinkFormProps = {
   orders: FiscalOrder[]
@@ -24,9 +25,13 @@ export function FiscalLinkForm({
   return (
     <form className="fiscal-form-grid" onSubmit={onSubmit}>
       <label>
-        Pedido para conciliação
+        <span>
+          Pedido para conciliação
+          <RequiredMark />
+        </span>
         <select
           required
+          aria-required="true"
           value={form.order_id}
           onChange={(event) =>
             onChange({
@@ -47,9 +52,14 @@ export function FiscalLinkForm({
       </label>
 
       <label>
-        Justificativa
+        <span>
+          Justificativa
+          <RequiredMark />
+        </span>
         <input
           required
+          aria-required="true"
+          placeholder="Mínimo de 10 caracteres"
           minLength={10}
           maxLength={500}
           value={form.reason}
@@ -62,7 +72,11 @@ export function FiscalLinkForm({
         />
       </label>
 
-      <button className="secondary-button" disabled={busy} type="submit">
+      <button
+        className="secondary-button"
+        disabled={busy || !form.order_id || form.reason.trim().length < 10}
+        type="submit"
+      >
         Confirmar vínculo
       </button>
     </form>

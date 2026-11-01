@@ -15,6 +15,8 @@ export type FiscalEvent = {
   id: string
   action: string
   actor_id: string
+  actor_name?: string | null
+  actor_email?: string | null
   created_at: string
   detail: Record<string, string | null>
 }
@@ -38,6 +40,8 @@ export type FiscalDocument = {
   customer_id?: string | null
   supplier_id: string | null
   created_by_id: string | null
+  created_by_name?: string | null
+  created_by_email?: string | null
   created_at: string
   updated_at?: string
   authorized_at: string | null
@@ -67,6 +71,7 @@ export type FiscalProduct = {
   id: string
   name: string
   is_active: boolean
+  unit_of_measure?: string | null
 }
 
 export type FiscalSupplier = {
@@ -122,7 +127,12 @@ export type FiscalParty = {
 export type FiscalModalView = 'details' | 'danfe' | 'history' | 'lifecycle'
 
 export type FiscalSortKey =
-  'emitter' | 'recipient' | 'number' | 'value' | 'issue_date' | 'updated_at'
+  | 'emitter'
+  | 'recipient'
+  | 'number'
+  | 'value'
+  | 'issue_date'
+  | 'updated_at'
 
 export type FiscalSort = {
   key: FiscalSortKey

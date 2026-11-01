@@ -206,6 +206,18 @@ class FiscalDocument(Base, TimestampMixin):
         passive_deletes="all",
         order_by="FiscalEvent.created_at, FiscalEvent.id",
     )
+    # Somente leitura: exibe nome e e-mail do responsável sem alterar o registro.
+    created_by = relationship(
+        "User", foreign_keys=[created_by_id], lazy="selectin", viewonly=True
+    )
+
+    @property
+    def created_by_name(self) -> str | None:
+        return self.created_by.full_name if self.created_by else None
+
+    @property
+    def created_by_email(self) -> str | None:
+        return self.created_by.email if self.created_by else None
 
 
 class FiscalDocumentItem(Base):
@@ -268,6 +280,18 @@ class FiscalEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # Somente leitura: permite mostrar nome e e-mail no histórico em vez do UUID.
+    actor = relationship(
+        "User", foreign_keys=[actor_id], lazy="selectin", viewonly=True
+    )
+
+    @property
+    def actor_name(self) -> str | None:
+        return self.actor.full_name if self.actor else None
+
+    @property
+    def actor_email(self) -> str | None:
+        return self.actor.email if self.actor else None
 
 
 class FiscalStockMovement(Base):

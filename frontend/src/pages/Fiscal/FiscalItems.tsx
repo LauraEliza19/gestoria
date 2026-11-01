@@ -1,5 +1,5 @@
 import type { FiscalItem } from './fiscalTypes'
-import { fiscalItemTotal, formatFiscalMoney, formatQuantity } from './fiscalUtils'
+import { fiscalItemTotal, formatFiscalMoney, formatQuantity, formatUnit } from './fiscalUtils'
 
 type FiscalItemsProps = {
   items: FiscalItem[]
@@ -36,7 +36,7 @@ export function FiscalItems({ items, documentValue }: FiscalItemsProps) {
             <span>{item.fiscal_snapshot?.ncm_code || '—'}</span>
             <span>{item.fiscal_snapshot?.cest_code || '—'}</span>
             <span>
-              {formatQuantity(item.quantity)} {item.unit_of_measure || ''}
+              {formatQuantity(item.quantity)} {formatUnit(item.unit_of_measure)}
             </span>
             <span>{formatFiscalMoney(item.unit_price)}</span>
             <span>
