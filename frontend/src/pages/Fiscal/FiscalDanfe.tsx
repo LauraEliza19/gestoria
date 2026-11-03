@@ -7,8 +7,11 @@ import {
   formatFiscalDate,
   formatFiscalDateTime,
   formatFiscalMoney,
+  formatCep,
+  formatPhone,
   formatQuantity,
   formatTaxId,
+  formatUnit,
 } from './fiscalUtils'
 
 type FiscalDanfeProps = {
@@ -28,8 +31,12 @@ function organizationAddress(organization?: FiscalOrganization): string[] {
     .filter(Boolean)
     .join(' - ')
 
-  return [street, city, organization.postal_code ? `CEP ${organization.postal_code}` : '']
-    .concat(organization.phone ? [`Fone: ${organization.phone}`] : [])
+  return [
+    street,
+    city,
+    organization.postal_code ? `CEP ${formatCep(organization.postal_code)}` : '',
+  ]
+    .concat(organization.phone ? [`Fone: ${formatPhone(organization.phone)}`] : [])
     .filter(Boolean) as string[]
 }
 
@@ -154,7 +161,7 @@ export function FiscalDanfe({ document, organization }: FiscalDanfeProps) {
                 <tr key={item.id || `${item.product_id}-${index}`}>
                   <td>{item.product_name}</td>
                   <td>{item.fiscal_snapshot?.ncm_code || '—'}</td>
-                  <td>{item.unit_of_measure || '—'}</td>
+                  <td>{formatUnit(item.unit_of_measure)}</td>
                   <td>{formatQuantity(item.quantity)}</td>
                   <td>{formatFiscalMoney(item.unit_price)}</td>
                   <td>{formatFiscalMoney(String(fiscalItemTotal(item)))}</td>

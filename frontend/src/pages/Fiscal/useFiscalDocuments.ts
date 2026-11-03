@@ -3,7 +3,16 @@ import type { FormEvent } from 'react'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 import type { FiscalDocument, FiscalOrder, FiscalProduct, FiscalSupplier } from './fiscalTypes'
-import { createEmptyFiscalForm, createEmptyFiscalItem, isActiveFiscalStatus } from './fiscalUtils'
+import {
+  UNSAVED_FORM_MESSAGE,
+  createEmptyFiscalForm,
+  createEmptyFiscalItem,
+  fiscalDocumentFormErrors,
+  isActiveFiscalStatus,
+  isFiscalFormDirty,
+  onlyDigits,
+  taxIdError,
+} from './fiscalUtils'
 
 export function useFiscalDocuments(orderFilter: string) {
   const [documents, setDocuments] = useState<FiscalDocument[]>([])
@@ -22,6 +31,10 @@ export function useFiscalDocuments(orderFilter: string) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(createEmptyFiscalForm)
   const [draftItems, setDraftItems] = useState([createEmptyFiscalItem()])
+  // Estado do formulário no momento em que foi aberto, usado para detectar dados não salvos.
+  const [formBaseline, setFormBaseline] = useState(createEmptyFiscalForm)
+  const [itemsBaseline, setItemsBaseline] = useState([createEmptyFiscalItem()])
+  const [formOpenedAt, setFormOpenedAt] = useState(0)
   const [supplierForm, setSupplierForm] = useState({
     name: '',
     document: '',
@@ -157,13 +170,63 @@ export function useFiscalDocuments(orderFilter: string) {
     }
   }
 
+  const formDirty =
+    showForm && isFiscalFormDirty(form, formBaseline, draftItems, itemsBaseline, supplierForm)
+
+  // Avisa o navegador ao sair/recarregar a página com o formulário preenchido.
+  useEffect(() => {
+    if (!formDirty) {
+      return
+    }
+
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault()
+      event.returnValue = UNSAVED_FORM_MESSAGE
+    }
+
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [formDirty])
+
+  // Retorna true quando o formulário pode ser descartado (sem alterações ou confirmado).
+  function confirmDiscard(): boolean {
+    return !formDirty || window.confirm(UNSAVED_FORM_MESSAGE)
+  }
+
+  function closeForm(): boolean {
+    if (!confirmDiscard()) {
+      return false
+    }
+
+    setShowForm(false)
+    setSupplierForm({ name: '', document: '' })
+    return true
+  }
+
+  // Rola e foca o formulário que já está aberto, sem descartar o que foi digitado.
+  function focusForm() {
+    setFormOpenedAt(Date.now())
+  }
+
   function start(orderId = orderFilter) {
-    setForm({
+    if (showForm && !confirmDiscard()) {
+      setFormOpenedAt(Date.now())
+      return
+    }
+
+    const initial = {
       ...createEmptyFiscalForm(),
       order_id: orderId,
-    })
-    setDraftItems([createEmptyFiscalItem()])
+    }
+    const initialItems = [createEmptyFiscalItem()]
+
+    setForm(initial)
+    setFormBaseline(initial)
+    setDraftItems(initialItems)
+    setItemsBaseline(initialItems)
+    setSupplierForm({ name: '', document: '' })
     setShowForm(true)
+    setFormOpenedAt(Date.now())
     void reloadFormOptions()
   }
 
@@ -186,6 +249,14 @@ export function useFiscalDocuments(orderFilter: string) {
 
   async function create(event: FormEvent) {
     event.preventDefault()
+
+    const formErrors = Object.values(fiscalDocumentFormErrors(form, draftItems))
+
+    if (formErrors.length > 0) {
+      setNotice('')
+      setError(formErrors[0] || 'Revise os campos obrigatórios.')
+      return
+    }
 
     await run(async () => {
       const { order_id, supplier_id, ...metadata } = form
@@ -220,10 +291,21 @@ export function useFiscalDocuments(orderFilter: string) {
   async function createSupplier(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const documentError = taxIdError(supplierForm.document)
+
+    if (documentError) {
+      setNotice('')
+      setError(documentError)
+      return
+    }
+
     await run(async () => {
       const supplier = await apiFetch<FiscalSupplier>('/api/fiscal-suppliers', {
         method: 'POST',
-        body: JSON.stringify(supplierForm),
+        body: JSON.stringify({
+          name: supplierForm.name.trim(),
+          document: onlyDigits(supplierForm.document),
+        }),
       })
 
       setSuppliers((current) => [...current, supplier])
@@ -340,6 +422,10 @@ export function useFiscalDocuments(orderFilter: string) {
     typeCounts,
     showForm,
     setShowForm,
+    formDirty,
+    formOpenedAt,
+    closeForm,
+    focusForm,
     form,
     setForm,
     draftItems,

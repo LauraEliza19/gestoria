@@ -78,6 +78,8 @@ class FiscalEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     actor_id: uuid.UUID
+    actor_name: str | None = None
+    actor_email: str | None = None
     action: str
     detail: dict
     created_at: datetime
@@ -105,6 +107,8 @@ class FiscalDocumentRead(BaseModel):
     customer_id: uuid.UUID | None
     supplier_id: uuid.UUID | None
     created_by_id: uuid.UUID | None
+    created_by_name: str | None = None
+    created_by_email: str | None = None
     updated_by_id: uuid.UUID | None
     authorized_at: datetime | None
     cancelled_at: datetime | None

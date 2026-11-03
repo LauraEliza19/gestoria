@@ -5,6 +5,7 @@ type FiscalHeaderProps = {
   fromProduction: boolean
   busy: boolean
   canCreate: boolean
+  formOpen?: boolean
   onStart: () => void
 }
 
@@ -13,6 +14,7 @@ export function FiscalHeader({
   fromProduction,
   busy,
   canCreate,
+  formOpen = false,
   onStart,
 }: FiscalHeaderProps) {
   return (
@@ -34,8 +36,20 @@ export function FiscalHeader({
         )}
 
         {canCreate && (
-          <button className="primary-button" disabled={busy} type="button" onClick={onStart}>
-            {orderFilter ? '+ Nota deste pedido' : '+ Nova nota'}
+          <button
+            className="primary-button"
+            disabled={busy}
+            type="button"
+            aria-controls="fiscal-new-document"
+            aria-expanded={formOpen}
+            title={formOpen ? 'Ir para o formulário aberto' : 'Abrir formulário de nova nota'}
+            onClick={onStart}
+          >
+            {formOpen
+              ? 'Ir para o formulário'
+              : orderFilter
+                ? '+ Nota deste pedido'
+                : '+ Nova nota'}
           </button>
         )}
       </div>
