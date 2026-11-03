@@ -72,7 +72,10 @@ export function FiscalDocumentsPage() {
     clearFilters,
     typeCounts,
     showForm,
-    setShowForm,
+    formDirty,
+    formOpenedAt,
+    closeForm,
+    focusForm,
     form,
     setForm,
     draftItems,
@@ -186,6 +189,7 @@ export function FiscalDocumentsPage() {
 
         <FiscalStatusForm
           currentStatus={selected.status}
+          documentLabel={`a NF ${selected.number} (série ${selected.series})`}
           allowedStatuses={selected.allowed_statuses}
           form={eventForm}
           busy={busy}
@@ -255,7 +259,8 @@ export function FiscalDocumentsPage() {
         fromProduction={fromProduction}
         busy={busy}
         canCreate={canEdit && (!orderFilter || !isOccupied(orderFilter))}
-        onStart={() => start()}
+        formOpen={showForm && canEdit}
+        onStart={() => (showForm ? focusForm() : start())}
       />
 
       <p className="info-note">
@@ -301,10 +306,12 @@ export function FiscalDocumentsPage() {
           setSupplierForm={setSupplierForm}
           busy={busy}
           loading={loading}
+          dirty={formDirty}
+          openedAt={formOpenedAt}
           isOccupied={isOccupied}
           onSubmit={create}
           onCreateSupplier={createSupplier}
-          onClose={() => setShowForm(false)}
+          onClose={() => void closeForm()}
         />
       )}
 

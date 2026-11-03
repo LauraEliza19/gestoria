@@ -1,5 +1,11 @@
 import type { FiscalEvent } from './fiscalTypes'
-import { FISCAL_ACTION_NAMES, fiscalStatusClass, formatFiscalDateTime } from './fiscalUtils'
+import {
+  FISCAL_ACTION_NAMES,
+  fiscalActorLabel,
+  fiscalStatusClass,
+  formatFiscalDateTime,
+} from './fiscalUtils'
+import { FiscalEmail } from './FiscalEmail'
 
 type FiscalHistoryProps = {
   events: FiscalEvent[]
@@ -21,7 +27,7 @@ export function FiscalHistory({ events }: FiscalHistoryProps) {
             <span>Ação</span>
             <span>Situação</span>
             <span>Protocolo</span>
-            <span>Usuário</span>
+            <span>Responsável</span>
             <span>Motivo</span>
           </div>
 
@@ -44,8 +50,25 @@ export function FiscalHistory({ events }: FiscalHistoryProps) {
                 )}
               </span>
               <span className="font-mono text-[12px]">{event.detail.protocol || '—'}</span>
-              <span title={event.actor_id}>
-                <small>usuário {event.actor_id.slice(0, 8)}</small>
+              <span className="fiscal-actor">
+                {(() => {
+                  const actor = fiscalActorLabel({
+                    name: event.actor_name,
+                    email: event.actor_email,
+                    id: event.actor_id,
+                  })
+
+                  return (
+                    <>
+                      <strong>{actor.name}</strong>
+                      {actor.email && (
+                        <small>
+                          <FiscalEmail email={actor.email} link />
+                        </small>
+                      )}
+                    </>
+                  )
+                })()}
               </span>
               <span>{event.detail.reason || '—'}</span>
             </div>

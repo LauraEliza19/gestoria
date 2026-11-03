@@ -1,12 +1,20 @@
 import type { FormEvent } from 'react'
 import type { FiscalEventFormState } from './fiscalTypes'
-import { fiscalStatusMeta } from './fiscalUtils'
+import {
+  CRITICAL_FISCAL_STATUSES,
+  fiscalEventNeedsProtocol,
+  fiscalStatusConfirmation,
+  fiscalStatusMeta,
+  isFiscalEventFormValid,
+} from './fiscalUtils'
+import { RequiredMark, RequiredLegend } from './FiscalRequired'
 
 type FiscalStatusFormProps = {
   currentStatus: string
   allowedStatuses: string[]
   form: FiscalEventFormState
   busy: boolean
+  documentLabel?: string
   onChange: (form: FiscalEventFormState) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
@@ -16,6 +24,7 @@ export function FiscalStatusForm({
   allowedStatuses,
   form,
   busy,
+  documentLabel = 'esta nota',
   onChange,
   onSubmit,
 }: FiscalStatusFormProps) {
@@ -24,9 +33,26 @@ export function FiscalStatusForm({
   }
 
   const datedEvent = ['Autorizada', 'Cancelada'].includes(form.status)
-  const needsProtocol =
-    form.status === 'Autorizada' || (form.status === 'Cancelada' && currentStatus === 'Autorizada')
+  const needsProtocol = fiscalEventNeedsProtocol(form.status, currentStatus)
   const selectedMeta = form.status ? fiscalStatusMeta(form.status) : null
+  const isValid = isFiscalEventFormValid(form, currentStatus, allowedStatuses)
+  const isCritical = CRITICAL_FISCAL_STATUSES.includes(form.status)
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (!isValid) {
+      event.preventDefault()
+      return
+    }
+
+    const question = fiscalStatusConfirmation(form.status, documentLabel)
+
+    if (question && !window.confirm(question)) {
+      event.preventDefault()
+      return
+    }
+
+    onSubmit(event)
+  }
 
   return (
     <section className="fiscal-event-panel">
@@ -38,11 +64,17 @@ export function FiscalStatusForm({
         <span className="fiscal-current-state">Atual: {currentStatus}</span>
       </div>
 
-      <form className="fiscal-form-grid" onSubmit={onSubmit}>
+      <RequiredLegend />
+
+      <form className="fiscal-form-grid" onSubmit={handleSubmit}>
         <label>
-          Próxima situação
+          <span>
+            Próxima situação
+            <RequiredMark />
+          </span>
           <select
             required
+            aria-required="true"
             value={form.status}
             onChange={(event) =>
               onChange({
@@ -62,9 +94,13 @@ export function FiscalStatusForm({
 
         {datedEvent && (
           <label>
-            Data e hora do evento externo
+            <span>
+              Data e hora do evento externo
+              <RequiredMark />
+            </span>
             <input
               required
+              aria-required="true"
               type="datetime-local"
               value={form.occurred_at}
               onChange={(event) => onChange({ ...form, occurred_at: event.target.value })}
@@ -74,10 +110,15 @@ export function FiscalStatusForm({
 
         {datedEvent && (
           <label>
-            Protocolo externo{needsProtocol ? ' (obrigatório)' : ''}
+            <span>
+              Protocolo externo
+              {needsProtocol && <RequiredMark />}
+            </span>
             <input
               required={needsProtocol}
+              aria-required={needsProtocol}
               maxLength={120}
+              placeholder="Ex.: 135240000000000"
               value={form.protocol}
               onChange={(event) => onChange({ ...form, protocol: event.target.value })}
             />
@@ -86,11 +127,16 @@ export function FiscalStatusForm({
 
         {form.status === 'Cancelada' && (
           <label>
-            Motivo do cancelamento
+            <span>
+              Motivo do cancelamento
+              <RequiredMark />
+            </span>
             <input
               required
+              aria-required="true"
               minLength={3}
               maxLength={500}
+              placeholder="Mínimo de 3 caracteres"
               value={form.reason}
               onChange={(event) => onChange({ ...form, reason: event.target.value })}
             />
@@ -98,15 +144,31 @@ export function FiscalStatusForm({
         )}
 
         {selectedMeta && (
-          <div className="fiscal-event-feedback" role="status">
+          <div
+            className={`fiscal-event-feedback ${isCritical ? 'fiscal-event-feedback-critical' : ''}`}
+            role="status"
+          >
             <strong>{selectedMeta.label}</strong>
             <span>{selectedMeta.description}</span>
+            {isCritical && <span>Você precisará confirmar antes do registro.</span>}
           </div>
         )}
 
-        <button className="primary-button" disabled={busy} type="submit">
-          {busy ? 'Registrando…' : 'Registrar evento'}
-        </button>
+        <div className="fiscal-event-submit">
+          <button
+            className="primary-button"
+            disabled={busy || !isValid}
+            aria-disabled={busy || !isValid}
+            type="submit"
+          >
+            {busy ? 'Registrando…' : 'Registrar evento'}
+          </button>
+          {!isValid && !busy && (
+            <small className="text-muted">
+              Preencha todos os campos obrigatórios (*) para habilitar o registro.
+            </small>
+          )}
+        </div>
       </form>
     </section>
   )

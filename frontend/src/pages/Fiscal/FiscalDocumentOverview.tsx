@@ -3,6 +3,7 @@ import type { FiscalDocument, FiscalOrganization } from './fiscalTypes'
 import {
   FISCAL_MODEL_NAMES,
   FISCAL_SNAPSHOT_LABELS,
+  fiscalActorLabel,
   fiscalParties,
   fiscalStatusClass,
   fiscalStatusMeta,
@@ -11,6 +12,7 @@ import {
   formatFiscalMoney,
   formatTaxId,
 } from './fiscalUtils'
+import { FiscalEmail } from './FiscalEmail'
 
 type FiscalDocumentOverviewProps = {
   document: FiscalDocument
@@ -125,7 +127,28 @@ export function FiscalDocumentOverview({ document, organization }: FiscalDocumen
           </span>
           <span>
             Responsável original
-            <strong>{document.created_by_id || 'Não registrado no histórico antigo'}</strong>
+            {document.created_by_id ? (
+              (() => {
+                const creator = fiscalActorLabel({
+                  name: document.created_by_name,
+                  email: document.created_by_email,
+                  id: document.created_by_id,
+                })
+
+                return (
+                  <>
+                    <strong>{creator.name}</strong>
+                    {creator.email && (
+                      <small className="fiscal-actor-email">
+                        <FiscalEmail email={creator.email} />
+                      </small>
+                    )}
+                  </>
+                )
+              })()
+            ) : (
+              <strong>Não registrado no histórico antigo</strong>
+            )}
           </span>
           <span>
             Pedido

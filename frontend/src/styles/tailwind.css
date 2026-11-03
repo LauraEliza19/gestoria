@@ -1010,7 +1010,7 @@ html {
 }
 
 .fiscal-history-table .data-table-row {
-  @apply min-w-[760px] grid-cols-[1fr_1.2fr_.9fr_1fr_.8fr_1.4fr];
+  @apply min-w-[820px] grid-cols-[1fr_1.2fr_.9fr_1fr_1.3fr_1.2fr];
 }
 
 .fiscal-items-table .data-table-row {
@@ -1308,4 +1308,162 @@ body {
 .fiscal-danfe-notice {
   border: 1px solid #ecd9a7;
 }
+}
+
+/* ------------------------------------------------------------------ */
+/* Módulo fiscal — campos obrigatórios, validação e acessibilidade      */
+/* ------------------------------------------------------------------ */
+.fiscal-required {
+  @apply font-bold text-[#c2334a];
+}
+
+.fiscal-required-legend {
+  @apply text-[12px] text-muted;
+}
+
+.fiscal-field-hint {
+  @apply text-[12px] font-normal text-muted;
+}
+
+.fiscal-field-error {
+  @apply text-[12px] font-semibold text-[#c2334a];
+}
+
+.fiscal-form input[aria-invalid='true'],
+.fiscal-form select[aria-invalid='true'],
+.form-input[aria-invalid='true'] {
+  @apply border-[#e07b8b] ring-4 ring-[rgba(216,79,98,.12)];
+}
+
+.fiscal-form-grid > .fiscal-field-wide {
+  @apply md:col-span-2 lg:col-span-4;
+}
+
+.fiscal-form-grid > .fiscal-field-half {
+  @apply md:col-span-2;
+}
+
+.fiscal-access-key-input {
+  @apply font-mono tracking-[0.08em];
+}
+
+.fiscal-new-document {
+  @apply scroll-mt-6;
+}
+
+.fiscal-new-document h2:focus {
+  @apply outline-none;
+}
+
+.fiscal-new-document h2:focus-visible {
+  @apply rounded outline-2 outline-offset-4 outline-signal;
+}
+
+.fiscal-form-opened {
+  @apply flex flex-col gap-1 rounded-lg border border-[#c8d7ff] bg-[#eef3ff] px-4 py-3 text-[13px] text-[#3555b8] sm:flex-row sm:items-center sm:gap-2;
+}
+
+.fiscal-event-submit {
+  @apply flex flex-col items-start gap-1.5 self-end;
+}
+
+.fiscal-event-submit button:disabled {
+  @apply cursor-not-allowed opacity-60;
+}
+
+.fiscal-event-feedback.fiscal-event-feedback-critical {
+  @apply border-[#f0c2c9] bg-[#fff3f5] text-[#a73547];
+}
+
+.fiscal-actor {
+  @apply grid gap-0.5;
+}
+
+.fiscal-actor small,
+.fiscal-actor a {
+  @apply text-[12px] text-muted;
+}
+
+/* Cards de resumo compactos e equilibrados (4 por linha) */
+.fiscal-summary.fiscal-summary-compact {
+  @apply mb-6 grid grid-cols-2 gap-3 md:grid-cols-4;
+}
+
+.fiscal-summary-compact article {
+  @apply min-w-0 rounded-[10px] border border-line bg-white shadow-[0_6px_18px_rgba(17,25,54,.04)];
+}
+
+.fiscal-summary-compact article > button,
+.fiscal-summary-compact article > .fiscal-summary-body {
+  @apply grid h-full w-full gap-1 border-0 bg-transparent px-4 py-3 text-left;
+}
+
+.fiscal-summary-compact .fiscal-summary-label {
+  @apply flex items-center gap-2 text-[12px] font-semibold text-muted;
+}
+
+.fiscal-summary-compact strong {
+  @apply font-display text-[22px] font-semibold leading-tight text-ink;
+}
+
+.fiscal-summary-compact small {
+  @apply truncate text-[11px] text-[#8991aa];
+}
+
+.fiscal-summary-icon {
+  @apply inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border;
+}
+
+.fiscal-summary-type {
+  @apply border-[#dce1ec] bg-[#f5f6fa] text-[#354064];
+}
+
+.fiscal-summary-processing {
+  @apply border-[#c8d7ff] bg-[#eef3ff] text-[#3555b8];
+}
+
+.fiscal-summary-success {
+  @apply border-[#b9e4cf] bg-[#eefaf4] text-[#23734f];
+}
+
+.fiscal-summary-danger {
+  @apply border-[#f0c2c9] bg-[#fff3f5] text-[#a73547];
+}
+
+.fiscal-summary-warning {
+  @apply border-[#ecd9a7] bg-[#fff9e9] text-[#8a6815];
+}
+
+.fiscal-summary-neutral {
+  @apply border-[#dce1ec] bg-[#f5f6fa] text-[#59647e];
+}
+
+/* Legenda do ciclo de vida */
+.fiscal-lifecycle-legend {
+  @apply mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-[#fafbfe] px-3 py-2.5 text-[12px] text-[#354064];
+}
+
+.fiscal-lifecycle-legend > span {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.fiscal-legend-dot {
+  @apply inline-flex h-5 w-5 items-center justify-center rounded-full border;
+}
+
+/* Ajustes visuais: alinhamento dos campos e exibição de e-mails */
+.fiscal-form-grid > label {
+  @apply content-start;
+}
+
+.fiscal-email,
+.fiscal-modal .detail-grid .fiscal-email,
+.fiscal-modal .detail-grid span.fiscal-email {
+  overflow-wrap: normal;
+  word-break: normal;
+  @apply normal-case tracking-normal;
+}
+
+.fiscal-actor-email {
+  @apply mt-0.5 block text-[12px] normal-case text-muted;
 }
