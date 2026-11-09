@@ -119,7 +119,9 @@ export type FinanceAuditFilters = {
 }
 
 export function getFinanceAudit(filters: FinanceAuditFilters = {}) {
-  return apiFetch<FinanceAuditSearchEvent[]>(`/api/finance/audit${buildQuery(filters as FinanceEntryFilters & FinanceAuditFilters)}`)
+  return apiFetch<FinanceAuditSearchEvent[]>(
+    `/api/finance/audit${buildQuery(filters as FinanceEntryFilters & FinanceAuditFilters)}`,
+  )
 }
 
 export type FinanceEntryHistory = {

@@ -25,7 +25,12 @@ function displayValue(field: string, value: string | null) {
       : value
   }
   if (field === 'entry_type') return value === 'income' ? 'Entrada' : 'Saída'
-  if (field === 'status') return ({ pending: 'Pendente', paid: 'Realizado', cancelled: 'Cancelado' } as Record<string, string>)[value] || value
+  if (field === 'status')
+    return (
+      (
+        { pending: 'Pendente', paid: 'Realizado', cancelled: 'Cancelado' } as Record<string, string>
+      )[value] || value
+    )
   return value
 }
 
@@ -84,65 +89,132 @@ export function FinanceAuditPage() {
           <Search size={18} aria-hidden="true" className="text-muted" />
           <h2 className="font-display text-xl font-semibold">Pesquisar histórico</h2>
         </div>
-        <form className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3" onSubmit={(event) => { event.preventDefault(); void search() }}>
+        <form
+          className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void search()
+          }}
+        >
           <label>
             <span className="mb-1 block text-xs font-semibold text-muted">Lançamento ou ID</span>
-            <input className="form-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Descrição ou identificador" />
+            <input
+              className="form-input"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Descrição ou identificador"
+            />
           </label>
           <label>
             <span className="mb-1 block text-xs font-semibold text-muted">Usuário responsável</span>
-            <input className="form-input" value={actor} onChange={(event) => setActor(event.target.value)} placeholder="Nome do usuário" />
+            <input
+              className="form-input"
+              value={actor}
+              onChange={(event) => setActor(event.target.value)}
+              placeholder="Nome do usuário"
+            />
           </label>
           <label>
-            <span className="mb-1 block text-xs font-semibold text-muted">Data inicial da alteração</span>
-            <input className="form-input" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+            <span className="mb-1 block text-xs font-semibold text-muted">
+              Data inicial da alteração
+            </span>
+            <input
+              className="form-input"
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
           </label>
           <label>
-            <span className="mb-1 block text-xs font-semibold text-muted">Data final da alteração</span>
-            <input className="form-input" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+            <span className="mb-1 block text-xs font-semibold text-muted">
+              Data final da alteração
+            </span>
+            <input
+              className="form-input"
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+            />
           </label>
           <label>
-            <span className="mb-1 block text-xs font-semibold text-muted">Valor anterior contém</span>
-            <input className="form-input" value={beforeValue} onChange={(event) => setBeforeValue(event.target.value)} placeholder="Ex.: 120,00" />
+            <span className="mb-1 block text-xs font-semibold text-muted">
+              Valor anterior contém
+            </span>
+            <input
+              className="form-input"
+              value={beforeValue}
+              onChange={(event) => setBeforeValue(event.target.value)}
+              placeholder="Ex.: 120,00"
+            />
           </label>
           <label>
             <span className="mb-1 block text-xs font-semibold text-muted">Valor novo contém</span>
-            <input className="form-input" value={afterValue} onChange={(event) => setAfterValue(event.target.value)} placeholder="Ex.: 150,00" />
+            <input
+              className="form-input"
+              value={afterValue}
+              onChange={(event) => setAfterValue(event.target.value)}
+              placeholder="Ex.: 150,00"
+            />
           </label>
           <div className="md:col-span-2 lg:col-span-3 flex justify-end">
-            <button className="primary-button" type="submit" disabled={loading}>{loading ? 'Consultando...' : 'Pesquisar auditoria'}</button>
+            <button className="primary-button" type="submit" disabled={loading}>
+              {loading ? 'Consultando...' : 'Pesquisar auditoria'}
+            </button>
           </div>
         </form>
       </section>
 
       <section className="page-card mt-5">
         <h2 className="font-display text-xl font-semibold">Linha do tempo</h2>
-        {error && <p className="error-banner mt-4" role="alert">{error}</p>}
-        {loading ? <LoadingState message="Consultando histórico financeiro..." /> : events.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">Nenhum evento encontrado para os filtros informados.</p>
+        {error && (
+          <p className="error-banner mt-4" role="alert">
+            {error}
+          </p>
+        )}
+        {loading ? (
+          <LoadingState message="Consultando histórico financeiro..." />
+        ) : events.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">
+            Nenhum evento encontrado para os filtros informados.
+          </p>
         ) : (
           <div className="mt-5 space-y-5">
             {events.map((event) => (
               <article className="border-l-2 border-signal pl-4" key={event.id}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <strong>{event.entry_description}</strong>
-                  <span className="text-xs text-muted">{new Date(event.created_at).toLocaleString('pt-BR')}</span>
+                  <span className="text-xs text-muted">
+                    {new Date(event.created_at).toLocaleString('pt-BR')}
+                  </span>
                 </div>
-                <p className="mt-1 text-xs text-muted">{event.actor_name} · Versão {event.version} · {event.event_type === 'entry_created' ? 'Cadastro' : 'Alteração'}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {event.actor_name} · Versão {event.version} ·{' '}
+                  {event.event_type === 'entry_created' ? 'Cadastro' : 'Alteração'}
+                </p>
                 <ul className="mt-2 space-y-1 text-sm">
                   {Object.entries(event.changes).map(([field, change]) => (
                     <li key={field}>
                       <span className="font-semibold">{fieldLabels[field] || field}:</span>{' '}
-                      <span className="text-muted">{displayValue(field, change.before)} → {displayValue(field, change.after)}</span>
+                      <span className="text-muted">
+                        {displayValue(field, change.before)} → {displayValue(field, change.after)}
+                      </span>
                     </li>
                   ))}
                 </ul>
-                <Link className="mt-2 inline-block text-xs font-bold text-signal" to={`/financeiro/lancamentos/${event.entry_id}/editar`}>Abrir lançamento</Link>
+                <Link
+                  className="mt-2 inline-block text-xs font-bold text-signal"
+                  to={`/financeiro/lancamentos/${event.entry_id}/editar`}
+                >
+                  Abrir lançamento
+                </Link>
               </article>
             ))}
           </div>
         )}
-        <p className="mt-5 border-t border-line pt-3 text-xs text-muted">A consulta exibe até 500 eventos por pesquisa e respeita o acesso financeiro da organização.</p>
+        <p className="mt-5 border-t border-line pt-3 text-xs text-muted">
+          A consulta exibe até 500 eventos por pesquisa e respeita o acesso financeiro da
+          organização.
+        </p>
       </section>
     </main>
   )
