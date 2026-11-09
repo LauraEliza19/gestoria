@@ -26,6 +26,7 @@ import { CostCenterFormPage } from '../pages/Management/CostCenterFormPage'
 import { FinancePage } from '../pages/Finance/FinancePage'
 import { FinanceCategoryFormPage } from '../pages/Finance/FinanceCategoryFormPage'
 import { FinanceEntryFormPage } from '../pages/Finance/FinanceEntryFormPage'
+import { FinanceAuditPage } from '../pages/Finance/FinanceAuditPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, logoutSession } from '../services/session'
 import { SessionProvider } from '../contexts/SessionContext'
@@ -167,6 +168,14 @@ export function AppRouter() {
             element={
               <PermissionGate permission="finance:read">
                 <FinancePage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/financeiro/auditoria"
+            element={
+              <PermissionGate permission="finance:read">
+                <FinanceAuditPage />
               </PermissionGate>
             }
           />
