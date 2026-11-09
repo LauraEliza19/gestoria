@@ -79,3 +79,14 @@ class FinanceSummaryRead(BaseModel):
     total_expense: Decimal
     balance: Decimal
     realized_status: Literal["paid"] = "paid"
+
+
+class FinanceAuditSearchRead(BaseModel):
+    id: uuid.UUID
+    entry_id: uuid.UUID
+    entry_description: str
+    event_type: Literal["entry_created", "entry_updated"]
+    actor_name: str
+    created_at: datetime
+    version: int
+    changes: dict[str, dict[str, str | None]]

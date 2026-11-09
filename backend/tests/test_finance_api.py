@@ -266,3 +266,30 @@ def test_finance_duplicate_category_rolls_back_without_audit(
         )
         == 1
     )
+
+
+def test_finance_audit_search_filters_by_entry_actor_and_values(client: TestClient) -> None:
+    headers = login(client)
+    category = create_category(client, headers, "Auditoria pesquisável")
+    entry = create_entry(client, headers, category["id"], amount="100.00")
+    update = client.patch(
+        f"/api/finance/entries/{entry['id']}",
+        headers=headers,
+        json={"expected_version": 1, "amount": "175.00"},
+    )
+    assert update.status_code == 200
+
+    response = client.get(
+        "/api/finance/audit?query=Lançamento%20de%20teste&actor=Lucas"
+        "&before_value=100,00&after_value=175,00",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    events = response.json()
+    assert len(events) == 1
+    assert events[0]["entry_id"] == entry["id"]
+    assert events[0]["actor_name"] == "Lucas Teste"
+    assert events[0]["changes"]["amount"] == {
+        "before": "100.00",
+        "after": "175.00",
+    }
