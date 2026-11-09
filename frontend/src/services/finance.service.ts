@@ -98,6 +98,30 @@ export type FinanceEntryUpdatePayload = Partial<FinanceEntryPayload> & {
   expected_version: number
 }
 
+export type FinanceAuditSearchEvent = {
+  id: string
+  entry_id: string
+  entry_description: string
+  event_type: 'entry_created' | 'entry_updated'
+  actor_name: string
+  created_at: string
+  version: number
+  changes: Record<string, { before: string | null; after: string | null }>
+}
+
+export type FinanceAuditFilters = {
+  query?: string
+  actor?: string
+  start_date?: string
+  end_date?: string
+  before_value?: string
+  after_value?: string
+}
+
+export function getFinanceAudit(filters: FinanceAuditFilters = {}) {
+  return apiFetch<FinanceAuditSearchEvent[]>(`/api/finance/audit${buildQuery(filters as FinanceEntryFilters & FinanceAuditFilters)}`)
+}
+
 export type FinanceEntryHistory = {
   id: string
   event_type: 'entry_created' | 'entry_updated'
