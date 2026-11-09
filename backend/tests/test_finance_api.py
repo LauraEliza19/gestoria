@@ -268,7 +268,9 @@ def test_finance_duplicate_category_rolls_back_without_audit(
     )
 
 
-def test_finance_audit_search_filters_by_entry_actor_and_values(client: TestClient) -> None:
+def test_finance_audit_search_filters_by_entry_actor_and_values(
+    client: TestClient,
+) -> None:
     headers = login(client)
     category = create_category(client, headers, "Auditoria pesquisável")
     entry = create_entry(client, headers, category["id"], amount="100.00")

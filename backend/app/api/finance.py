@@ -13,12 +13,12 @@ from app.api.dependencies import (
 from app.models import FinanceAuditEvent, FinanceEntry, User
 from app.repositories import FinanceCategoryRepository, FinanceEntryRepository
 from app.schemas import (
+    FinanceAuditSearchRead,
     FinanceCategoryCreate,
     FinanceCategoryRead,
     FinanceCategoryUpdate,
     FinanceEntryCreate,
     FinanceEntryHistoryRead,
-    FinanceAuditSearchRead,
     FinanceEntryRead,
     FinanceEntryUpdate,
     FinanceSummaryRead,
@@ -169,11 +169,13 @@ def search_finance_audit(
         statement = statement.where(User.full_name.ilike(f"%{actor.strip()}%"))
     if start_date:
         statement = statement.where(
-            FinanceAuditEvent.created_at >= datetime.combine(start_date, datetime.min.time())
+            FinanceAuditEvent.created_at
+            >= datetime.combine(start_date, datetime.min.time())
         )
     if end_date:
         statement = statement.where(
-            FinanceAuditEvent.created_at <= datetime.combine(end_date, datetime.max.time())
+            FinanceAuditEvent.created_at
+            <= datetime.combine(end_date, datetime.max.time())
         )
     statement = statement.order_by(
         FinanceAuditEvent.created_at.desc(), FinanceAuditEvent.id.desc()
@@ -183,15 +185,27 @@ def search_finance_audit(
     for event, description, actor_name in rows:
         document = event.document or {}
         if event.event_type == "entry_created":
-            changes = {field: {"before": None, "after": value} for field, value in document.items() if field != "version"}
+            changes = {
+                field: {"before": None, "after": value}
+                for field, value in document.items()
+                if field != "version"
+            }
             version = 1
         else:
             before = document.get("before", {})
             after = document.get("after", {})
-            changes = {field: {"before": before.get(field), "after": value} for field, value in after.items() if field != "version"}
+            changes = {
+                field: {"before": before.get(field), "after": value}
+                for field, value in after.items()
+                if field != "version"
+            }
             version = int(document.get("version", 1))
-        normalized_before = before_value.replace(",", ".").casefold() if before_value else None
-        normalized_after = after_value.replace(",", ".").casefold() if after_value else None
+        normalized_before = (
+            before_value.replace(",", ".").casefold() if before_value else None
+        )
+        normalized_after = (
+            after_value.replace(",", ".").casefold() if after_value else None
+        )
         if normalized_before and not any(
             normalized_before in str(change.get("before") or "").casefold()
             for change in changes.values()
