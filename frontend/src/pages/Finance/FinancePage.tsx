@@ -115,6 +115,9 @@ export function FinancePage() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <Link className="secondary-button gap-2" to="/financeiro/auditoria">
+            Histórico de auditoria
+          </Link>
           <button
             className="secondary-button gap-2"
             type="button"

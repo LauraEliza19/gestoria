@@ -1,8 +1,8 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import String, cast, or_, select
 
 from app.api.dependencies import (
     CurrentUser,
@@ -10,7 +10,7 @@ from app.api.dependencies import (
     require_finance_manage,
     require_finance_read,
 )
-from app.models import FinanceAuditEvent, User
+from app.models import FinanceAuditEvent, FinanceEntry, User
 from app.repositories import FinanceCategoryRepository, FinanceEntryRepository
 from app.schemas import (
     FinanceCategoryCreate,
@@ -18,6 +18,7 @@ from app.schemas import (
     FinanceCategoryUpdate,
     FinanceEntryCreate,
     FinanceEntryHistoryRead,
+    FinanceAuditSearchRead,
     FinanceEntryRead,
     FinanceEntryUpdate,
     FinanceSummaryRead,
@@ -131,6 +132,89 @@ def create_entry_route(
         )
     except FinanceCategoryUnavailableError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/audit", response_model=list[FinanceAuditSearchRead])
+def search_finance_audit(
+    db: DatabaseSession,
+    current: CurrentUser,
+    query: str | None = Query(default=None, max_length=200),
+    actor: str | None = Query(default=None, max_length=120),
+    start_date: date | None = None,
+    end_date: date | None = None,
+    before_value: str | None = Query(default=None, max_length=40),
+    after_value: str | None = Query(default=None, max_length=40),
+):
+    """Search finance entry audit events within the authenticated organization."""
+    require_finance_read(current)
+    statement = (
+        select(FinanceAuditEvent, FinanceEntry.description, User.full_name)
+        .join(FinanceEntry, FinanceEntry.id == FinanceAuditEvent.entity_id)
+        .join(User, User.id == FinanceAuditEvent.actor_id)
+        .where(
+            FinanceAuditEvent.organization_id == current.organization.id,
+            FinanceEntry.organization_id == current.organization.id,
+            FinanceAuditEvent.event_type.in_(("entry_created", "entry_updated")),
+        )
+    )
+    if query:
+        term = f"%{query.strip()}%"
+        statement = statement.where(
+            or_(
+                FinanceEntry.description.ilike(term),
+                cast(FinanceEntry.id, String).ilike(term),
+            )
+        )
+    if actor:
+        statement = statement.where(User.full_name.ilike(f"%{actor.strip()}%"))
+    if start_date:
+        statement = statement.where(
+            FinanceAuditEvent.created_at >= datetime.combine(start_date, datetime.min.time())
+        )
+    if end_date:
+        statement = statement.where(
+            FinanceAuditEvent.created_at <= datetime.combine(end_date, datetime.max.time())
+        )
+    statement = statement.order_by(
+        FinanceAuditEvent.created_at.desc(), FinanceAuditEvent.id.desc()
+    ).limit(500)
+    rows = db.execute(statement).all()
+    result = []
+    for event, description, actor_name in rows:
+        document = event.document or {}
+        if event.event_type == "entry_created":
+            changes = {field: {"before": None, "after": value} for field, value in document.items() if field != "version"}
+            version = 1
+        else:
+            before = document.get("before", {})
+            after = document.get("after", {})
+            changes = {field: {"before": before.get(field), "after": value} for field, value in after.items() if field != "version"}
+            version = int(document.get("version", 1))
+        normalized_before = before_value.replace(",", ".").casefold() if before_value else None
+        normalized_after = after_value.replace(",", ".").casefold() if after_value else None
+        if normalized_before and not any(
+            normalized_before in str(change.get("before") or "").casefold()
+            for change in changes.values()
+        ):
+            continue
+        if normalized_after and not any(
+            normalized_after in str(change.get("after") or "").casefold()
+            for change in changes.values()
+        ):
+            continue
+        result.append(
+            {
+                "id": event.id,
+                "entry_id": event.entity_id,
+                "entry_description": description,
+                "event_type": event.event_type,
+                "actor_name": actor_name,
+                "created_at": event.created_at,
+                "version": version,
+                "changes": changes,
+            }
+        )
+    return result
 
 
 @router.get("/entries/{entry_id}/history", response_model=list[FinanceEntryHistoryRead])
