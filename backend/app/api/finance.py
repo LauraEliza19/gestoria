@@ -13,7 +13,7 @@ from app.api.dependencies import (
 from app.models import FinanceAuditEvent, FinanceEntry, User
 from app.repositories import FinanceCategoryRepository, FinanceEntryRepository
 from app.schemas import (
-    FinanceAuditSearchRead,
+    FinanceAuditSearchPageRead,
     FinanceCategoryCreate,
     FinanceCategoryRead,
     FinanceCategoryUpdate,
@@ -134,7 +134,7 @@ def create_entry_route(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@router.get("/audit", response_model=list[FinanceAuditSearchRead])
+@router.get("/audit", response_model=FinanceAuditSearchPageRead)
 def search_finance_audit(
     db: DatabaseSession,
     current: CurrentUser,
@@ -144,19 +144,33 @@ def search_finance_audit(
     end_date: date | None = None,
     before_value: str | None = Query(default=None, max_length=40),
     after_value: str | None = Query(default=None, max_length=40),
-):
-    """Search finance entry audit events within the authenticated organization."""
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+) -> FinanceAuditSearchPageRead:
+    """Pesquisa eventos financeiros e pagina depois de aplicar os filtros."""
     require_finance_read(current)
+
     statement = (
-        select(FinanceAuditEvent, FinanceEntry.description, User.full_name)
-        .join(FinanceEntry, FinanceEntry.id == FinanceAuditEvent.entity_id)
-        .join(User, User.id == FinanceAuditEvent.actor_id)
+        select(
+            FinanceAuditEvent,
+            FinanceEntry.description,
+            User.full_name,
+        )
+        .join(
+            FinanceEntry,
+            FinanceEntry.id == FinanceAuditEvent.entity_id,
+        )
+        .join(
+            User,
+            User.id == FinanceAuditEvent.actor_id,
+        )
         .where(
             FinanceAuditEvent.organization_id == current.organization.id,
             FinanceEntry.organization_id == current.organization.id,
             FinanceAuditEvent.event_type.in_(("entry_created", "entry_updated")),
         )
     )
+
     if query:
         term = f"%{query.strip()}%"
         statement = statement.where(
@@ -165,28 +179,53 @@ def search_finance_audit(
                 cast(FinanceEntry.id, String).ilike(term),
             )
         )
+
     if actor:
         statement = statement.where(User.full_name.ilike(f"%{actor.strip()}%"))
+
     if start_date:
         statement = statement.where(
             FinanceAuditEvent.created_at
-            >= datetime.combine(start_date, datetime.min.time())
+            >= datetime.combine(
+                start_date,
+                datetime.min.time(),
+            )
         )
+
     if end_date:
         statement = statement.where(
             FinanceAuditEvent.created_at
-            <= datetime.combine(end_date, datetime.max.time())
+            <= datetime.combine(
+                end_date,
+                datetime.max.time(),
+            )
         )
+
     statement = statement.order_by(
-        FinanceAuditEvent.created_at.desc(), FinanceAuditEvent.id.desc()
-    ).limit(500)
-    rows = db.execute(statement).all()
-    result = []
-    for event, description, actor_name in rows:
+        FinanceAuditEvent.created_at.desc(),
+        FinanceAuditEvent.id.desc(),
+    ).execution_options(yield_per=500)
+
+    normalized_before = (
+        before_value.replace(",", ".").casefold() if before_value else None
+    )
+    normalized_after = after_value.replace(",", ".").casefold() if after_value else None
+
+    page_start = (page - 1) * page_size
+    page_end = page_start + page_size
+
+    items: list[dict] = []
+    total = 0
+
+    for event, description, actor_name in db.execute(statement):
         document = event.document or {}
+
         if event.event_type == "entry_created":
             changes = {
-                field: {"before": None, "after": value}
+                field: {
+                    "before": None,
+                    "after": value,
+                }
                 for field, value in document.items()
                 if field != "version"
             }
@@ -194,41 +233,52 @@ def search_finance_audit(
         else:
             before = document.get("before", {})
             after = document.get("after", {})
+
             changes = {
-                field: {"before": before.get(field), "after": value}
+                field: {
+                    "before": before.get(field),
+                    "after": value,
+                }
                 for field, value in after.items()
                 if field != "version"
             }
             version = int(document.get("version", 1))
-        normalized_before = (
-            before_value.replace(",", ".").casefold() if before_value else None
-        )
-        normalized_after = (
-            after_value.replace(",", ".").casefold() if after_value else None
-        )
+
         if normalized_before and not any(
             normalized_before in str(change.get("before") or "").casefold()
             for change in changes.values()
         ):
             continue
+
         if normalized_after and not any(
             normalized_after in str(change.get("after") or "").casefold()
             for change in changes.values()
         ):
             continue
-        result.append(
-            {
-                "id": event.id,
-                "entry_id": event.entity_id,
-                "entry_description": description,
-                "event_type": event.event_type,
-                "actor_name": actor_name,
-                "created_at": event.created_at,
-                "version": version,
-                "changes": changes,
-            }
-        )
-    return result
+
+        if page_start <= total < page_end:
+            items.append(
+                {
+                    "id": event.id,
+                    "entry_id": event.entity_id,
+                    "entry_description": description,
+                    "event_type": event.event_type,
+                    "actor_name": actor_name,
+                    "created_at": event.created_at,
+                    "version": version,
+                    "changes": changes,
+                }
+            )
+
+        total += 1
+
+    return FinanceAuditSearchPageRead(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        has_next=page_end < total,
+    )
 
 
 @router.get("/entries/{entry_id}/history", response_model=list[FinanceEntryHistoryRead])

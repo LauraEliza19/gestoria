@@ -109,6 +109,14 @@ export type FinanceAuditSearchEvent = {
   changes: Record<string, { before: string | null; after: string | null }>
 }
 
+export type FinanceAuditSearchPage = {
+  items: FinanceAuditSearchEvent[]
+  total: number
+  page: number
+  page_size: number
+  has_next: boolean
+}
+
 export type FinanceAuditFilters = {
   query?: string
   actor?: string
@@ -116,10 +124,12 @@ export type FinanceAuditFilters = {
   end_date?: string
   before_value?: string
   after_value?: string
+  page?: number
+  page_size?: number
 }
 
 export function getFinanceAudit(filters: FinanceAuditFilters = {}) {
-  return apiFetch<FinanceAuditSearchEvent[]>(
+  return apiFetch<FinanceAuditSearchPage>(
     `/api/finance/audit${buildQuery(filters as FinanceEntryFilters & FinanceAuditFilters)}`,
   )
 }

@@ -1,3 +1,6 @@
+import uuid
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -272,22 +275,48 @@ def test_finance_audit_search_filters_by_entry_actor_and_values(
     client: TestClient,
 ) -> None:
     headers = login(client)
-    category = create_category(client, headers, "Auditoria pesquisável")
-    entry = create_entry(client, headers, category["id"], amount="100.00")
+    category = create_category(
+        client,
+        headers,
+        "Auditoria pesquisável",
+    )
+    entry = create_entry(
+        client,
+        headers,
+        category["id"],
+        amount="100.00",
+    )
+
     update = client.patch(
         f"/api/finance/entries/{entry['id']}",
         headers=headers,
-        json={"expected_version": 1, "amount": "175.00"},
+        json={
+            "expected_version": 1,
+            "amount": "175.00",
+        },
     )
     assert update.status_code == 200
 
     response = client.get(
-        "/api/finance/audit?query=Lançamento%20de%20teste&actor=Lucas"
-        "&before_value=100,00&after_value=175,00",
+        "/api/finance/audit"
+        "?query=Lançamento%20de%20teste"
+        "&actor=Lucas"
+        "&before_value=100,00"
+        "&after_value=175,00",
         headers=headers,
     )
+
     assert response.status_code == 200
-    events = response.json()
+
+    payload = response.json()
+
+    assert payload["total"] == 1
+    assert payload["page"] == 1
+    assert payload["page_size"] == 50
+    assert payload["has_next"] is False
+
+    events = payload["items"]
+
     assert len(events) == 1
     assert events[0]["entry_id"] == entry["id"]
     assert events[0]["actor_name"] == "Lucas Teste"
@@ -295,3 +324,125 @@ def test_finance_audit_search_filters_by_entry_actor_and_values(
         "before": "100.00",
         "after": "175.00",
     }
+
+
+def test_finance_audit_filters_before_paginating_more_than_500_events(
+    client: TestClient,
+    db: Session,
+) -> None:
+    headers = login(client)
+
+    category = create_category(
+        client,
+        headers,
+        "Auditoria paginada",
+    )
+    entry = create_entry(
+        client,
+        headers,
+        category["id"],
+    )
+
+    organization_id = uuid.UUID(entry["organization_id"])
+    entry_id = uuid.UUID(entry["id"])
+
+    membership = db.scalar(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.role == "owner",
+        )
+    )
+    assert membership is not None
+
+    base_time = datetime(
+        2026,
+        1,
+        1,
+        tzinfo=UTC,
+    )
+
+    target_event = FinanceAuditEvent(
+        organization_id=organization_id,
+        actor_id=membership.user_id,
+        event_type="entry_updated",
+        entity_id=entry_id,
+        document={
+            "before": {
+                "amount": "777.77",
+            },
+            "after": {
+                "amount": "888.88",
+            },
+            "version": 2,
+        },
+        created_at=base_time,
+    )
+
+    newer_events = [
+        FinanceAuditEvent(
+            organization_id=organization_id,
+            actor_id=membership.user_id,
+            event_type="entry_updated",
+            entity_id=entry_id,
+            document={
+                "before": {
+                    "amount": f"{index}.00",
+                },
+                "after": {
+                    "amount": f"{index + 1}.00",
+                },
+                "version": index + 3,
+            },
+            created_at=base_time + timedelta(minutes=index + 1),
+        )
+        for index in range(501)
+    ]
+
+    db.add(target_event)
+    db.add_all(newer_events)
+    db.commit()
+
+    filtered = client.get(
+        "/api/finance/audit?before_value=777,77&after_value=888,88&page=1&page_size=25",
+        headers=headers,
+    )
+
+    assert filtered.status_code == 200
+
+    filtered_payload = filtered.json()
+
+    assert filtered_payload["total"] == 1
+    assert filtered_payload["page"] == 1
+    assert filtered_payload["page_size"] == 25
+    assert filtered_payload["has_next"] is False
+    assert len(filtered_payload["items"]) == 1
+    assert filtered_payload["items"][0]["id"] == str(target_event.id)
+
+    first_page = client.get(
+        "/api/finance/audit?page=1&page_size=100",
+        headers=headers,
+    )
+
+    assert first_page.status_code == 200
+
+    first_page_payload = first_page.json()
+
+    assert first_page_payload["total"] == 503
+    assert len(first_page_payload["items"]) == 100
+    assert first_page_payload["page"] == 1
+    assert first_page_payload["page_size"] == 100
+    assert first_page_payload["has_next"] is True
+
+    last_page = client.get(
+        "/api/finance/audit?page=6&page_size=100",
+        headers=headers,
+    )
+
+    assert last_page.status_code == 200
+
+    last_page_payload = last_page.json()
+
+    assert last_page_payload["total"] == 503
+    assert len(last_page_payload["items"]) == 3
+    assert last_page_payload["page"] == 6
+    assert last_page_payload["has_next"] is False

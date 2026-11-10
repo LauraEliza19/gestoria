@@ -49,7 +49,7 @@ jobs:
       - name: Preparar estrutura mínima do frontend
         run: |
           mkdir -p ../frontend/dist/assets
-          printf '<div id="root"></div>' > ../frontend/dist/index.html
+          cp ../frontend/index.html ../frontend/dist/index.html
 
       - name: Verificar lint
         run: |
