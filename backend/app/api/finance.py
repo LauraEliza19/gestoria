@@ -7,6 +7,7 @@ from sqlalchemy import String, cast, or_, select
 from app.api.dependencies import (
     CurrentUser,
     DatabaseSession,
+    require_finance_audit,
     require_finance_manage,
     require_finance_read,
 )
@@ -148,7 +149,7 @@ def search_finance_audit(
     page_size: int = Query(default=50, ge=1, le=100),
 ) -> FinanceAuditSearchPageRead:
     """Pesquisa eventos financeiros e pagina depois de aplicar os filtros."""
-    require_finance_read(current)
+    require_finance_audit(current)
 
     statement = (
         select(
@@ -283,7 +284,7 @@ def search_finance_audit(
 
 @router.get("/entries/{entry_id}/history", response_model=list[FinanceEntryHistoryRead])
 def get_entry_history(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
-    require_finance_read(current)
+    require_finance_audit(current)
     entry = FinanceEntryRepository.get_for_organization(
         db, entry_id, current.organization.id
     )

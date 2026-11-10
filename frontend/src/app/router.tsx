@@ -174,7 +174,7 @@ export function AppRouter() {
           <Route
             path="/financeiro/auditoria"
             element={
-              <PermissionGate permission="finance:read">
+              <PermissionGate permission="finance:audit">
                 <FinanceAuditPage />
               </PermissionGate>
             }

@@ -173,23 +173,68 @@ def test_finance_isolation_and_member_permission(
     )
 
 
-def test_finance_member_approved_can_read_but_not_manage(
+def test_finance_member_approved_can_read_but_not_manage_or_audit(
     client: TestClient,
     db: Session,
 ) -> None:
     owner_headers = login(client)
     member_headers = login(client, "membro@gestoria.dev")
+
     category = create_category(client, owner_headers, "Leitura")
-    create_entry(client, owner_headers, category["id"])
+    entry = create_entry(client, owner_headers, category["id"])
 
     member = db.scalar(
         select(OrganizationMember).where(OrganizationMember.role == "member")
     )
     assert member is not None
+
     member.finance_access_approved = True
     db.commit()
 
-    assert client.get("/api/finance/entries", headers=member_headers).status_code == 200
+    # O membro aprovado continua autorizado a consultar o Financeiro.
+    assert (
+        client.get(
+            "/api/finance/entries",
+            headers=member_headers,
+        ).status_code
+        == 200
+    )
+
+    # Somente owner e admin podem consultar auditoria e histórico de versões.
+    assert (
+        client.get(
+            "/api/finance/audit",
+            headers=member_headers,
+        ).status_code
+        == 403
+    )
+
+    assert (
+        client.get(
+            f"/api/finance/entries/{entry['id']}/history",
+            headers=member_headers,
+        ).status_code
+        == 403
+    )
+
+    # O owner continua autorizado aos dois recursos protegidos.
+    assert (
+        client.get(
+            "/api/finance/audit",
+            headers=owner_headers,
+        ).status_code
+        == 200
+    )
+
+    assert (
+        client.get(
+            f"/api/finance/entries/{entry['id']}/history",
+            headers=owner_headers,
+        ).status_code
+        == 200
+    )
+
+    # Aprovação para leitura não concede gerenciamento.
     assert (
         client.post(
             "/api/finance/categories",
@@ -197,6 +242,26 @@ def test_finance_member_approved_can_read_but_not_manage(
             json={"name": "Sem gerenciamento"},
         ).status_code
         == 403
+    )
+
+    # Ao ser promovido para admin, o mesmo usuário passa a acessar a auditoria.
+    member.role = "admin"
+    db.commit()
+
+    assert (
+        client.get(
+            "/api/finance/audit",
+            headers=member_headers,
+        ).status_code
+        == 200
+    )
+
+    assert (
+        client.get(
+            f"/api/finance/entries/{entry['id']}/history",
+            headers=member_headers,
+        ).status_code
+        == 200
     )
 
 
