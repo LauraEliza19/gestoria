@@ -73,3 +73,8 @@ def require_finance_audit(current: AuthenticatedUser) -> None:
 
 def require_finance_manage(current: AuthenticatedUser) -> None:
     require_role(current, {"owner", "admin"})
+
+
+def require_audit_read(current: AuthenticatedUser) -> None:
+    """audit:read: company-wide audit is limited to owners and administrators."""
+    require_role(current, {"owner", "admin"})

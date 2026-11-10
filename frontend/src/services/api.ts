@@ -11,7 +11,11 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+  responseType: 'json' | 'blob' = 'json',
+): Promise<T> {
   const headers = new Headers(options.headers)
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   headers.set('X-CSRF-Protection', '1')
@@ -24,6 +28,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     window.location.replace('/login')
     throw new Error('Sua sessão expirou.')
   }
+  if (response.ok && responseType === 'blob') return (await response.blob()) as T
   const body = response.status === 204 ? null : await response.json().catch(() => null)
   const detail = Array.isArray(body?.detail) ? body.detail[0]?.msg : body?.detail
   const message =
