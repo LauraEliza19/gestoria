@@ -22,6 +22,8 @@ test('auditoria financeira apresenta os filtros operacionais', () => {
 })
 
 test('auditoria envia todos os filtros para o serviço', () => {
+  assert.match(auditPage, /page:\s*requestedPage/)
+  assert.match(auditPage, /page_size:\s*AUDIT_PAGE_SIZE/)
   assert.match(auditPage, /getFinanceAudit\(\{/)
   assert.match(auditPage, /query:\s*query\.trim\(\) \|\| undefined/)
   assert.match(auditPage, /actor:\s*actor\.trim\(\) \|\| undefined/)
@@ -46,7 +48,25 @@ test('linha do tempo identifica responsável versão e alterações', () => {
   assert.match(auditPage, /Abrir lançamento/)
 })
 
+test('auditoria consome resposta paginada e oferece navegação', () => {
+  assert.match(auditPage, /setEvents\(result\.items\)/)
+  assert.match(auditPage, /setTotal\(result\.total\)/)
+  assert.match(auditPage, /setPage\(result\.page\)/)
+  assert.match(auditPage, /setHasNext\(result\.has_next\)/)
+  assert.match(auditPage, /Anterior/)
+  assert.match(auditPage, /Próxima/)
+  assert.match(auditPage, /disabled=\{loading \|\| page <= 1\}/)
+  assert.match(auditPage, /disabled=\{loading \|\| !hasNext\}/)
+  assert.match(auditPage, /eventos encontrados/)
+})
+
 test('serviço financeiro usa o endpoint autenticado de auditoria', () => {
+  assert.match(financeService, /export type FinanceAuditSearchPage/)
+  assert.match(financeService, /items: FinanceAuditSearchEvent\[\]/)
+  assert.match(financeService, /total: number/)
+  assert.match(financeService, /page_size: number/)
+  assert.match(financeService, /has_next: boolean/)
+  assert.match(financeService, /apiFetch<FinanceAuditSearchPage>/)
   assert.match(financeService, /export function getFinanceAudit/)
   assert.match(financeService, /\/api\/finance\/audit/)
   assert.match(financeService, /before_value/)
