@@ -63,7 +63,10 @@ function TopNavigation() {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const headerRef = useRef<HTMLElement>(null)
   const managementActive =
-    pathname === '/financeiro' || pathname === '/gestao' || pathname.startsWith('/gestao/')
+    pathname === '/auditoria' ||
+    pathname === '/financeiro' ||
+    pathname === '/gestao' ||
+    pathname.startsWith('/gestao/')
   const managementOpen = openGroup === 'gestao'
 
   function closeNavigation() {
@@ -240,6 +243,16 @@ function TopNavigation() {
               </button>
 
               <div id="navigation-gestao" hidden={!managementOpen} className={dropdownClass}>
+                {can('audit:read') && (
+                  <NavLink
+                    to="/auditoria"
+                    onClick={closeNavigation}
+                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#dce4ff] hover:bg-white/10"
+                  >
+                    <ClipboardList size={18} />
+                    Central de Auditoria
+                  </NavLink>
+                )}
                 {can('management:read') && (
                   <NavLink
                     to="/gestao"
