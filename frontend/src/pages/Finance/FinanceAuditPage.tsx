@@ -16,6 +16,8 @@ const fieldLabels: Record<string, string> = {
   notes: 'Observações',
 }
 
+const AUDIT_PAGE_SIZE = 50
+
 function displayValue(field: string, value: string | null) {
   if (value === null || value === undefined || value === '') return '—'
   if (field === 'amount') {
@@ -42,12 +44,16 @@ export function FinanceAuditPage() {
   const [beforeValue, setBeforeValue] = useState('')
   const [afterValue, setAfterValue] = useState('')
   const [events, setEvents] = useState<FinanceAuditSearchEvent[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [hasNext, setHasNext] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function search() {
+  async function search(requestedPage = 1) {
     setLoading(true)
     setError('')
+
     try {
       const result = await getFinanceAudit({
         query: query.trim() || undefined,
@@ -56,8 +62,14 @@ export function FinanceAuditPage() {
         end_date: endDate || undefined,
         before_value: beforeValue.trim() || undefined,
         after_value: afterValue.trim() || undefined,
+        page: requestedPage,
+        page_size: AUDIT_PAGE_SIZE,
       })
-      setEvents(result)
+
+      setEvents(result.items)
+      setTotal(result.total)
+      setPage(result.page)
+      setHasNext(result.has_next)
     } catch (requestError) {
       setError(getErrorMessage(requestError, 'Não foi possível consultar a auditoria financeira.'))
     } finally {
@@ -66,7 +78,7 @@ export function FinanceAuditPage() {
   }
 
   useEffect(() => {
-    void search()
+    void search(1)
     // Initial load only; filters are applied by the search action.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -93,7 +105,7 @@ export function FinanceAuditPage() {
           className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
           onSubmit={(event) => {
             event.preventDefault()
-            void search()
+            void search(1)
           }}
         >
           <label>
@@ -211,8 +223,43 @@ export function FinanceAuditPage() {
             ))}
           </div>
         )}
+
+        {total > 0 && (
+          <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted" role="status">
+              {total === 1 ? '1 evento encontrado' : `${total} eventos encontrados`}
+            </p>
+
+            <div className="flex items-center gap-3">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={loading || page <= 1}
+                onClick={() => {
+                  void search(page - 1)
+                }}
+              >
+                Anterior
+              </button>
+
+              <span className="text-sm font-semibold">Página {page}</span>
+
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={loading || !hasNext}
+                onClick={() => {
+                  void search(page + 1)
+                }}
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        )}
+
         <p className="mt-5 border-t border-line pt-3 text-xs text-muted">
-          A consulta exibe até 500 eventos por pesquisa e respeita o acesso financeiro da
+          Os resultados são filtrados antes da paginação e respeitam o acesso financeiro da
           organização.
         </p>
       </section>
