@@ -67,5 +67,9 @@ def require_finance_read(current: AuthenticatedUser) -> None:
         )
 
 
+def require_finance_audit(current: AuthenticatedUser) -> None:
+    require_role(current, {"owner", "admin"})
+
+
 def require_finance_manage(current: AuthenticatedUser) -> None:
     require_role(current, {"owner", "admin"})

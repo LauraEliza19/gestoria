@@ -73,10 +73,11 @@ test('serviço financeiro usa o endpoint autenticado de auditoria', () => {
   assert.match(financeService, /after_value/)
 })
 
-test('auditoria está acessível pelo financeiro e protegida por permissão', () => {
+test('auditoria exige permissão específica e oculta o atalho sem autorização', () => {
+  assert.match(financePage, /can\('finance:audit'\)/)
   assert.match(financePage, /to="\/financeiro\/auditoria"/)
   assert.match(financePage, /Histórico de auditoria/)
   assert.match(router, /path="\/financeiro\/auditoria"/)
-  assert.match(router, /permission="finance:read"/)
+  assert.match(router, /permission="finance:audit"/)
   assert.match(router, /<FinanceAuditPage \/>/)
 })
