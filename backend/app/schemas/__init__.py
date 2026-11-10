@@ -26,6 +26,7 @@ from app.schemas.dashboard import (
     DashboardSummaryRead,
 )
 from app.schemas.finance import (
+    FinanceAuditSearchPageRead,
     FinanceAuditSearchRead,
     FinanceCategoryCreate,
     FinanceCategoryRead,
@@ -109,6 +110,7 @@ __all__ = [
     "EmploymentCreate",
     "EmploymentRead",
     "EmploymentUpdate",
+    "FinanceAuditSearchPageRead",
     "FinanceAuditSearchRead",
     "FinanceCategoryCreate",
     "FinanceCategoryRead",
