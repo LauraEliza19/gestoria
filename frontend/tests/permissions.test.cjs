@@ -63,3 +63,9 @@ test('recognizes only supported roles', () => {
   assert.equal(isUserRole('member'), true)
   assert.equal(isUserRole('manager'), false)
 })
+
+test('financial audit is restricted to owner and admin', () => {
+  assert.equal(hasPermission('owner', 'finance:audit'), true)
+  assert.equal(hasPermission('admin', 'finance:audit'), true)
+  assert.equal(hasPermission('member', 'finance:audit'), false)
+})

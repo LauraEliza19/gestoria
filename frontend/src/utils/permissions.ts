@@ -9,6 +9,7 @@ export const PERMISSIONS = [
   'order:delete',
   'quote:delete',
   'fiscal:manage',
+  'finance:audit',
   'production:delete',
   'management:read',
   'employees:manage',
