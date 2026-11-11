@@ -7,6 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 FinanceType = Literal["income", "expense"]
 FinanceStatus = Literal["pending", "paid", "cancelled"]
+FinanceEventType = Literal[
+    "entry_created",
+    "entry_updated",
+    "entry_settled",
+    "attachment_added",
+    "attachment_removed",
+]
 
 
 class FinanceCategoryCreate(BaseModel):
@@ -38,6 +45,7 @@ class FinanceEntryCreate(BaseModel):
     entry_type: FinanceType
     status: FinanceStatus = "pending"
     transaction_date: date
+    due_date: date | None = None
     paid_at: datetime | None = None
     notes: str | None = Field(default=None, max_length=5000)
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -51,6 +59,7 @@ class FinanceEntryUpdate(BaseModel):
     entry_type: FinanceType | None = None
     status: FinanceStatus | None = None
     transaction_date: date | None = None
+    due_date: date | None = None
     paid_at: datetime | None = None
     notes: str | None = Field(default=None, max_length=5000)
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -59,15 +68,35 @@ class FinanceEntryUpdate(BaseModel):
 class FinanceEntryRead(FinanceEntryCreate):
     id: uuid.UUID
     organization_id: uuid.UUID
+    due_date: date
+    is_overdue: bool
     created_at: datetime
     updated_at: datetime
     version: int
     model_config = ConfigDict(from_attributes=True)
 
 
+class FinanceSettlementCreate(BaseModel):
+    """Baixa de um título pendente (pagamento ou recebimento)."""
+
+    expected_version: int = Field(ge=1)
+    paid_at: datetime | None = None
+
+
+class FinanceAttachmentRead(BaseModel):
+    id: uuid.UUID
+    entry_id: uuid.UUID
+    file_name: str
+    content_type: str
+    size_bytes: int
+    uploaded_by: uuid.UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
 class FinanceEntryHistoryRead(BaseModel):
     id: uuid.UUID
-    event_type: Literal["entry_created", "entry_updated"]
+    event_type: FinanceEventType
     actor_name: str
     created_at: datetime
     version: int
@@ -85,7 +114,7 @@ class FinanceAuditSearchRead(BaseModel):
     id: uuid.UUID
     entry_id: uuid.UUID
     entry_description: str
-    event_type: Literal["entry_created", "entry_updated"]
+    event_type: FinanceEventType
     actor_name: str
     created_at: datetime
     version: int

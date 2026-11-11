@@ -249,6 +249,10 @@
     @apply min-w-[950px] grid-cols-[1.15fr_1.4fr_.7fr_.85fr_1.9fr];
   }
 
+  .finance-accounts-table .data-table-row {
+    @apply min-w-[880px] grid-cols-[1.5fr_1fr_1fr_.9fr_.9fr_.9fr];
+  }
+
   .fiscal-summary {
     @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-4;
   }

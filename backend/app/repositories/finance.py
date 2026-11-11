@@ -4,7 +4,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import FinanceCategory, FinanceEntry
+from app.models import FinanceAttachment, FinanceCategory, FinanceEntry
 
 
 class FinanceCategoryRepository:
@@ -63,13 +63,14 @@ class FinanceEntryRepository:
             query = query.where(FinanceEntry.transaction_date >= filters["start_date"])
         if filters.get("end_date"):
             query = query.where(FinanceEntry.transaction_date <= filters["end_date"])
-        return list(
-            db.scalars(
-                query.order_by(
-                    FinanceEntry.transaction_date.desc(), FinanceEntry.created_at.desc()
-                )
+        if filters.get("sort") == "due_date":
+            ordering = (FinanceEntry.due_date.asc(), FinanceEntry.created_at.asc())
+        else:
+            ordering = (
+                FinanceEntry.transaction_date.desc(),
+                FinanceEntry.created_at.desc(),
             )
-        )
+        return list(db.scalars(query.order_by(*ordering)))
 
     @staticmethod
     def get_for_organization(
@@ -125,3 +126,35 @@ class FinanceEntryRepository:
             "total_expense": expense,
             "balance": income - expense,
         }
+
+
+class FinanceAttachmentRepository:
+    @staticmethod
+    def list_for_entry(
+        db: Session, organization_id: uuid.UUID, entry_id: uuid.UUID
+    ) -> list[FinanceAttachment]:
+        return list(
+            db.scalars(
+                select(FinanceAttachment)
+                .where(
+                    FinanceAttachment.organization_id == organization_id,
+                    FinanceAttachment.entry_id == entry_id,
+                )
+                .order_by(FinanceAttachment.created_at.desc())
+            )
+        )
+
+    @staticmethod
+    def get_for_entry(
+        db: Session,
+        organization_id: uuid.UUID,
+        entry_id: uuid.UUID,
+        attachment_id: uuid.UUID,
+    ) -> FinanceAttachment | None:
+        return db.scalar(
+            select(FinanceAttachment).where(
+                FinanceAttachment.id == attachment_id,
+                FinanceAttachment.organization_id == organization_id,
+                FinanceAttachment.entry_id == entry_id,
+            )
+        )

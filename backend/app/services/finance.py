@@ -4,8 +4,23 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import FinanceAuditEvent, FinanceCategory, FinanceEntry
+from app.models import (
+    FinanceAttachment,
+    FinanceAuditEvent,
+    FinanceCategory,
+    FinanceEntry,
+)
 from app.repositories import FinanceCategoryRepository, FinanceEntryRepository
+
+MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+ALLOWED_ATTACHMENT_TYPES = {
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "application/xml",
+    "text/xml",
+}
 
 
 class FinanceError(Exception):
@@ -17,6 +32,18 @@ class FinanceCategoryUnavailableError(FinanceError):
 
 
 class DuplicateFinanceCategoryError(FinanceError):
+    pass
+
+
+class FinanceEntryNotPendingError(FinanceError):
+    pass
+
+
+class FinanceAttachmentError(FinanceError):
+    pass
+
+
+class FinanceAttachmentTooLargeError(FinanceAttachmentError):
     pass
 
 
@@ -105,6 +132,8 @@ def update_category(db, category: FinanceCategory, actor_id, values):
 
 def create_entry(db, organization_id, actor_id, values):
     validate_finance_category(db, organization_id, values["category_id"])
+    if values.get("due_date") is None:
+        values["due_date"] = values["transaction_date"]
     if values.get("status") == "paid" and values.get("paid_at") is None:
         values["paid_at"] = datetime.now(UTC)
     if values.get("status") != "paid":
@@ -132,6 +161,7 @@ def update_entry(db, entry: FinanceEntry, actor_id, values):
             "entry_type",
             "status",
             "transaction_date",
+            "due_date",
             "paid_at",
             "notes",
         )
@@ -158,3 +188,98 @@ def update_entry(db, entry: FinanceEntry, actor_id, values):
         db.rollback()
         raise
     return entry
+
+
+def settle_entry(db, entry: FinanceEntry, actor_id, values):
+    """Baixa: registra o pagamento (saída) ou o recebimento (entrada) do título."""
+    expected_version = values["expected_version"]
+    if entry.version != expected_version:
+        raise FinanceEntryConflictError(entry, expected_version)
+    if entry.status != "pending":
+        raise FinanceEntryNotPendingError(
+            "Somente títulos pendentes podem ser baixados."
+        )
+    before = {"status": entry.status, "paid_at": entry.paid_at}
+    after = {"status": "paid", "paid_at": values.get("paid_at") or datetime.now(UTC)}
+    try:
+        entry = FinanceEntryRepository.update(
+            db, entry, {**after, "version": entry.version + 1}
+        )
+        _audit(
+            db,
+            entry.organization_id,
+            actor_id,
+            "entry_settled",
+            entry.id,
+            {"before": before, "after": after, "version": entry.version},
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+    return entry
+
+
+def add_attachment(
+    db,
+    entry: FinanceEntry,
+    actor_id,
+    *,
+    file_name: str,
+    content_type: str | None,
+    content: bytes,
+) -> FinanceAttachment:
+    normalized_type = (content_type or "").split(";")[0].strip().lower()
+    if normalized_type not in ALLOWED_ATTACHMENT_TYPES:
+        raise FinanceAttachmentError(
+            "Formato não aceito. Envie PDF, PNG, JPEG, WEBP ou XML."
+        )
+    if not content:
+        raise FinanceAttachmentError("O arquivo está vazio.")
+    if len(content) > MAX_ATTACHMENT_BYTES:
+        raise FinanceAttachmentTooLargeError("O arquivo deve ter no máximo 5 MB.")
+    clean_name = file_name.replace("\\", "/").split("/")[-1].strip() or "anexo"
+    attachment = FinanceAttachment(
+        organization_id=entry.organization_id,
+        entry_id=entry.id,
+        file_name=clean_name[:255],
+        content_type=normalized_type,
+        size_bytes=len(content),
+        content=content,
+        uploaded_by=actor_id,
+    )
+    try:
+        db.add(attachment)
+        db.flush()
+        _audit(
+            db,
+            entry.organization_id,
+            actor_id,
+            "attachment_added",
+            entry.id,
+            {
+                "before": {"attachment": None},
+                "after": {"attachment": attachment.file_name},
+                "attachment_id": attachment.id,
+                "version": entry.version,
+            },
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+    return attachment
+
+
+def remove_attachment(db, entry: FinanceEntry, attachment: FinanceAttachment, actor_id):
+    document = {
+        "before": {"attachment": attachment.file_name},
+        "after": {"attachment": None},
+        "attachment_id": attachment.id,
+        "version": entry.version,
+    }
+    db.delete(attachment)
+    _audit(
+        db, entry.organization_id, actor_id, "attachment_removed", entry.id, document
+    )
+    db.commit()

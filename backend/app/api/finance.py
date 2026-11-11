@@ -1,8 +1,10 @@
 import uuid
 from datetime import date, datetime
+from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from sqlalchemy import String, cast, or_, select
+from starlette.concurrency import run_in_threadpool
 
 from app.api.dependencies import (
     CurrentUser,
@@ -12,8 +14,13 @@ from app.api.dependencies import (
     require_finance_read,
 )
 from app.models import FinanceAuditEvent, FinanceEntry, User
-from app.repositories import FinanceCategoryRepository, FinanceEntryRepository
+from app.repositories import (
+    FinanceAttachmentRepository,
+    FinanceCategoryRepository,
+    FinanceEntryRepository,
+)
 from app.schemas import (
+    FinanceAttachmentRead,
     FinanceAuditSearchPageRead,
     FinanceCategoryCreate,
     FinanceCategoryRead,
@@ -22,19 +29,35 @@ from app.schemas import (
     FinanceEntryHistoryRead,
     FinanceEntryRead,
     FinanceEntryUpdate,
+    FinanceSettlementCreate,
     FinanceSummaryRead,
 )
 from app.services import (
     DuplicateFinanceCategoryError,
+    FinanceAttachmentError,
+    FinanceAttachmentTooLargeError,
     FinanceCategoryUnavailableError,
     FinanceEntryConflictError,
+    FinanceEntryNotPendingError,
+    add_attachment,
     create_category,
     create_entry,
+    remove_attachment,
+    settle_entry,
     update_category,
     update_entry,
 )
+from app.services.finance import MAX_ATTACHMENT_BYTES
 
 router = APIRouter(prefix="/api/finance", tags=["finance"])
+
+ENTRY_EVENT_TYPES = (
+    "entry_created",
+    "entry_updated",
+    "entry_settled",
+    "attachment_added",
+    "attachment_removed",
+)
 
 
 def not_found(label: str) -> HTTPException:
@@ -107,6 +130,9 @@ def list_entries(
         default=None, alias="status", pattern="^(pending|paid|cancelled)$"
     ),
     category_id: uuid.UUID | None = None,
+    sort: str = Query(
+        default="transaction_date", pattern="^(transaction_date|due_date)$"
+    ),
 ):
     require_finance_read(current)
     return FinanceEntryRepository.list_for_organization(
@@ -117,6 +143,7 @@ def list_entries(
         entry_type=entry_type,
         status=status_filter,
         category_id=category_id,
+        sort=sort,
     )
 
 
@@ -168,7 +195,7 @@ def search_finance_audit(
         .where(
             FinanceAuditEvent.organization_id == current.organization.id,
             FinanceEntry.organization_id == current.organization.id,
-            FinanceAuditEvent.event_type.in_(("entry_created", "entry_updated")),
+            FinanceAuditEvent.event_type.in_(ENTRY_EVENT_TYPES),
         )
     )
 
@@ -296,7 +323,7 @@ def get_entry_history(entry_id: uuid.UUID, db: DatabaseSession, current: Current
         .where(
             FinanceAuditEvent.organization_id == current.organization.id,
             FinanceAuditEvent.entity_id == entry_id,
-            FinanceAuditEvent.event_type.in_(("entry_created", "entry_updated")),
+            FinanceAuditEvent.event_type.in_(ENTRY_EVENT_TYPES),
         )
         .order_by(FinanceAuditEvent.created_at.desc(), FinanceAuditEvent.id.desc())
     ).all()
@@ -400,3 +427,146 @@ def financial_summary(
         entry_type=entry_type,
         category_id=category_id,
     )
+
+
+def load_entry(db, current, entry_id: uuid.UUID, *, for_update=False):
+    entry = FinanceEntryRepository.get_for_organization(
+        db, entry_id, current.organization.id, for_update=for_update
+    )
+    if entry is None:
+        raise not_found("Lançamento")
+    return entry
+
+
+@router.post("/entries/{entry_id}/settle", response_model=FinanceEntryRead)
+def settle_entry_route(
+    entry_id: uuid.UUID,
+    payload: FinanceSettlementCreate,
+    db: DatabaseSession,
+    current: CurrentUser,
+):
+    """Baixa do título: pagamento de conta a pagar ou recebimento de conta a receber."""
+    require_finance_manage(current)
+    entry = load_entry(db, current, entry_id, for_update=True)
+    try:
+        return settle_entry(db, entry, current.user.id, payload.model_dump())
+    except FinanceEntryNotPendingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except FinanceEntryConflictError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "finance_entry_conflict",
+                "message": str(exc),
+                "expected_version": exc.expected_version,
+                "current": FinanceEntryRead.model_validate(exc.entry).model_dump(
+                    mode="json"
+                ),
+            },
+        ) from exc
+
+
+@router.get(
+    "/entries/{entry_id}/attachments", response_model=list[FinanceAttachmentRead]
+)
+def list_attachments(entry_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
+    require_finance_read(current)
+    load_entry(db, current, entry_id)
+    return FinanceAttachmentRepository.list_for_entry(
+        db, current.organization.id, entry_id
+    )
+
+
+@router.post(
+    "/entries/{entry_id}/attachments",
+    response_model=FinanceAttachmentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_attachment(
+    entry_id: uuid.UUID,
+    request: Request,
+    db: DatabaseSession,
+    current: CurrentUser,
+    file_name: str = Query(min_length=1, max_length=255),
+):
+    """Recebe o arquivo no corpo da requisição; o tipo vem do Content-Type."""
+    require_finance_manage(current)
+    too_large = HTTPException(
+        status_code=413, detail="O arquivo deve ter no máximo 5 MB."
+    )
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_ATTACHMENT_BYTES:
+        raise too_large
+    content = bytearray()
+    async for chunk in request.stream():
+        content.extend(chunk)
+        if len(content) > MAX_ATTACHMENT_BYTES:
+            raise too_large
+
+    def store():
+        entry = load_entry(db, current, entry_id, for_update=True)
+        return add_attachment(
+            db,
+            entry,
+            current.user.id,
+            file_name=file_name,
+            content_type=request.headers.get("content-type"),
+            content=bytes(content),
+        )
+
+    try:
+        return await run_in_threadpool(store)
+    except FinanceAttachmentTooLargeError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    except FinanceAttachmentError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/entries/{entry_id}/attachments/{attachment_id}/download")
+def download_attachment(
+    entry_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    db: DatabaseSession,
+    current: CurrentUser,
+):
+    require_finance_read(current)
+    attachment = FinanceAttachmentRepository.get_for_entry(
+        db, current.organization.id, entry_id, attachment_id
+    )
+    if attachment is None:
+        raise not_found("Anexo")
+    ascii_name = (
+        attachment.file_name.encode("ascii", "ignore").decode().replace('"', "")
+        or "anexo"
+    )
+    return Response(
+        content=attachment.content,
+        media_type=attachment.content_type,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_name}"; '
+                f"filename*=UTF-8''{quote(attachment.file_name)}"
+            )
+        },
+    )
+
+
+@router.delete(
+    "/entries/{entry_id}/attachments/{attachment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_attachment(
+    entry_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    db: DatabaseSession,
+    current: CurrentUser,
+):
+    require_finance_manage(current)
+    entry = load_entry(db, current, entry_id, for_update=True)
+    attachment = FinanceAttachmentRepository.get_for_entry(
+        db, current.organization.id, entry_id, attachment_id
+    )
+    if attachment is None:
+        raise not_found("Anexo")
+    remove_attachment(db, entry, attachment, current.user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
