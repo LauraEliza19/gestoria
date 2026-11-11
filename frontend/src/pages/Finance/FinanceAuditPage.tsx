@@ -188,7 +188,10 @@ export function FinanceAuditPage() {
       <section className="page-card mt-5">
         <h2 className="font-display text-xl font-semibold">Linha do tempo</h2>
         {error && (
-          <div className="error-banner mt-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+          <div
+            className="error-banner mt-4 flex flex-wrap items-center justify-between gap-3"
+            role="alert"
+          >
             <p>{error}</p>
             <button
               className="secondary-button"
