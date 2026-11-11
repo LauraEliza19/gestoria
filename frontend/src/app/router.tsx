@@ -92,6 +92,7 @@ function PageTitle() {
       '/gestao/funcionarios/novo': 'GestorIA — Cadastrar funcionário',
       '/empresa/editar': 'GestorIA — Empresa',
       '/financeiro': 'GestorIA — Financeiro',
+      '/financeiro/auditoria': 'GestorIA — Auditoria financeira',
       '/financeiro/categorias/nova': 'GestorIA — Nova categoria financeira',
       '/financeiro/lancamentos/novo': 'GestorIA — Novo lançamento financeiro',
     }
