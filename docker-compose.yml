@@ -22,6 +22,30 @@ services:
       timeout: 5s
       retries: 10
 
+  backup:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gestoria}
+      POSTGRES_USER: ${POSTGRES_USER:-gestoria}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-gestoria_dev}
+      BACKUP_DIR: /backups
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETRY_SECONDS: ${BACKUP_RETRY_SECONDS:-300}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./deploy/backup/backup.sh:/usr/local/bin/gestoria-backup.sh:ro
+      - ./deploy/backup/restore-drill.sh:/usr/local/bin/gestoria-restore-drill.sh:ro
+      - ./.backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - /usr/local/bin/gestoria-backup.sh
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -30,7 +54,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-gestoria}:${POSTGRES_PASSWORD:-gestoria_dev}@db:5432/${POSTGRES_DB:-gestoria}
       APP_ENV: development
       COOKIE_SECURE: "false"
-      ALLOWED_HOSTS: '${ALLOWED_HOSTS:-["localhost","127.0.0.1","testserver"]}'
+      ALLOWED_HOSTS: '${ALLOWED_HOSTS:-["localhost","127.0.0.1","testserver","api"]}'
       DEMO_ENABLED: ${DEMO_ENABLED:-false}
       DEMO_ORGANIZATION: ${DEMO_ORGANIZATION:-Empresa Demo GestorIA}
       DEMO_EMAIL: ${DEMO_EMAIL:-admin@gestoria.dev}
@@ -48,6 +72,11 @@ services:
         condition: service_healthy
     ports:
       - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     volumes:
       - ./backend:/app
     command: >-

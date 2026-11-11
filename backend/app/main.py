@@ -14,6 +14,7 @@ from app.api import (
     dashboard,
     finance,
     fiscal,
+    health,
     management,
     management_employee_records,
     management_employments,
@@ -26,8 +27,11 @@ from app.api import (
 )
 from app.config import settings
 from app.http_security import SecurityMiddleware
+from app.observability import RequestLoggingMiddleware, configure_logging
 
 project_root = Path(__file__).resolve().parents[2]
+
+configure_logging(settings.log_level, settings.log_format)
 
 
 def resolve_frontend_dir() -> Path:
@@ -61,7 +65,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
 app.include_router(auth.router)
+app.include_router(health.router)
 app.include_router(audit.router)
 app.include_router(copilot.router)
 app.include_router(order_operations.router)
@@ -78,11 +84,6 @@ app.include_router(production.router)
 app.include_router(management.router)
 app.include_router(management_employee_records.router)
 app.include_router(management_employments.router)
-
-
-@app.get("/api/health", tags=["health"])
-def health() -> dict[str, str]:
-    return {"status": "ok"}
 
 
 def react_index() -> FileResponse:
