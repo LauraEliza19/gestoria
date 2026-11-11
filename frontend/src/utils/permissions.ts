@@ -10,6 +10,7 @@ export const PERMISSIONS = [
   'quote:delete',
   'fiscal:manage',
   'finance:audit',
+  'audit:read',
   'production:delete',
   'management:read',
   'employees:manage',

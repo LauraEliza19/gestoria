@@ -1,3 +1,4 @@
+import { AuditPage } from '../pages/Audit/AuditPage'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { DashboardPage } from '../pages/Dashboard/DashboardPage'
@@ -71,6 +72,7 @@ function PageTitle() {
 
   useEffect(() => {
     const titles: Record<string, string> = {
+      '/auditoria': 'GestorIA — Central de Auditoria',
       '/login': 'GestorIA — Entrar',
       '/dashboard': 'GestorIA — Visão geral',
       '/clientes': 'GestorIA — Clientes',
@@ -163,6 +165,14 @@ export function AppRouter() {
         <Route path="/logout" element={<LogoutPage />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/auditoria"
+            element={
+              <PermissionGate permission="audit:read">
+                <AuditPage />
+              </PermissionGate>
+            }
+          />
           <Route
             path="/financeiro"
             element={
