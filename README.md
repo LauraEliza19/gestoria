@@ -349,7 +349,7 @@ O GestorIA está em desenvolvimento acadêmico com estrutura de aplicação real
 | Interface fiscal | Otávio |
 | Produção e estoque | Leonardo e Kaio |
 | Interface do modo produção | Leonardo e Kaio |
-| Financeiro | Adryan |
+| Financeiro | Adryan e Lucas |
 
 As contribuições detalhadas e suas evidências estão em [Contribuições individuais](<docs/entregaEtapa3/Contribuições individuais na implementação do projeto.md>).
 
