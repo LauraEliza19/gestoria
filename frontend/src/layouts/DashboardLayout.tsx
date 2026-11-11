@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   BriefcaseBusiness,
   Building2,
+  CalendarClock,
   ChevronDown,
   ChefHat,
   ClipboardList,
@@ -65,6 +66,7 @@ function TopNavigation() {
   const managementActive =
     pathname === '/auditoria' ||
     pathname === '/financeiro' ||
+    pathname === '/financeiro/contas' ||
     pathname === '/gestao' ||
     pathname.startsWith('/gestao/')
   const managementOpen = openGroup === 'gestao'
@@ -272,6 +274,7 @@ function TopNavigation() {
                 {can('finance:read') && (
                   <NavLink
                     to="/financeiro"
+                    end
                     onClick={closeNavigation}
                     className={({ isActive }) =>
                       `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
@@ -281,6 +284,21 @@ function TopNavigation() {
                   >
                     <Landmark size={18} aria-hidden="true" />
                     Financeiro
+                  </NavLink>
+                )}
+
+                {can('finance:read') && (
+                  <NavLink
+                    to="/financeiro/contas"
+                    onClick={closeNavigation}
+                    className={({ isActive }) =>
+                      `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        isActive ? 'bg-[#3d63f5] text-white' : 'text-[#dce4ff] hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    <CalendarClock size={18} aria-hidden="true" />
+                    Contas a pagar e receber
                   </NavLink>
                 )}
 

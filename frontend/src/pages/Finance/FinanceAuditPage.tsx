@@ -2,7 +2,11 @@ import { ArrowLeft, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LoadingState } from '../../components/AsyncState'
-import { getFinanceAudit, type FinanceAuditSearchEvent } from '../../services/finance.service'
+import {
+  financeEventLabels,
+  getFinanceAudit,
+  type FinanceAuditSearchEvent,
+} from '../../services/finance.service'
 import { getErrorMessage } from '../../utils/errors'
 
 const fieldLabels: Record<string, string> = {
@@ -13,6 +17,8 @@ const fieldLabels: Record<string, string> = {
   status: 'Situação',
   transaction_date: 'Data do lançamento',
   paid_at: 'Data de pagamento',
+  due_date: 'Vencimento',
+  attachment: 'Anexo',
   notes: 'Observações',
 }
 
@@ -223,7 +229,7 @@ export function FinanceAuditPage() {
                 </div>
                 <p className="mt-1 text-xs text-muted">
                   {event.actor_name} · Versão {event.version} ·{' '}
-                  {event.event_type === 'entry_created' ? 'Cadastro' : 'Alteração'}
+                  {financeEventLabels[event.event_type] || 'Alteração'}
                 </p>
                 <ul className="mt-2 space-y-1 text-sm">
                   {Object.entries(event.changes).map(([field, change]) => (

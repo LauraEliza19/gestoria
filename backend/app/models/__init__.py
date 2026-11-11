@@ -34,6 +34,7 @@ __all__ = [
     "Employee",
     "EmployeeRecord",
     "Employment",
+    "FinanceAttachment",
     "FinanceAuditEvent",
     "FinanceCategory",
     "FinanceEntry",
@@ -559,7 +560,12 @@ class QuoteItem(Base, TimestampMixin):
     product: Mapped[Product] = relationship(back_populates="quote_items")
 
 
-from app.models.finance import FinanceAuditEvent, FinanceCategory, FinanceEntry
+from app.models.finance import (
+    FinanceAttachment,
+    FinanceAuditEvent,
+    FinanceCategory,
+    FinanceEntry,
+)
 from app.models.fiscal import (
     FiscalDocument,
     FiscalDocumentItem,
