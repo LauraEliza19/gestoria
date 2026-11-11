@@ -71,7 +71,16 @@ export function FinanceAuditPage() {
       setPage(result.page)
       setHasNext(result.has_next)
     } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Não foi possível consultar a auditoria financeira.'))
+      const message = getErrorMessage(
+        requestError,
+        'Não foi possível carregar o histórico de auditoria.',
+      )
+      const isNetworkError = /failed to fetch|networkerror|load failed/i.test(message)
+      setError(
+        isNetworkError
+          ? 'Não foi possível carregar o histórico de auditoria. Verifique sua conexão e tente novamente.'
+          : message,
+      )
     } finally {
       setLoading(false)
     }
@@ -179,9 +188,19 @@ export function FinanceAuditPage() {
       <section className="page-card mt-5">
         <h2 className="font-display text-xl font-semibold">Linha do tempo</h2>
         {error && (
-          <p className="error-banner mt-4" role="alert">
-            {error}
-          </p>
+          <div className="error-banner mt-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+            <p>{error}</p>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                void search(1)
+              }}
+            >
+              Tentar novamente
+            </button>
+          </div>
         )}
         {loading ? (
           <LoadingState message="Consultando histórico financeiro..." />
