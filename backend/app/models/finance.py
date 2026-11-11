@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import (
     JSON,
@@ -12,6 +13,8 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -21,8 +24,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.config import settings
 from app.database import Base
 from app.models import TimestampMixin
+
+
+def business_today() -> date:
+    """Data corrente no fuso da empresa, usada para calcular vencimentos."""
+    return datetime.now(ZoneInfo(settings.business_timezone)).date()
 
 
 class FinanceCategory(Base, TimestampMixin):
@@ -85,9 +94,44 @@ class FinanceEntry(Base, TimestampMixin):
     entry_type: Mapped[str] = mapped_column(String(10), nullable=False)
     status: Mapped[str] = mapped_column(String(12), default="pending", nullable=False)
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
     version: Mapped[int] = mapped_column(default=1, nullable=False)
+
+    @property
+    def is_overdue(self) -> bool:
+        return self.status == "pending" and self.due_date < business_today()
+
+
+class FinanceAttachment(Base):
+    """Arquivo anexado a um lançamento financeiro."""
+
+    __tablename__ = "finance_attachments"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "entry_id"],
+            ["finance_entries.organization_id", "finance_entries.id"],
+            ondelete="CASCADE",
+        ),
+        Index("ix_finance_attachments_org_entry", "organization_id", "entry_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    entry_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, deferred=True)
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class FinanceAuditEvent(Base):

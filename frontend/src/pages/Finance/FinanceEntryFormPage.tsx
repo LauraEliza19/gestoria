@@ -1,14 +1,22 @@
-import { ArrowLeft, CircleDollarSign, Save } from 'lucide-react'
+import { ArrowLeft, CircleDollarSign, Download, Paperclip, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import {
+  ATTACHMENT_ACCEPT,
+  ATTACHMENT_MAX_BYTES,
   createFinanceEntry,
+  deleteFinanceAttachment,
+  downloadFinanceAttachment,
+  financeEventLabels,
+  getFinanceAttachments,
   getFinanceCategories,
   getFinanceEntry,
   getFinanceEntryHistory,
   updateFinanceEntry,
+  uploadFinanceAttachment,
+  type FinanceAttachment,
   type FinanceCategory,
   type FinanceEntryHistory,
 } from '../../services/finance.service'
@@ -26,6 +34,11 @@ export function FinanceEntryFormPage() {
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income')
   const [status, setStatus] = useState<'pending' | 'paid' | 'cancelled'>('pending')
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().slice(0, 10))
+  const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10))
+  const [attachments, setAttachments] = useState<FinanceAttachment[]>([])
+  const [attachmentError, setAttachmentError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([])
   const [notes, setNotes] = useState('')
   const [expectedVersion, setExpectedVersion] = useState<number | null>(null)
   const [conflict, setConflict] = useState<{
@@ -44,8 +57,9 @@ export function FinanceEntryFormPage() {
       getFinanceCategories(),
       entryId ? getFinanceEntry(entryId) : Promise.resolve(null),
       entryId ? getFinanceEntryHistory(entryId) : Promise.resolve([]),
+      entryId ? getFinanceAttachments(entryId) : Promise.resolve([]),
     ])
-      .then(([currentCategories, entry, currentHistory]) => {
+      .then(([currentCategories, entry, currentHistory, currentAttachments]) => {
         setCategories(
           currentCategories.filter(
             (category) => category.is_active || category.id === entry?.category_id,
@@ -58,10 +72,12 @@ export function FinanceEntryFormPage() {
           setEntryType(entry.entry_type)
           setStatus(entry.status)
           setTransactionDate(entry.transaction_date)
+          setDueDate(entry.due_date)
           setNotes(entry.notes || '')
           setExpectedVersion(entry.version)
         }
         setHistory(currentHistory)
+        setAttachments(currentAttachments)
         setLoading(false)
       })
       .catch((requestError) => {
@@ -69,6 +85,66 @@ export function FinanceEntryFormPage() {
         setError(getErrorMessage(requestError, 'Não foi possível carregar o lançamento.'))
       })
   }, [entryId])
+
+  async function refreshAttachments(id: string) {
+    const [currentAttachments, currentHistory] = await Promise.all([
+      getFinanceAttachments(id),
+      getFinanceEntryHistory(id),
+    ])
+    setAttachments(currentAttachments)
+    setHistory(currentHistory)
+  }
+
+  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    setAttachmentError('')
+    const tooLarge = files.find((file) => file.size > ATTACHMENT_MAX_BYTES)
+    if (tooLarge) {
+      setAttachmentError(`${tooLarge.name}: o arquivo deve ter no máximo 5 MB.`)
+      return
+    }
+    if (!entryId) {
+      // Cadastro novo: os arquivos são enviados logo depois de salvar.
+      setQueuedFiles((current) => [...current, ...files])
+      return
+    }
+    setUploading(true)
+    try {
+      for (const file of files) await uploadFinanceAttachment(entryId, file)
+      await refreshAttachments(entryId)
+    } catch (requestError) {
+      setAttachmentError(getErrorMessage(requestError, 'Não foi possível enviar o anexo.'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleDownload(attachment: FinanceAttachment) {
+    setAttachmentError('')
+    try {
+      const blob = await downloadFinanceAttachment(attachment.entry_id, attachment.id)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = attachment.file_name
+      link.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (requestError) {
+      setAttachmentError(getErrorMessage(requestError, 'Não foi possível baixar o anexo.'))
+    }
+  }
+
+  async function handleRemove(attachment: FinanceAttachment) {
+    if (!entryId) return
+    setAttachmentError('')
+    try {
+      await deleteFinanceAttachment(entryId, attachment.id)
+      await refreshAttachments(entryId)
+    } catch (requestError) {
+      setAttachmentError(getErrorMessage(requestError, 'Não foi possível remover o anexo.'))
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -82,6 +158,7 @@ export function FinanceEntryFormPage() {
       entry_type: entryType,
       status,
       transaction_date: transactionDate,
+      due_date: dueDate,
       notes: notes.trim() || null,
     }
     try {
@@ -89,7 +166,16 @@ export function FinanceEntryFormPage() {
         if (expectedVersion === null)
           throw new Error('A versão do lançamento ainda não foi carregada.')
         await updateFinanceEntry(entryId, { ...payload, expected_version: expectedVersion })
-      } else await createFinanceEntry(payload)
+      } else {
+        const created = await createFinanceEntry(payload)
+        try {
+          for (const file of queuedFiles) await uploadFinanceAttachment(created.id, file)
+        } catch {
+          // O lançamento já foi salvo: abre a edição para reenviar o anexo.
+          navigate(`/financeiro/lancamentos/${created.id}/editar`, { replace: true })
+          return
+        }
+      }
       navigate('/financeiro', { replace: true })
     } catch (requestError) {
       if (
@@ -136,7 +222,9 @@ export function FinanceEntryFormPage() {
     entry_type: 'Tipo',
     status: 'Situação',
     transaction_date: 'Data',
+    due_date: 'Vencimento',
     paid_at: 'Pagamento',
+    attachment: 'Anexo',
     notes: 'Observações',
   }
   const displayValue = (field: string, value: string | number | null) => {
@@ -231,6 +319,14 @@ export function FinanceEntryFormPage() {
                   </option>
                 ))}
               </select>
+              {categories.length === 0 && (
+                <span className="text-xs font-normal text-muted">
+                  Nenhuma categoria cadastrada.{' '}
+                  <Link className="font-bold text-signal" to="/financeiro/categorias/nova">
+                    Cadastrar categoria
+                  </Link>
+                </span>
+              )}
             </label>
             <label className="form-label">
               Tipo
@@ -265,6 +361,16 @@ export function FinanceEntryFormPage() {
                 value={transactionDate}
                 required
                 onChange={(event) => setTransactionDate(event.target.value)}
+              />
+            </label>
+            <label className="form-label">
+              Vencimento
+              <input
+                className="form-input"
+                type="date"
+                value={dueDate}
+                required
+                onChange={(event) => setDueDate(event.target.value)}
               />
             </label>
             <label className="form-label md:col-span-2">
@@ -341,8 +447,7 @@ export function FinanceEntryFormPage() {
               {history.map((event) => (
                 <div className="border-l-2 border-signal pl-3 text-sm" key={event.id}>
                   <strong>
-                    Versão {event.version} ·{' '}
-                    {event.event_type === 'entry_created' ? 'Cadastro' : 'Alteração'}
+                    Versão {event.version} · {financeEventLabels[event.event_type] || 'Alteração'}
                   </strong>
                   <p className="mt-1 text-xs text-muted">
                     {event.actor_name} · {new Date(event.created_at).toLocaleString('pt-BR')}
@@ -364,6 +469,93 @@ export function FinanceEntryFormPage() {
           </p>
         </aside>
       </form>
+      <section className="page-card mt-5" aria-labelledby="finance-attachments-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="eyebrow">Comprovantes</p>
+            <h2 id="finance-attachments-title" className="mt-2 font-display text-xl font-semibold">
+              Anexos
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              {editing
+                ? 'PDF, imagem ou XML com até 5 MB.'
+                : 'PDF, imagem ou XML com até 5 MB. Os arquivos são enviados ao cadastrar.'}
+            </p>
+          </div>
+          <label className="secondary-button cursor-pointer gap-2">
+            <Paperclip size={17} aria-hidden="true" />
+            {uploading ? 'Enviando...' : 'Adicionar comprovante'}
+            <input
+              className="sr-only"
+              type="file"
+              multiple
+              accept={ATTACHMENT_ACCEPT}
+              disabled={uploading}
+              onChange={handleFiles}
+            />
+          </label>
+        </div>
+        {attachmentError && (
+          <p className="mt-4 text-sm text-[#d84f62]" role="alert">
+            {attachmentError}
+          </p>
+        )}
+        {attachments.length === 0 && queuedFiles.length === 0 && (
+          <p className="mt-4 text-sm text-muted">Nenhum anexo registrado.</p>
+        )}
+        {queuedFiles.map((file, index) => (
+          <div
+            className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-sm"
+            key={`${file.name}-${index}`}
+          >
+            <span className="min-w-0">
+              <strong className="block truncate">{file.name}</strong>
+              <small className="text-xs text-muted">
+                {Math.max(1, Math.round(file.size / 1024))} KB · será enviado ao cadastrar
+              </small>
+            </span>
+            <button
+              className="inline-flex items-center gap-1 text-sm font-bold text-[#b33d50]"
+              type="button"
+              onClick={() =>
+                setQueuedFiles((current) => current.filter((_, position) => position !== index))
+              }
+            >
+              <Trash2 size={15} aria-hidden="true" /> Retirar
+            </button>
+          </div>
+        ))}
+        {attachments.map((attachment) => (
+          <div
+            className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-sm"
+            key={attachment.id}
+          >
+            <span className="min-w-0">
+              <strong className="block truncate">{attachment.file_name}</strong>
+              <small className="text-xs text-muted">
+                {Math.max(1, Math.round(attachment.size_bytes / 1024))} KB ·{' '}
+                {new Date(attachment.created_at).toLocaleString('pt-BR')}
+              </small>
+            </span>
+            <span className="flex gap-3">
+              <button
+                className="inline-flex items-center gap-1 text-sm font-bold text-signal"
+                type="button"
+                onClick={() => void handleDownload(attachment)}
+              >
+                <Download size={15} aria-hidden="true" /> Baixar
+              </button>
+              <button
+                className="inline-flex items-center gap-1 text-sm font-bold text-[#b33d50]"
+                type="button"
+                onClick={() => void handleRemove(attachment)}
+              >
+                <Trash2 size={15} aria-hidden="true" /> Remover
+              </button>
+            </span>
+          </div>
+        ))}
+      </section>
     </main>
   )
 }

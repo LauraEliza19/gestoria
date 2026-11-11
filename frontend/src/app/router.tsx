@@ -28,6 +28,7 @@ import { FinancePage } from '../pages/Finance/FinancePage'
 import { FinanceCategoryFormPage } from '../pages/Finance/FinanceCategoryFormPage'
 import { FinanceEntryFormPage } from '../pages/Finance/FinanceEntryFormPage'
 import { FinanceAuditPage } from '../pages/Finance/FinanceAuditPage'
+import { FinanceAccountsPage } from '../pages/Finance/FinanceAccountsPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, logoutSession } from '../services/session'
 import { SessionProvider } from '../contexts/SessionContext'
@@ -93,6 +94,7 @@ function PageTitle() {
       '/empresa/editar': 'GestorIA — Empresa',
       '/financeiro': 'GestorIA — Financeiro',
       '/financeiro/auditoria': 'GestorIA — Auditoria financeira',
+      '/financeiro/contas': 'GestorIA — Contas a pagar e receber',
       '/financeiro/categorias/nova': 'GestorIA — Nova categoria financeira',
       '/financeiro/lancamentos/novo': 'GestorIA — Novo lançamento financeiro',
     }
@@ -179,6 +181,14 @@ export function AppRouter() {
             element={
               <PermissionGate permission="finance:read">
                 <FinancePage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/financeiro/contas"
+            element={
+              <PermissionGate permission="finance:read">
+                <FinanceAccountsPage />
               </PermissionGate>
             }
           />

@@ -26,7 +26,8 @@ REVISION = "0014_copilot_security_gateway"
 CUSTOMER_CODES_REVISION = "0014_customer_codes"
 MERGE_REVISION = "b48621729e7d"
 PRODUCT_CODES_REVISION = "0015_product_codes"
-CURRENT_HEAD = "0016_quote_commercial_terms"
+QUOTE_TERMS_REVISION = "0016_quote_commercial_terms"
+CURRENT_HEAD = "0017_finance_accounts"
 PREVIOUS = "0013_finance_entry_versions"
 
 
@@ -42,7 +43,11 @@ def test_gateway_and_customer_codes_are_joined_in_a_single_head():
     scripts = ScriptDirectory.from_config(Config("alembic.ini"))
 
     assert scripts.get_heads() == [CURRENT_HEAD]
-    assert scripts.get_revision(CURRENT_HEAD).down_revision == PRODUCT_CODES_REVISION
+    assert scripts.get_revision(CURRENT_HEAD).down_revision == QUOTE_TERMS_REVISION
+    assert (
+        scripts.get_revision(QUOTE_TERMS_REVISION).down_revision
+        == PRODUCT_CODES_REVISION
+    )
     assert scripts.get_revision(PRODUCT_CODES_REVISION).down_revision == MERGE_REVISION
     assert set(scripts.get_revision(MERGE_REVISION).down_revision) == {
         REVISION,
