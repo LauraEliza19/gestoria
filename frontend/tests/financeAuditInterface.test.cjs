@@ -81,3 +81,22 @@ test('auditoria exige permissão específica e oculta o atalho sem autorização
   assert.match(router, /permission="finance:audit"/)
   assert.match(router, /<FinanceAuditPage \/>/)
 })
+
+test('auditoria apresenta erro de rede amigável e permite tentar novamente', () => {
+  assert.match(auditPage, /failed to fetch\|networkerror\|load failed/i)
+  assert.match(auditPage, /Não foi possível carregar o histórico de auditoria/)
+  assert.match(auditPage, /Verifique sua conexão e tente novamente/)
+  assert.match(auditPage, /Tentar novamente/)
+  assert.match(auditPage, /void search\(1\)/)
+})
+
+test('auditoria possui título específico no mapa de títulos', () => {
+  assert.match(router, /'\/financeiro\/auditoria':\s*'GestorIA — Auditoria financeira'/)
+})
+
+test('controles da auditoria possuem rótulos associados e mensagens acessíveis', () => {
+  assert.match(auditPage, /<label>/)
+  assert.match(auditPage, /role="alert"/)
+  assert.match(auditPage, /role="status"/)
+  assert.match(auditPage, /aria-hidden="true"/)
+})
