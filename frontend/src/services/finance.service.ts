@@ -103,11 +103,7 @@ export type FinanceEntryUpdatePayload = Partial<FinanceEntryPayload> & {
 }
 
 export type FinanceEventType =
-  | 'entry_created'
-  | 'entry_updated'
-  | 'entry_settled'
-  | 'attachment_added'
-  | 'attachment_removed'
+  'entry_created' | 'entry_updated' | 'entry_settled' | 'attachment_added' | 'attachment_removed'
 
 export const financeEventLabels: Record<FinanceEventType, string> = {
   entry_created: 'Cadastro',
