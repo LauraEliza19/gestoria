@@ -215,18 +215,17 @@ export function uploadFinanceAttachment(entryId: string, file: File) {
   const isXml = file.name.toLowerCase().endsWith('.xml')
   const contentType = file.type || (isXml ? 'application/xml' : 'application/octet-stream')
   const fileName = encodeURIComponent(file.name)
-  return apiFetch<FinanceAttachment>(
-    `/api/finance/entries/${entryId}/attachments?file_name=${fileName}`,
-    { method: 'POST', headers: { 'Content-Type': contentType }, body: file },
-  )
+  const path = `/api/finance/entries/${entryId}/attachments?file_name=${fileName}`
+  return apiFetch<FinanceAttachment>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': contentType },
+    body: file,
+  })
 }
 
 export function downloadFinanceAttachment(entryId: string, attachmentId: string) {
-  return apiFetch<Blob>(
-    `/api/finance/entries/${entryId}/attachments/${attachmentId}/download`,
-    {},
-    'blob',
-  )
+  const path = `/api/finance/entries/${entryId}/attachments/${attachmentId}/download`
+  return apiFetch<Blob>(path, {}, 'blob')
 }
 
 export function deleteFinanceAttachment(entryId: string, attachmentId: string) {
