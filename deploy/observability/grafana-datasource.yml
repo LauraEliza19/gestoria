@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: Gestoria Logs
+    uid: gestoria-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    editable: false
+    jsonData:
+      timeout: 60
+      maxLines: 1000
+    
+  - name: Gestoria Metrics
+    uid: gestoria-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: false
+    jsonData:
+      timeInterval: 15s
