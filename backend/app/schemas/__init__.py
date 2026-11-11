@@ -26,6 +26,7 @@ from app.schemas.dashboard import (
     DashboardSummaryRead,
 )
 from app.schemas.finance import (
+    FinanceAttachmentRead,
     FinanceAuditSearchPageRead,
     FinanceAuditSearchRead,
     FinanceCategoryCreate,
@@ -35,6 +36,7 @@ from app.schemas.finance import (
     FinanceEntryHistoryRead,
     FinanceEntryRead,
     FinanceEntryUpdate,
+    FinanceSettlementCreate,
     FinanceSummaryRead,
 )
 from app.schemas.fiscal import (
@@ -110,6 +112,7 @@ __all__ = [
     "EmploymentCreate",
     "EmploymentRead",
     "EmploymentUpdate",
+    "FinanceAttachmentRead",
     "FinanceAuditSearchPageRead",
     "FinanceAuditSearchRead",
     "FinanceCategoryCreate",
@@ -119,6 +122,7 @@ __all__ = [
     "FinanceEntryHistoryRead",
     "FinanceEntryRead",
     "FinanceEntryUpdate",
+    "FinanceSettlementCreate",
     "FinanceSummaryRead",
     "FiscalDocumentCreate",
     "FiscalDocumentRead",
