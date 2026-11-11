@@ -16,6 +16,8 @@ class Settings(BaseSettings):
         repr=False,
     )
     business_timezone: str = "America/Sao_Paulo"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    log_format: Literal["json", "text"] = "json"
     frontend_dir: str | None = None
     cookie_secure: bool = False
     allowed_origins: list[str] = [

@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: "gestoriasistemas@gmail.com"
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_auth_username: "gestoriasistemas@gmail.com"
+  smtp_auth_password_file: /run/secrets/gmail_app_password
+  smtp_require_tls: true
+
+route:
+  receiver: gestoria-email
+  group_by:
+    - alertname
+    - service
+    - severity
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: gestoria-email
+    email_configs:
+      - to: "gestoriasistemas@gmail.com"
+        send_resolved: true
+        headers:
+          subject: >-
+            [Gestoria][{{ .Status | toUpper }}]
+            [{{ .CommonLabels.severity | toUpper }}]
+            {{ .CommonLabels.alertname }}
