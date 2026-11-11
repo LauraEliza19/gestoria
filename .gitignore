@@ -13,3 +13,9 @@ frontend/dist/
 .env.*
 !.env.example
 !.env.production.example
+
+# Local observability secrets
+deploy/observability/secrets/
+
+# Local database backups
+.backups/

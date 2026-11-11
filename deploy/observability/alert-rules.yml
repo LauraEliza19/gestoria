@@ -1,0 +1,22 @@
+groups:
+  - name: gestoria-availability
+    rules:
+      - alert: GestoriaApiUnavailable
+        expr: probe_success{job="gestoria-readiness"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: gestoria-api
+        annotations:
+          summary: "API Gestoria indisponível"
+          description: "O endpoint de prontidão falhou continuamente por mais de 2 minutos."
+
+      - alert: GestoriaApiSlow
+        expr: avg_over_time(probe_duration_seconds{job="gestoria-readiness"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: gestoria-api
+        annotations:
+          summary: "API Gestoria com resposta lenta"
+          description: "O tempo médio do endpoint de prontidão ficou acima de 1 segundo durante 5 minutos."
