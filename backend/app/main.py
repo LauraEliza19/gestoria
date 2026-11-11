@@ -7,8 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import (
-    auth,
     audit,
+    auth,
     copilot,
     customers,
     dashboard,
