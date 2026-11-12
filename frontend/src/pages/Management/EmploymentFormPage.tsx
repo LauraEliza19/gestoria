@@ -1,7 +1,10 @@
-import { ArrowLeft, BriefcaseBusiness, Save } from 'lucide-react'
+import { BriefcaseBusiness, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import { useSession } from '../../contexts/SessionContext'
 import {
@@ -54,7 +57,9 @@ export function EmploymentFormPage() {
   const [costCenters, setCostCenters] = useState<CostCenter[]>([])
   const [values, setValues] = useState<EmploymentFormValues>(initialValues)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const { busy: saving, run: save } = useSaveAction()
+  const { dirty, resetBaseline } = useFormChanges(values)
+  const announceSuccess = useFormSuccess()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -88,7 +93,7 @@ export function EmploymentFormPage() {
             throw new Error('Vínculo profissional não encontrado.')
           }
 
-          setValues({
+          const loadedValues = {
             costCenterId: employment.cost_center_id || '',
             positionTitle: employment.position_title,
             employmentType: employment.employment_type,
@@ -97,7 +102,9 @@ export function EmploymentFormPage() {
             endedAt: employment.ended_at || '',
             baseSalary: compensation?.base_salary || '',
             notes: employment.notes || '',
-          })
+          }
+          setValues(loadedValues)
+          resetBaseline(loadedValues)
         }
 
         setLoading(false)
@@ -115,7 +122,7 @@ export function EmploymentFormPage() {
     return () => {
       cancelled = true
     }
-  }, [canReadCompensation, employeeId, employmentId])
+  }, [canReadCompensation, employeeId, employmentId, resetBaseline])
 
   function updateField(field: keyof EmploymentFormValues, value: string) {
     setValues((current) => ({
@@ -134,48 +141,46 @@ export function EmploymentFormPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     if (!employeeId) return
+    await save(async () => {
+      setError('')
 
-    setSaving(true)
-    setError('')
-
-    const payload: EmploymentCreatePayload = {
-      cost_center_id: values.costCenterId || null,
-      position_title: values.positionTitle.trim(),
-      employment_type: values.employmentType,
-      status: values.status,
-      started_at: values.startedAt,
-      ended_at: values.status === 'ended' ? values.endedAt || null : null,
-      notes: values.notes.trim() || null,
-    }
-
-    if (canReadCompensation) {
-      payload.base_salary = values.baseSalary.trim() || null
-    }
-
-    try {
-      if (employmentId) {
-        await updateEmployment(employmentId, payload)
-      } else {
-        await createEmployment(employeeId, payload)
+      const payload: EmploymentCreatePayload = {
+        cost_center_id: values.costCenterId || null,
+        position_title: values.positionTitle.trim(),
+        employment_type: values.employmentType,
+        status: values.status,
+        started_at: values.startedAt,
+        ended_at: values.status === 'ended' ? values.endedAt || null : null,
+        notes: values.notes.trim() || null,
       }
 
-      navigate(`/gestao/funcionarios/${employeeId}`, {
-        replace: true,
-      })
-    } catch (requestError) {
-      setError(
-        getErrorMessage(
-          requestError,
-          editing
-            ? 'Não foi possível atualizar o vínculo.'
-            : 'Não foi possível cadastrar o vínculo.',
-        ),
-      )
-    } finally {
-      setSaving(false)
-    }
+      if (canReadCompensation) {
+        payload.base_salary = values.baseSalary.trim() || null
+      }
+
+      try {
+        if (employmentId) {
+          await updateEmployment(employmentId, payload)
+        } else {
+          await createEmployment(employeeId, payload)
+        }
+
+        announceSuccess(editing ? 'Vínculo atualizado.' : 'Vínculo cadastrado.')
+        navigate(`/gestao/funcionarios/${employeeId}`, {
+          replace: true,
+        })
+      } catch (requestError) {
+        setError(
+          getErrorMessage(
+            requestError,
+            editing
+              ? 'Não foi possível atualizar o vínculo.'
+              : 'Não foi possível cadastrar o vínculo.',
+          ),
+        )
+      }
+    })
   }
 
   if (loading) {
@@ -196,23 +201,25 @@ export function EmploymentFormPage() {
 
   return (
     <main className="page-wrap">
-      <header className="page-header">
-        <div>
-          <Link
-            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
-            to={`/gestao/funcionarios/${employee.id}`}
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-            Voltar para o perfil
-          </Link>
+      <FormHeader
+        module="Gestão interna"
+        title={editing ? 'Editar vínculo' : 'Novo vínculo'}
+        description={`Configure a relação profissional de ${employee.full_name}.`}
+        mode={editing ? 'edit' : 'create'}
+        back={{
+          to: `/gestao/funcionarios/${employee.id}`,
+          label: 'Voltar para o perfil do funcionário',
+        }}
+        dirty={dirty}
+        blocked={saving}
+      />
 
-          <p className="eyebrow">Gestão interna</p>
-          <h1>{editing ? 'Editar vínculo' : 'Novo vínculo'}</h1>
-          <p>Configure a relação profissional de {employee.full_name}.</p>
-        </div>
-      </header>
-
-      <form className="page-card mx-auto max-w-[900px]" onSubmit={handleSubmit}>
+      <SavingForm
+        className="page-card mx-auto max-w-[900px]"
+        onSubmit={handleSubmit}
+        saving={saving}
+        onInvalidCapture={() => setError('')}
+      >
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#eef2ff] text-signal">
             <BriefcaseBusiness size={20} aria-hidden="true" />
@@ -228,7 +235,10 @@ export function EmploymentFormPage() {
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <label className="form-label md:col-span-2">
-            Cargo ou função
+            <span>
+              Cargo ou função
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               type="text"
@@ -287,7 +297,10 @@ export function EmploymentFormPage() {
           </label>
 
           <label className="form-label">
-            Data de início
+            <span>
+              Data de início
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               type="date"
@@ -299,7 +312,10 @@ export function EmploymentFormPage() {
 
           {values.status === 'ended' && (
             <label className="form-label">
-              Data de encerramento
+              <span>
+                Data de encerramento
+                <RequiredMark />
+              </span>
               <input
                 className="form-input"
                 type="date"
@@ -346,16 +362,15 @@ export function EmploymentFormPage() {
         )}
 
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Link className="secondary-button" to={`/gestao/funcionarios/${employee.id}`}>
+          <FormExit to={`/gestao/funcionarios/${employee.id}`} blocked={saving}>
             Cancelar
-          </Link>
+          </FormExit>
 
-          <button className="primary-button gap-2" type="submit" disabled={saving}>
-            <Save size={17} aria-hidden="true" />
-            {saving ? 'Salvando...' : editing ? 'Salvar vínculo' : 'Cadastrar vínculo'}
-          </button>
+          <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>
+            {editing ? 'Salvar vínculo' : 'Cadastrar vínculo'}
+          </SaveButton>
         </div>
-      </form>
+      </SavingForm>
     </main>
   )
 }

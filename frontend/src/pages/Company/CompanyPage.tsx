@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 import { useSession } from '../../contexts/SessionContext'
@@ -58,6 +61,9 @@ export function CompanyPage() {
     createCompanyFromOrganization(session.organization),
   )
   const [status, setStatus] = useState('')
+  const { dirty } = useFormChanges(data)
+  const { busy: saving, run: save } = useSaveAction()
+  const announceSuccess = useFormSuccess()
 
   function update(field: CompanyField, value: string) {
     setData((current) => ({
@@ -68,57 +74,55 @@ export function CompanyPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setStatus('')
+    await save(async () => {
+      setStatus('')
 
-    if (!data.name?.trim()) {
-      setStatus('O nome da empresa é obrigatório.')
-      return
-    }
+      if (!data.name?.trim()) {
+        setStatus('O nome da empresa é obrigatório.')
+        return
+      }
 
-    const payload = Object.fromEntries(fields.map((field) => [field, data[field] || null]))
+      const payload = Object.fromEntries(fields.map((field) => [field, data[field] || null]))
 
-    try {
-      await apiFetch('/api/organization', {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      })
-      navigate('/dashboard')
-    } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível salvar os dados da empresa.'))
-    }
+      try {
+        await apiFetch('/api/organization', {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        })
+        announceSuccess('Dados da empresa atualizados.')
+        navigate('/dashboard')
+      } catch (error) {
+        setStatus(getErrorMessage(error, 'Não foi possível salvar os dados da empresa.'))
+      }
+    })
   }
 
   return (
     <div className="mx-auto w-full max-w-[1180px] p-7 md:p-16">
-      <header className="mb-9 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[.08em] text-signal">
-            Configurações
-          </p>
-          <h1 className="font-display text-[clamp(28px,4vw,42px)] font-semibold tracking-[-.04em]">
-            Dados da empresa
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            Mantenha as informações da organização atualizadas.
-          </p>
-        </div>
+      <FormHeader
+        module="Configurações da empresa"
+        title="Dados da empresa"
+        description="Atualize as informações da sua organização."
+        mode="edit"
+        back={{ to: '/dashboard', label: 'Voltar ao painel' }}
+        dirty={dirty}
+        blocked={saving}
+      />
 
-        <Link
-          className="inline-flex items-center justify-center rounded-lg border border-line bg-white px-4 py-3 text-[13px] font-bold text-[#354064]"
-          to="/dashboard"
-        >
-          Voltar
-        </Link>
-      </header>
-
-      <form
+      <SavingForm
         className="grid max-w-[850px] grid-cols-1 gap-[18px] rounded-[10px] border border-line bg-white p-6 shadow-[0_8px_24px_rgba(17,25,54,.04)] md:grid-cols-2"
         onSubmit={submit}
+        saving={saving}
+        onInvalidCapture={() => setStatus('')}
       >
         {fields.map((field) => (
           <label className="grid gap-2 text-[13px] font-bold text-[#354064]" key={field}>
-            {fieldLabels[field]}
+            <span>
+              {fieldLabels[field]}
+              {field === 'name' && <RequiredMark />}
+            </span>
             <input
+              required={field === 'name'}
               className="w-full rounded-lg border-[1.5px] border-[#dde2f0] bg-white p-3 text-ink outline-none focus:border-signal focus:ring-4 focus:ring-[rgba(61,99,245,.12)]"
               name={field}
               value={data[field] ?? ''}
@@ -133,13 +137,13 @@ export function CompanyPage() {
           </p>
         )}
 
-        <button
-          className="inline-flex w-fit items-center justify-center rounded-lg bg-signal px-4 py-3 text-[13px] font-bold text-white transition hover:bg-signal-dark"
-          type="submit"
-        >
-          Salvar alterações
-        </button>
-      </form>
+        <div className="col-span-full flex flex-wrap gap-3">
+          <SaveButton saving={saving}>Salvar alterações</SaveButton>
+          <FormExit to="/dashboard" blocked={saving}>
+            Cancelar
+          </FormExit>
+        </div>
+      </SavingForm>
     </div>
   )
 }

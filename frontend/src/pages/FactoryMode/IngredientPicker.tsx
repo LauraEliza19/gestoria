@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { Check, Search } from 'lucide-react'
+import { RequiredMark } from '../../components/forms/FormHeader'
 import { normalizeIngredientName, suggestIngredients } from './ingredientSuggestions'
 import type { Ingredient, IngredientChoice } from './productionTypes'
 
@@ -25,7 +26,10 @@ export function IngredientPicker({
   return (
     <div className="min-w-0">
       <label className="form-label" htmlFor={id}>
-        {label}
+        <span>
+          {label}
+          <RequiredMark />
+        </span>
       </label>
       <div className="relative mt-2">
         <Search size={16} aria-hidden="true" className="absolute left-3 top-3.5 text-muted" />

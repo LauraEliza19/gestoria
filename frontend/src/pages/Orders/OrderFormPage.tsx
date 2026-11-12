@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useSaveAction } from '../../components/forms/useFormState'
 import { Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
@@ -83,7 +86,14 @@ export function OrderFormPage() {
   const [items, setItems] = useState<DraftItem[]>([newItem()])
   const [proposal, setProposal] = useState<OrderProposal | null>(null)
   const [status, setStatus] = useState('Carregando clientes e produtos...')
-  const [submitting, setSubmitting] = useState(false)
+  const { busy, pendingAction, run } = useSaveAction<'prepare' | 'confirm' | 'cancel'>()
+  const contextualCustomerId = customers.some((customer) => customer.id === requestedCustomerId)
+    ? requestedCustomerId
+    : ''
+  const dirty =
+    customerId !== contextualCustomerId ||
+    items.length !== 1 ||
+    items.some((item) => item.productId !== '' || item.quantity !== '1')
 
   useEffect(() => {
     Promise.all([apiFetch<Customer[]>('/api/customers'), apiFetch<Product[]>('/api/products')])
@@ -131,98 +141,93 @@ export function OrderFormPage() {
 
   async function prepareOrder(event: FormEvent) {
     event.preventDefault()
-    setStatus('')
+    await run(async () => {
+      setStatus('')
 
-    if (!customerId) {
-      setStatus('Selecione um cliente.')
-      return
-    }
+      if (!customerId) {
+        setStatus('Selecione um cliente.')
+        return
+      }
 
-    if (
-      items.some(
-        (item) =>
-          !item.productId || !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0,
-      )
-    ) {
-      setStatus('Selecione os produtos e informe quantidades válidas.')
-      return
-    }
+      if (
+        items.some(
+          (item) =>
+            !item.productId ||
+            !Number.isFinite(Number(item.quantity)) ||
+            Number(item.quantity) <= 0,
+        )
+      ) {
+        setStatus('Selecione os produtos e informe quantidades válidas.')
+        return
+      }
 
-    if (selectedProductIds.size !== items.length) {
-      setStatus('Cada produto deve aparecer somente uma vez no pedido.')
-      return
-    }
+      if (selectedProductIds.size !== items.length) {
+        setStatus('Cada produto deve aparecer somente uma vez no pedido.')
+        return
+      }
 
-    try {
-      setSubmitting(true)
+      try {
+        const prepared = await apiFetch<OrderProposal>('/api/orders/proposals', {
+          method: 'POST',
+          headers: {
+            'Idempotency-Key': crypto.randomUUID(),
+          },
+          body: JSON.stringify({
+            customer_id: customerId,
+            items: items.map((item) => ({
+              product_id: item.productId,
+              quantity: Number(item.quantity),
+            })),
+          }),
+        })
 
-      const prepared = await apiFetch<OrderProposal>('/api/orders/proposals', {
-        method: 'POST',
-        headers: {
-          'Idempotency-Key': crypto.randomUUID(),
-        },
-        body: JSON.stringify({
-          customer_id: customerId,
-          items: items.map((item) => ({
-            product_id: item.productId,
-            quantity: Number(item.quantity),
-          })),
-        }),
-      })
-
-      setProposal(prepared)
-    } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível preparar o pedido.'))
-    } finally {
-      setSubmitting(false)
-    }
+        setProposal(prepared)
+      } catch (error) {
+        setStatus(getErrorMessage(error, 'Não foi possível preparar o pedido.'))
+      }
+    }, 'prepare')
   }
 
   async function cancelReview() {
     if (!proposal) return
 
-    try {
-      setSubmitting(true)
-
-      await apiFetch(`/api/orders/proposals/${proposal.operation_id}/cancel`, { method: 'POST' })
-
-      setProposal(null)
+    await run(async () => {
       setStatus('')
-    } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível cancelar a revisão.'))
-    } finally {
-      setSubmitting(false)
-    }
+      try {
+        await apiFetch(`/api/orders/proposals/${proposal.operation_id}/cancel`, { method: 'POST' })
+        setProposal(null)
+      } catch (error) {
+        setStatus(getErrorMessage(error, 'Não foi possível cancelar a revisão.'))
+      }
+    }, 'cancel')
   }
 
   async function confirmOrder() {
     if (!proposal) return
 
-    try {
-      setSubmitting(true)
+    await run(async () => {
       setStatus('')
+      try {
+        const order = await apiFetch<CreatedOrder>(
+          `/api/orders/proposals/${proposal.operation_id}/confirm`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              envelope: proposal.envelope,
+            }),
+          },
+        )
 
-      const order = await apiFetch<CreatedOrder>(
-        `/api/orders/proposals/${proposal.operation_id}/confirm`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            envelope: proposal.envelope,
-          }),
-        },
-      )
-
-      navigate('/pedidos', {
-        replace: true,
-        state: {
-          notice: `Pedido criado para ${order.customer_name} no valor de ${formatMoney(order.total_amount)}.`,
-        },
-      })
-    } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível confirmar o pedido.'))
-    } finally {
-      setSubmitting(false)
-    }
+        navigate('/pedidos', {
+          replace: true,
+          state: {
+            notice: `Pedido criado para ${order.customer_name} no valor de ${formatMoney(order.total_amount)}.`,
+          },
+        })
+      } catch (error) {
+        setStatus(getErrorMessage(error, 'Não foi possível confirmar o pedido.'))
+      }
+    }, 'confirm')
   }
 
   if (proposal) {
@@ -230,15 +235,18 @@ export function OrderFormPage() {
 
     return (
       <div className="page-wrap">
-        <header className="page-header">
-          <div>
-            <p className="eyebrow">Confirmação segura</p>
-            <h1>Revise o pedido</h1>
-            <p>Confira os dados antes de descontar o estoque e registrar a venda.</p>
-          </div>
-        </header>
+        <FormHeader
+          module="Pedidos"
+          title="Revise o pedido"
+          description="Confira os dados antes de descontar o estoque e registrar a venda."
+          mode="create"
+          back={{ onClick: () => void cancelReview(), label: 'Voltar para edição do pedido' }}
+          dirty={dirty}
+          blocked={busy}
+          hasRequiredFields={false}
+        />
 
-        <section className="page-card mx-auto max-w-[820px]">
+        <section className="page-card mx-auto max-w-[820px]" aria-busy={busy}>
           <div className="mb-6 flex items-start gap-3 rounded-lg bg-[#effbf6] p-4 text-[#28745b]">
             <ShieldCheck className="mt-0.5 shrink-0" size={21} />
             <div>
@@ -285,26 +293,32 @@ export function OrderFormPage() {
             <strong className="font-display text-2xl">{formatMoney(plan.total_amount)}</strong>
           </div>
 
-          {status && <p className="form-status mt-4">{status}</p>}
+          {status && (
+            <p className="form-status mt-4" role="alert">
+              {status}
+            </p>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              className="primary-button"
-              disabled={submitting}
+            <SaveButton
+              saving={pendingAction === 'confirm'}
+              disabled={busy}
               onClick={() => void confirmOrder()}
               type="button"
             >
-              {submitting ? 'Confirmando...' : 'Confirmar e criar pedido'}
-            </button>
+              Confirmar e criar pedido
+            </SaveButton>
 
-            <button
+            <SaveButton
               className="secondary-button"
-              disabled={submitting}
+              saving={pendingAction === 'cancel'}
+              pendingLabel="Voltando..."
+              disabled={busy}
               onClick={() => void cancelReview()}
               type="button"
             >
               Voltar e editar
-            </button>
+            </SaveButton>
           </div>
         </section>
       </div>
@@ -313,22 +327,29 @@ export function OrderFormPage() {
 
   return (
     <div className="page-wrap">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">Operação manual</p>
-          <h1>Novo pedido</h1>
-          <p>Selecione o cliente e monte os itens da venda.</p>
-        </div>
+      <FormHeader
+        module="Pedidos"
+        title="Novo pedido"
+        description="Selecione o cliente e monte os itens da venda."
+        mode="create"
+        back={{ to: '/pedidos', label: 'Voltar para pedidos' }}
+        dirty={dirty}
+        blocked={busy}
+      />
 
-        <Link className="secondary-button" to="/pedidos">
-          Voltar para pedidos
-        </Link>
-      </header>
-
-      <form className="page-card mx-auto grid max-w-[900px] gap-6" onSubmit={prepareOrder}>
+      <SavingForm
+        className="page-card mx-auto grid max-w-[900px] gap-6"
+        saving={busy}
+        onInvalidCapture={() => setStatus('')}
+        onSubmit={prepareOrder}
+      >
         <label className="form-label">
-          Cliente
+          <span>
+            Cliente
+            <RequiredMark />
+          </span>
           <select
+            required
             className="form-input"
             value={customerId}
             onChange={(event) => setCustomerId(event.target.value)}
@@ -362,8 +383,12 @@ export function OrderFormPage() {
                 key={item.key}
               >
                 <label className="form-label">
-                  Produto {index + 1}
+                  <span>
+                    Produto {index + 1}
+                    <RequiredMark />
+                  </span>
                   <select
+                    required
                     className="form-input"
                     value={item.productId}
                     onChange={(event) => updateItem(item.key, 'productId', event.target.value)}
@@ -385,8 +410,12 @@ export function OrderFormPage() {
                 </label>
 
                 <label className="form-label">
-                  Quantidade
+                  <span>
+                    Quantidade
+                    <RequiredMark />
+                  </span>
                   <input
+                    required
                     className="form-input"
                     min="0.001"
                     step="0.001"
@@ -425,19 +454,17 @@ export function OrderFormPage() {
         {status && <p className="form-status">{status}</p>}
 
         <div className="flex flex-wrap gap-3">
-          <button
-            className="primary-button"
-            disabled={submitting || customers.length === 0 || products.length === 0}
-            type="submit"
+          <SaveButton
+            saving={pendingAction === 'prepare'}
+            disabled={busy || customers.length === 0 || products.length === 0}
           >
-            {submitting ? 'Preparando...' : 'Revisar pedido'}
-          </button>
-
-          <Link className="secondary-button" to="/pedidos">
+            Revisar pedido
+          </SaveButton>
+          <FormExit to="/pedidos" blocked={busy}>
             Cancelar
-          </Link>
+          </FormExit>
         </div>
-      </form>
+      </SavingForm>
     </div>
   )
 }

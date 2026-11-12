@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { FormExit } from '../../components/forms/FormActions'
 
 type FiscalHeaderProps = {
   orderFilter: string
   fromProduction: boolean
   busy: boolean
+  returnBlocked: boolean
   canCreate: boolean
   formOpen?: boolean
   onStart: () => void
@@ -13,6 +14,7 @@ export function FiscalHeader({
   orderFilter,
   fromProduction,
   busy,
+  returnBlocked,
   canCreate,
   formOpen = false,
   onStart,
@@ -27,12 +29,12 @@ export function FiscalHeader({
 
       <div className="flex flex-wrap gap-3">
         {orderFilter && (
-          <Link
-            className="secondary-button"
+          <FormExit
+            blocked={returnBlocked}
             to={`/pedidos?order_id=${orderFilter}${fromProduction ? '&from=production' : ''}`}
           >
             Voltar ao pedido
-          </Link>
+          </FormExit>
         )}
 
         {canCreate && (

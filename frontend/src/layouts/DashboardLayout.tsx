@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react'
 import { useSession } from '../contexts/SessionContext'
+import { FormSuccessProvider } from '../components/forms/FormSuccess'
 import logoGestoria from '../assets/logo-gestoria-topo.png'
 
 const navigationGroups = [
@@ -417,7 +418,9 @@ export function DashboardLayout() {
       <TopNavigation key={location.key} />
 
       <main className="app-content min-w-0" id="main-content" tabIndex={-1}>
-        <Outlet />
+        <FormSuccessProvider>
+          <Outlet />
+        </FormSuccessProvider>
       </main>
     </div>
   )

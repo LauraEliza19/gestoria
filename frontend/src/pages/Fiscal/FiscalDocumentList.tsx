@@ -65,6 +65,7 @@ type FiscalDocumentListProps = {
   canCreateForOrder: boolean
   canEdit: boolean
   busy: boolean
+  blockOpen: boolean
   selectedIds: Set<string>
   onToggleSelection: (ids: string[], checked: boolean) => void
   onOpen: (document: FiscalDocument, view: FiscalModalView, tab?: string) => void
@@ -83,6 +84,7 @@ export function FiscalDocumentList({
   canCreateForOrder,
   canEdit,
   busy,
+  blockOpen,
   selectedIds,
   onToggleSelection,
   onOpen,
@@ -238,6 +240,7 @@ export function FiscalDocumentList({
                     type="button"
                     title="Detalhes da nota"
                     aria-label={`Detalhes da NF ${document.number}`}
+                    disabled={blockOpen}
                     onClick={() => onOpen(document, 'details')}
                   >
                     <Search size={16} aria-hidden="true" />
@@ -246,6 +249,7 @@ export function FiscalDocumentList({
                     type="button"
                     title="Visualizar DANFE"
                     aria-label={`Visualizar DANFE da NF ${document.number}`}
+                    disabled={blockOpen}
                     onClick={() => onOpen(document, 'danfe')}
                   >
                     <FileText size={16} aria-hidden="true" />
@@ -254,6 +258,7 @@ export function FiscalDocumentList({
                     type="button"
                     title="Histórico de processamento"
                     aria-label={`Histórico da NF ${document.number}`}
+                    disabled={blockOpen}
                     onClick={() => onOpen(document, 'history')}
                   >
                     <History size={16} aria-hidden="true" />
@@ -262,6 +267,7 @@ export function FiscalDocumentList({
                     type="button"
                     title="Ciclo de vida"
                     aria-label={`Ciclo de vida da NF ${document.number}`}
+                    disabled={blockOpen}
                     onClick={() => onOpen(document, 'lifecycle')}
                   >
                     <Waypoints size={16} aria-hidden="true" />
@@ -271,6 +277,7 @@ export function FiscalDocumentList({
                       type="button"
                       title="Atualizar situação"
                       aria-label={`Atualizar situação da NF ${document.number}`}
+                      disabled={blockOpen}
                       onClick={() => onOpen(document, 'details', 'actions')}
                     >
                       <PenLine size={16} aria-hidden="true" />

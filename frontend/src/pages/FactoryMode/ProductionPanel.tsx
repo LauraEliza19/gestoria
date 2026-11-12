@@ -24,7 +24,9 @@ export function ProductionPanel({
   const [data, setData] = useState<Snapshot>({ ingredients: [], stock_items: [], recipes: [] })
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [pendingAction, setPendingAction] = useState<
+    'stock' | 'recipe' | 'consume' | 'delete' | null
+  >(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [ingredientEditor, setIngredientEditor] = useState<StockItem | null | undefined>()
@@ -32,7 +34,7 @@ export function ProductionPanel({
   const [usingStock, setUsingStock] = useState<string | null>(null)
   const [usageNeedsRefresh, setUsageNeedsRefresh] = useState(false)
   const lock = useRef(true)
-  const busy = loading || saving
+  const busy = loading || pendingAction !== null
 
   // Keeps the order queue in sync with stock changes made in this panel.
   useEffect(() => {
@@ -60,12 +62,16 @@ export function ProductionPanel({
     return () => controller.abort()
   }, [])
 
+  function clearFeedback() {
+    setError('')
+    setNotice('')
+  }
+
   async function refresh() {
     if (lock.current) return
     lock.current = true
     setLoading(true)
-    setError('')
-    setNotice('')
+    clearFeedback()
     try {
       setData(await apiFetch<Snapshot>('/api/production'))
       setLoaded(true)
@@ -80,12 +86,16 @@ export function ProductionPanel({
     }
   }
 
-  async function mutate(path: string, method: string, body?: unknown) {
+  async function mutate(
+    action: 'stock' | 'recipe' | 'delete',
+    path: string,
+    method: string,
+    body?: unknown,
+  ) {
     if (lock.current) return
     lock.current = true
-    setSaving(true)
-    setError('')
-    setNotice('')
+    setPendingAction(action)
+    clearFeedback()
     let saved = false
     try {
       await apiFetch(path, {
@@ -101,23 +111,23 @@ export function ProductionPanel({
         method === 'DELETE' ? 'Cadastro excluído.' : 'Cadastro salvo. Disponibilidade recalculada.',
       )
     } catch (reason) {
+      if (saved) setNotice(action === 'delete' ? 'Cadastro excluído.' : 'Cadastro salvo.')
       setError(
         saved
-          ? 'Cadastro salvo, mas não foi possível atualizar a consulta. Clique em Atualizar antes de conferir a disponibilidade.'
+          ? 'Não foi possível atualizar a consulta. Clique em Atualizar antes de conferir a disponibilidade.'
           : getErrorMessage(reason),
       )
     } finally {
       lock.current = false
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
   async function consume(stock: StockItem, quantity: string) {
     if (lock.current || usageNeedsRefresh) return
     lock.current = true
-    setSaving(true)
-    setError('')
-    setNotice('')
+    setPendingAction('consume')
+    clearFeedback()
     let saved = false
     try {
       const updated = await apiFetch<StockItem>(`/api/production/stock-items/${stock.id}/consume`, {
@@ -137,14 +147,16 @@ export function ProductionPanel({
     } catch (reason) {
       setUsingStock(null)
       setUsageNeedsRefresh(true)
+      if (saved)
+        setNotice(`Uso de ${friendlyAmount(quantity, stock.unit)} de ${stock.name} registrado.`)
       setError(
         saved
-          ? 'Uso registrado, mas a consulta não foi atualizada. Clique em Atualizar para conferir as receitas.'
+          ? 'A consulta não foi atualizada. Clique em Atualizar para conferir as receitas.'
           : `${getErrorMessage(reason)} Atualize e confira o saldo antes de registrar outro uso.`,
       )
     } finally {
       lock.current = false
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
@@ -251,9 +263,12 @@ export function ProductionPanel({
                 stock={ingredientEditor}
                 ingredients={data.ingredients}
                 busy={busy}
+                saving={pendingAction === 'stock'}
+                onAttempt={clearFeedback}
                 onCancel={() => setIngredientEditor(undefined)}
                 onSave={(body) =>
                   void mutate(
+                    'stock',
                     `/api/production/stock-items${ingredientEditor ? '/' + ingredientEditor.id : ''}`,
                     ingredientEditor ? 'PUT' : 'POST',
                     body,
@@ -312,7 +327,11 @@ export function ProductionPanel({
                               `Excluir o item ${ingredient.name} do estoque? As receitas serão mantidas.`,
                             )
                           ) {
-                            void mutate(`/api/production/stock-items/${ingredient.id}`, 'DELETE')
+                            void mutate(
+                              'delete',
+                              `/api/production/stock-items/${ingredient.id}`,
+                              'DELETE',
+                            )
                           }
                         }}
                       >
@@ -324,6 +343,8 @@ export function ProductionPanel({
                     <StockUsageForm
                       stock={ingredient}
                       busy={busy}
+                      saving={pendingAction === 'consume'}
+                      onAttempt={clearFeedback}
                       onCancel={() => setUsingStock(null)}
                       onSave={(quantity) => void consume(ingredient, quantity)}
                     />
@@ -368,9 +389,12 @@ export function ProductionPanel({
                 recipe={recipeEditor}
                 ingredients={data.ingredients}
                 busy={busy}
+                saving={pendingAction === 'recipe'}
+                onAttempt={clearFeedback}
                 onCancel={() => setRecipeEditor(undefined)}
                 onSave={(draft) =>
                   void mutate(
+                    'recipe',
                     `/api/production/recipes${recipeEditor ? '/' + recipeEditor.id : ''}`,
                     recipeEditor ? 'PUT' : 'POST',
                     draft,
@@ -430,7 +454,7 @@ export function ProductionPanel({
                             `Excluir a receita ${recipe.name}? Produtos vinculados a ela ficarão sem receita.`,
                           )
                         ) {
-                          void mutate(`/api/production/recipes/${recipe.id}`, 'DELETE')
+                          void mutate('delete', `/api/production/recipes/${recipe.id}`, 'DELETE')
                         }
                       }}
                     >
