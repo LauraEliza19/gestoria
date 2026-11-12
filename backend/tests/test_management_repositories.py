@@ -137,10 +137,12 @@ def test_employees_are_isolated_by_organization(db: Session) -> None:
     organization_a_items = EmployeeRepository.list_for_organization(
         db,
         organization_a.id,
+        page=1,
+        page_size=100,
     )
 
-    assert [item.id for item in organization_a_items] == [employee_a.id]
-    assert employee_b.id not in {item.id for item in organization_a_items}
+    assert [item.id for item in organization_a_items["items"]] == [employee_a.id]
+    assert employee_b.id not in {item.id for item in organization_a_items["items"]}
     assert employee_a.user_id == user_a.id
 
     assert (
@@ -177,15 +179,19 @@ def test_employee_repository_filters_inactive_records(db: Session) -> None:
         db,
         organization_a.id,
         active_only=True,
+        page=1,
+        page_size=100,
     )
     all_items = EmployeeRepository.list_for_organization(
         db,
         organization_a.id,
+        page=1,
+        page_size=100,
     )
 
-    assert active_items == []
-    assert [item.id for item in all_items] == [employee.id]
-    assert all_items[0].is_active is False
+    assert active_items["items"] == []
+    assert [item.id for item in all_items["items"]] == [employee.id]
+    assert all_items["items"][0].is_active is False
 
 
 def test_employment_repository_preserves_history_and_current(

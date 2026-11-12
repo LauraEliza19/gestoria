@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Printer } from 'lucide-react'
-import { SaveButton } from '../../components/forms/FormActions'
 import { useSession } from '../../contexts/SessionContext'
 
 import type { FiscalDocument, FiscalModalView } from './fiscalTypes'
@@ -58,8 +57,6 @@ export function FiscalDocumentsPage() {
     suppliers,
     loading,
     busy,
-    pendingAction,
-    clearFeedback,
     error,
     notice,
     type,
@@ -122,21 +119,15 @@ export function FiscalDocumentsPage() {
     return () => window.clearTimeout(timer)
   }, [toolbarNotice])
 
-  const formWriting = pendingAction === 'document' || pendingAction === 'supplier'
-  const modalWriting =
-    pendingAction === 'link' || pendingAction === 'event' || pendingAction === 'receive'
-
   const closeModal = useCallback(() => {
-    if (modalWriting) return
     setModalView(null)
     setModalTab(undefined)
     setSelected(null)
-  }, [modalWriting, setSelected])
+  }, [setSelected])
 
   const finishPrint = useCallback(() => setPrintDocuments([]), [])
 
   function openDocument(document: FiscalDocument, view: FiscalModalView, tab?: string) {
-    if (formWriting || modalWriting) return
     selectDocument(document)
     setModalTab(tab)
     setModalView(view)
@@ -193,10 +184,6 @@ export function FiscalDocumentsPage() {
             busy={busy}
             onChange={setLinkForm}
             onSubmit={reconcileOrder}
-            saving={pendingAction === 'link'}
-            onAttempt={clearFeedback}
-            closeDisabled={modalWriting}
-            onClose={closeModal}
           />
         )}
 
@@ -208,10 +195,6 @@ export function FiscalDocumentsPage() {
           busy={busy}
           onChange={setEventForm}
           onSubmit={statusEvent}
-          saving={pendingAction === 'event'}
-          onAttempt={clearFeedback}
-          closeDisabled={modalWriting}
-          onClose={closeModal}
         />
 
         {selected.document_type === 'saida' &&
@@ -242,8 +225,8 @@ export function FiscalDocumentsPage() {
           selected.status === 'Autorizada' &&
           !selected.is_legacy &&
           !selected.stock_received_at && (
-            <SaveButton
-              saving={pendingAction === 'receive'}
+            <button
+              className="primary-button"
               disabled={busy}
               type="button"
               onClick={() => {
@@ -257,7 +240,7 @@ export function FiscalDocumentsPage() {
               }}
             >
               Confirmar recebimento no estoque
-            </SaveButton>
+            </button>
           )}
 
         {selected.allowed_statuses.length === 0 &&
@@ -274,7 +257,6 @@ export function FiscalDocumentsPage() {
       <FiscalHeader
         orderFilter={orderFilter}
         fromProduction={fromProduction}
-        returnBlocked={formWriting}
         busy={busy}
         canCreate={canEdit && (!orderFilter || !isOccupied(orderFilter))}
         formOpen={showForm && canEdit}
@@ -293,12 +275,12 @@ export function FiscalDocumentsPage() {
         </div>
       )}
 
-      <div
-        className={notice && !modalView ? 'fiscal-feedback fiscal-feedback-success' : 'sr-only'}
-        role="status"
-      >
-        {!modalView && notice}
-      </div>
+      {notice && !modalView && (
+        <div className="fiscal-feedback fiscal-feedback-success" role="status">
+          <strong>Operação concluída</strong>
+          <span>{notice}</span>
+        </div>
+      )}
 
       <FiscalSummary
         documents={documents}
@@ -328,9 +310,6 @@ export function FiscalDocumentsPage() {
           openedAt={formOpenedAt}
           isOccupied={isOccupied}
           onSubmit={create}
-          saving={pendingAction === 'document'}
-          supplierSaving={pendingAction === 'supplier'}
-          onAttempt={clearFeedback}
           onCreateSupplier={createSupplier}
           onClose={() => void closeForm()}
         />
@@ -402,7 +381,6 @@ export function FiscalDocumentsPage() {
           busy={busy}
           selectedIds={selectedIds}
           onToggleSelection={toggleSelection}
-          blockOpen={formWriting || modalWriting}
           onOpen={openDocument}
           onStartOrder={(orderId) => start(orderId)}
         />
@@ -435,7 +413,6 @@ export function FiscalDocumentsPage() {
               </button>
             ) : undefined
           }
-          closeDisabled={modalWriting}
           onClose={closeModal}
         >
           {error && (
@@ -445,12 +422,12 @@ export function FiscalDocumentsPage() {
             </div>
           )}
 
-          <div
-            className={notice ? 'fiscal-feedback fiscal-feedback-success' : 'sr-only'}
-            role="status"
-          >
-            {notice}
-          </div>
+          {notice && (
+            <div className="fiscal-feedback fiscal-feedback-success" role="status">
+              <strong>Operação concluída</strong>
+              <span>{notice}</span>
+            </div>
+          )}
 
           {modalView === 'details' && (
             <FiscalDocumentDetails

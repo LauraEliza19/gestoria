@@ -6,7 +6,7 @@ from app.repositories.finance import (
     FinanceCategoryRepository,
     FinanceEntryRepository,
 )
-from app.repositories.fiscal import FiscalDocumentRepository
+from app.repositories.fiscal import FiscalDocumentRepository, SupplierRepository
 from app.repositories.management import (
     CostCenterRepository,
     EmployeeRecordRepository,
@@ -33,6 +33,7 @@ __all__ = [
     "FinanceCategoryRepository",
     "FinanceEntryRepository",
     "FiscalDocumentRepository",
+    "SupplierRepository",
     "ManagementOverviewRepository",
     "OrderItemRepository",
     "OrderRepository",

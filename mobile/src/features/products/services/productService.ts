@@ -1,4 +1,4 @@
-import { apiFetch } from '@/services/api';
+import { apiFetch, apiFetchItems } from '@/services/api';
 
 import type {
   Product,
@@ -7,7 +7,7 @@ import type {
 } from '../productTypes';
 
 export function listProducts(): Promise<Product[]> {
-  return apiFetch<Product[]>('/api/products');
+  return apiFetchItems<Product>('/api/products');
 }
 
 export async function getProduct(

@@ -1,10 +1,11 @@
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import FinanceAttachment, FinanceCategory, FinanceEntry
+from app.repositories.pagination import paginate
 
 
 class FinanceCategoryRepository:
@@ -51,8 +52,13 @@ class FinanceCategoryRepository:
 class FinanceEntryRepository:
     @staticmethod
     def list_for_organization(
-        db: Session, organization_id: uuid.UUID, **filters
-    ) -> list[FinanceEntry]:
+        db: Session,
+        organization_id: uuid.UUID,
+        *,
+        page: int,
+        page_size: int,
+        **filters,
+    ):
         query = select(FinanceEntry).where(
             FinanceEntry.organization_id == organization_id
         )
@@ -63,6 +69,14 @@ class FinanceEntryRepository:
             query = query.where(FinanceEntry.transaction_date >= filters["start_date"])
         if filters.get("end_date"):
             query = query.where(FinanceEntry.transaction_date <= filters["end_date"])
+        if filters.get("search"):
+            term = f"%{filters['search']}%"
+            query = query.where(
+            or_(
+                FinanceEntry.description.ilike(term),
+                FinanceEntry.notes.ilike(term),
+            )
+            )
         if filters.get("sort") == "due_date":
             ordering = (FinanceEntry.due_date.asc(), FinanceEntry.created_at.asc())
         else:
@@ -70,7 +84,8 @@ class FinanceEntryRepository:
                 FinanceEntry.transaction_date.desc(),
                 FinanceEntry.created_at.desc(),
             )
-        return list(db.scalars(query.order_by(*ordering)))
+        query = query.order_by(*ordering, FinanceEntry.id)
+        return paginate(db, query, page, page_size)
 
     @staticmethod
     def get_for_organization(

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import (
@@ -17,6 +17,7 @@ from app.schemas import (
     EmployeeSummaryRead,
     EmployeeUpdate,
     ManagementOverviewRead,
+    PaginatedResponse,
 )
 from app.services import (
     DuplicateCostCenterError,
@@ -183,19 +184,27 @@ def update_cost_center_route(
 
 @router.get(
     "/employees",
-    response_model=list[EmployeeSummaryRead],
+    response_model=PaginatedResponse[EmployeeSummaryRead],
 )
 def list_employees(
     db: DatabaseSession,
     current: CurrentUser,
     active_only: bool = False,
-) -> list[EmployeeSummaryRead]:
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=120),
+    sort: str = Query(default="full_name", pattern="^(full_name|created_at)$"),
+) -> PaginatedResponse[EmployeeSummaryRead]:
     require_role(current, {"owner", "admin"})
 
     return EmployeeRepository.list_for_organization(
         db,
         current.organization.id,
         active_only=active_only,
+        page=page,
+        page_size=page_size,
+        search=search,
+        sort=sort,
     )
 
 

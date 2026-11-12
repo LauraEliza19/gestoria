@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
-import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
-import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
-import { apiFetch } from '../../services/api'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
 type Product = Record<string, string | number | boolean | null | undefined> & {
@@ -46,18 +43,11 @@ const numericFields = [
 ] as const
 
 export function ProductFormPage() {
+  const navigate = useNavigate()
   const [params] = useSearchParams()
   const id = params.get('id')
-  return <ProductForm key={id ?? 'new'} id={id} />
-}
-
-function ProductForm({ id }: { id: string | null }) {
-  const navigate = useNavigate()
 
   const [form, setForm] = useState(initialForm)
-  const { dirty, resetBaseline } = useFormChanges(form)
-  const { busy: saving, run: save } = useSaveAction()
-  const announceSuccess = useFormSuccess()
   const [status, setStatus] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FiscalFieldErrors>({})
   const [loading, setLoading] = useState(Boolean(id))
@@ -81,7 +71,7 @@ function ProductForm({ id }: { id: string | null }) {
   useEffect(() => {
     if (!id) return
 
-    apiFetch<Product[]>('/api/products')
+    apiFetchItems<Product>('/api/products')
       .then((list) => {
         const product = list.find((item) => item.id === id)
 
@@ -108,13 +98,12 @@ function ProductForm({ id }: { id: string | null }) {
         ) as typeof initialForm
 
         setForm(loadedForm)
-        resetBaseline(loadedForm)
       })
       .catch((error) => {
         setStatus(getErrorMessage(error, 'Não foi possível carregar o produto.'))
       })
       .finally(() => setLoading(false))
-  }, [id, resetBaseline])
+  }, [id])
 
   function update(field: keyof typeof initialForm, value: string | boolean) {
     setForm((current) => ({
@@ -167,52 +156,48 @@ function ProductForm({ id }: { id: string | null }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    await save(async () => {
-      setStatus('')
-      setFieldErrors({})
+    setStatus('')
 
-      const price = decimal(form.price)
+    const price = decimal(form.price)
 
-      if (!form.name.trim() || !price || price <= 0) {
-        setStatus('Nome e preço de venda válido são obrigatórios.')
-        return
+    if (!form.name.trim() || !price || price <= 0) {
+      setStatus('Nome e preço de venda válido são obrigatórios.')
+      return
+    }
+
+    if (form.perishable && !form.shelf_life_days) {
+      setStatus('Informe a validade para produtos perecíveis.')
+      return
+    }
+
+    if (!validateFiscalFields()) return
+
+    try {
+      const payload = {
+        ...form,
+        price,
+        stock_quantity: decimal(form.stock_quantity) || 0,
+        cost_price: decimal(form.cost_price),
+        min_stock_quantity: decimal(form.min_stock_quantity) || 5,
+        shelf_life_days:
+          form.perishable && form.shelf_life_days ? Number(form.shelf_life_days) : null,
+        fiscal_origin: form.fiscal_origin ? Number(form.fiscal_origin) : null,
+        description: form.description || null,
+        barcode: form.barcode || null,
+        ncm_code: form.ncm_code || null,
+        cest_code: form.cest_code || null,
+        recipe_id: form.recipe_id || null,
       }
 
-      if (form.perishable && !form.shelf_life_days) {
-        setStatus('Informe a validade para produtos perecíveis.')
-        return
-      }
+      await apiFetch(id ? `/api/products/${id}` : '/api/products', {
+        method: id ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      })
 
-      if (!validateFiscalFields()) return
-
-      try {
-        const payload = {
-          ...form,
-          price,
-          stock_quantity: decimal(form.stock_quantity) || 0,
-          cost_price: decimal(form.cost_price),
-          min_stock_quantity: decimal(form.min_stock_quantity) || 5,
-          shelf_life_days:
-            form.perishable && form.shelf_life_days ? Number(form.shelf_life_days) : null,
-          fiscal_origin: form.fiscal_origin ? Number(form.fiscal_origin) : null,
-          description: form.description || null,
-          barcode: form.barcode || null,
-          ncm_code: form.ncm_code || null,
-          cest_code: form.cest_code || null,
-          recipe_id: form.recipe_id || null,
-        }
-
-        await apiFetch(id ? `/api/products/${id}` : '/api/products', {
-          method: id ? 'PATCH' : 'POST',
-          body: JSON.stringify(payload),
-        })
-
-        announceSuccess(id ? 'Produto atualizado.' : 'Produto cadastrado.')
-        navigate('/produtos')
-      } catch (error) {
-        setStatus(getErrorMessage(error, 'Não foi possível salvar o produto.'))
-      }
-    })
+      navigate('/produtos')
+    } catch (error) {
+      setStatus(getErrorMessage(error, 'Não foi possível salvar o produto.'))
+    }
   }
 
   if (loading) {
@@ -225,31 +210,22 @@ function ProductForm({ id }: { id: string | null }) {
 
   return (
     <div className="page-wrap">
-      <FormHeader
-        module="Produtos"
-        title={id ? 'Editar produto' : 'Novo produto'}
-        description="Informe os dados do catálogo, estoque, custos e classificação fiscal."
-        mode={id ? 'edit' : 'create'}
-        back={{ to: '/produtos', label: 'Voltar para produtos' }}
-        dirty={dirty}
-        blocked={saving}
-      />
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Cadastro manual</p>
+          <h1>{id ? 'Editar produto' : 'Novo produto'}</h1>
+          <p>Cadastre catálogo, estoque, custos, validade e informações fiscais.</p>
+        </div>
 
-      <SavingForm
-        className="page-card grid gap-6"
-        onSubmit={submit}
-        saving={saving}
-        onInvalidCapture={() => {
-          setStatus('')
-          setFieldErrors({})
-        }}
-      >
+        <Link className="secondary-button" to="/produtos">
+          Voltar para produtos
+        </Link>
+      </header>
+
+      <form className="page-card grid gap-6" onSubmit={submit}>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="form-label md:col-span-2">
-            <span>
-              Nome
-              <RequiredMark />
-            </span>
+            Nome
             <input
               className="form-input"
               value={form.name}
@@ -269,12 +245,8 @@ function ProductForm({ id }: { id: string | null }) {
 
           {numericFields.map(([field, label]) => (
             <label className="form-label" key={field}>
-              <span>
-                {label}
-                {field === 'price' && <RequiredMark />}
-              </span>
+              {label}
               <input
-                required={field === 'price'}
                 className="form-input"
                 inputMode="decimal"
                 value={form[field]}
@@ -335,10 +307,7 @@ function ProductForm({ id }: { id: string | null }) {
 
           {form.perishable && (
             <label className="form-label">
-              <span>
-                Validade (dias)
-                <RequiredMark />
-              </span>
+              Validade (dias)
               <input
                 className="form-input"
                 type="number"
@@ -468,12 +437,15 @@ function ProductForm({ id }: { id: string | null }) {
         )}
 
         <div className="flex flex-wrap gap-3">
-          <SaveButton saving={saving}>Salvar produto</SaveButton>
-          <FormExit to="/produtos" blocked={saving}>
+          <button className="primary-button" type="submit">
+            Salvar produto
+          </button>
+
+          <Link className="secondary-button" to="/produtos">
             Cancelar
-          </FormExit>
+          </Link>
         </div>
-      </SavingForm>
+      </form>
     </div>
   )
 }

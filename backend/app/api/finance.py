@@ -31,6 +31,7 @@ from app.schemas import (
     FinanceEntryUpdate,
     FinanceSettlementCreate,
     FinanceSummaryRead,
+    PaginatedResponse,
 )
 from app.services import (
     DuplicateFinanceCategoryError,
@@ -119,7 +120,7 @@ def update_category_route(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.get("/entries", response_model=list[FinanceEntryRead])
+@router.get("/entries", response_model=PaginatedResponse[FinanceEntryRead])
 def list_entries(
     db: DatabaseSession,
     current: CurrentUser,
@@ -133,6 +134,9 @@ def list_entries(
     sort: str = Query(
         default="transaction_date", pattern="^(transaction_date|due_date)$"
     ),
+    search: str | None = Query(default=None, max_length=200),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
 ):
     require_finance_read(current)
     return FinanceEntryRepository.list_for_organization(
@@ -144,6 +148,9 @@ def list_entries(
         status=status_filter,
         category_id=category_id,
         sort=sort,
+        search=search,
+        page=page,
+        page_size=page_size,
     )
 
 

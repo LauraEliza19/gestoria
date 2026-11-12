@@ -1,20 +1,37 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Organization, Product
+from app.repositories.pagination import paginate
 
 
 class ProductRepository:
     @staticmethod
-    def list_for_organization(db: Session, organization_id: uuid.UUID) -> list[Product]:
-        query = (
-            select(Product)
-            .where(Product.organization_id == organization_id)
-            .order_by(Product.created_at.desc())
-        )
-        return list(db.scalars(query))
+    def list_for_organization(
+        db: Session,
+        organization_id: uuid.UUID,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        active_only: bool | None = None,
+        sort: str = "created_at",
+    ):
+        query = select(Product).where(Product.organization_id == organization_id)
+        if search:
+            term = f"%{search}%"
+            query = query.where(or_(Product.name.ilike(term), Product.code.ilike(term)))
+        if active_only is not None:
+            query = query.where(Product.is_active.is_(active_only))
+        ordering = {
+            "name": Product.name.asc(),
+            "price": Product.price.desc(),
+            "created_at": Product.created_at.desc(),
+        }[sort]
+        query = query.order_by(ordering, Product.id)
+        return paginate(db, query, page, page_size)
 
     @staticmethod
     def get_for_organization(

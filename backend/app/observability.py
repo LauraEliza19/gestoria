@@ -67,6 +67,11 @@ def configure_logging(level: str, log_format: str) -> None:
                 "level": level,
             },
             "loggers": {
+                "gestoria.request": {
+                    "handlers": [],
+                    "level": level,
+                    "propagate": True,
+                },
                 "uvicorn.error": {
                     "handlers": ["console"],
                     "level": level,

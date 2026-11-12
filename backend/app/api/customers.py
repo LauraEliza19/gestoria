@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
@@ -10,6 +10,7 @@ from app.schemas import (
     CustomerProfileRead,
     CustomerRead,
     CustomerUpdate,
+    PaginatedResponse,
 )
 from app.services import get_customer_profile
 
@@ -37,14 +38,24 @@ def customer_in_use() -> HTTPException:
     )
 
 
-@router.get("", response_model=list[CustomerRead])
+@router.get("", response_model=PaginatedResponse[CustomerRead])
 def list_customers(
     db: DatabaseSession,
     current: CurrentUser,
-) -> list[CustomerRead]:
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=120),
+    active_only: bool | None = None,
+    sort: str = Query(default="created_at", pattern="^(created_at|name)$"),
+) -> PaginatedResponse[CustomerRead]:
     return CustomerRepository.list_for_organization(
         db,
         current.organization.id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        active_only=active_only,
+        sort=sort,
     )
 
 

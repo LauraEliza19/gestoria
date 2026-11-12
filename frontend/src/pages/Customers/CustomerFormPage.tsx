@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
-import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
-import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
-import { apiFetch } from '../../services/api'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
 type Customer = Record<string, string | number | boolean | null | undefined> & {
@@ -59,25 +56,18 @@ const addressFields = [
 ] as const
 
 export function CustomerFormPage() {
+  const navigate = useNavigate()
   const [params] = useSearchParams()
   const id = params.get('id')
-  return <CustomerForm key={id ?? 'new'} id={id} />
-}
-
-function CustomerForm({ id }: { id: string | null }) {
-  const navigate = useNavigate()
 
   const [form, setForm] = useState(initialForm)
-  const { dirty, resetBaseline } = useFormChanges(form)
-  const { busy: saving, run: save } = useSaveAction()
-  const announceSuccess = useFormSuccess()
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(Boolean(id))
 
   useEffect(() => {
     if (!id) return
 
-    apiFetch<Customer[]>('/api/customers')
+    apiFetchItems<Customer>('/api/customers')
       .then((list) => {
         const customer = list.find((item) => item.id === id)
 
@@ -96,13 +86,12 @@ function CustomerForm({ id }: { id: string | null }) {
         ) as typeof initialForm
 
         setForm(loadedForm)
-        resetBaseline(loadedForm)
       })
       .catch((error) => {
         setStatus(getErrorMessage(error, 'Não foi possível carregar o cliente.'))
       })
       .finally(() => setLoading(false))
-  }, [id, resetBaseline])
+  }, [id])
 
   function update(field: keyof typeof initialForm, value: string) {
     setForm((current) => ({
@@ -113,51 +102,48 @@ function CustomerForm({ id }: { id: string | null }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    await save(async () => {
-      setStatus('')
+    setStatus('')
 
-      if (!form.name.trim() || !form.phone.trim()) {
-        setStatus('Nome e telefone são obrigatórios.')
-        return
+    if (!form.name.trim() || !form.phone.trim()) {
+      setStatus('Nome e telefone são obrigatórios.')
+      return
+    }
+
+    try {
+      const nullableFields = [
+        'document',
+        'trade_name',
+        'state_registration',
+        'whatsapp',
+        'notes',
+        'postal_code',
+        'street',
+        'number',
+        'complement',
+        'neighborhood',
+        'city',
+        'state',
+      ] as const
+
+      const payload = {
+        ...form,
+        email: form.email || null,
+        birth_date: form.birth_date || null,
+        default_discount_percent: form.default_discount_percent
+          ? form.default_discount_percent.replace(',', '.')
+          : null,
+        ...Object.fromEntries(nullableFields.map((field) => [field, form[field] || null])),
       }
 
-      try {
-        const nullableFields = [
-          'document',
-          'trade_name',
-          'state_registration',
-          'whatsapp',
-          'notes',
-          'postal_code',
-          'street',
-          'number',
-          'complement',
-          'neighborhood',
-          'city',
-          'state',
-        ] as const
+      await apiFetch(id ? `/api/customers/${id}` : '/api/customers', {
+        method: id ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      })
 
-        const payload = {
-          ...form,
-          email: form.email || null,
-          birth_date: form.birth_date || null,
-          default_discount_percent: form.default_discount_percent
-            ? form.default_discount_percent.replace(',', '.')
-            : null,
-          ...Object.fromEntries(nullableFields.map((field) => [field, form[field] || null])),
-        }
-
-        await apiFetch(id ? `/api/customers/${id}` : '/api/customers', {
-          method: id ? 'PATCH' : 'POST',
-          body: JSON.stringify(payload),
-        })
-
-        announceSuccess(id ? 'Cliente atualizado.' : 'Cliente cadastrado.')
-        navigate('/clientes')
-      } catch (error) {
-        setStatus(getErrorMessage(error, 'Não foi possível salvar o cliente.'))
-      }
-    })
+      navigate('/clientes')
+    } catch (error) {
+      setStatus(getErrorMessage(error, 'Não foi possível salvar o cliente.'))
+    }
   }
 
   if (loading) {
@@ -170,22 +156,19 @@ function CustomerForm({ id }: { id: string | null }) {
 
   return (
     <div className="page-wrap">
-      <FormHeader
-        module="Clientes"
-        title={id ? 'Editar cliente' : 'Novo cliente'}
-        description="Preencha os dados comerciais, pessoais e de endereço."
-        mode={id ? 'edit' : 'create'}
-        back={{ to: '/clientes', label: 'Voltar para clientes' }}
-        dirty={dirty}
-        blocked={saving}
-      />
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Cadastro manual</p>
+          <h1>{id ? 'Editar cliente' : 'Novo cliente'}</h1>
+          <p>Preencha os dados comerciais, pessoais e de endereço.</p>
+        </div>
 
-      <SavingForm
-        className="page-card grid gap-6"
-        onSubmit={submit}
-        saving={saving}
-        onInvalidCapture={() => setStatus('')}
-      >
+        <Link className="secondary-button" to="/clientes">
+          Voltar para clientes
+        </Link>
+      </header>
+
+      <form className="page-card grid gap-6" onSubmit={submit}>
         <div>
           <p className="eyebrow mb-4">Identificação do cliente</p>
 
@@ -217,10 +200,7 @@ function CustomerForm({ id }: { id: string | null }) {
 
             {identificationFields.map(([field, label]) => (
               <label className="form-label" key={field}>
-                <span>
-                  {label}
-                  {(field === 'name' || field === 'phone') && <RequiredMark />}
-                </span>
+                {label}
                 <input
                   className="form-input"
                   value={form[field]}
@@ -288,12 +268,15 @@ function CustomerForm({ id }: { id: string | null }) {
         )}
 
         <div className="flex flex-wrap gap-3">
-          <SaveButton saving={saving}>Salvar cliente</SaveButton>
-          <FormExit to="/clientes" blocked={saving}>
+          <button className="primary-button" type="submit">
+            Salvar cliente
+          </button>
+
+          <Link className="secondary-button" to="/clientes">
             Cancelar
-          </FormExit>
+          </Link>
         </div>
-      </SavingForm>
+      </form>
     </div>
   )
 }

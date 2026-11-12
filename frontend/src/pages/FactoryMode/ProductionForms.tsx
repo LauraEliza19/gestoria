@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { FormExit, SaveButton } from '../../components/forms/FormActions'
-import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
-import { useFormChanges } from '../../components/forms/useFormState'
 import { IngredientPicker } from './IngredientPicker'
 import { compatible, reference, units } from './productionTypes'
 import type {
@@ -20,16 +17,12 @@ export function StockForm({
   stock,
   ingredients,
   busy,
-  saving,
-  onAttempt,
   onSave,
   onCancel,
 }: {
   stock: StockItem | null
   ingredients: Ingredient[]
   busy: boolean
-  saving: boolean
-  onAttempt: () => void
   onSave: (draft: StockDraft) => void
   onCancel: () => void
 }) {
@@ -42,45 +35,24 @@ export function StockForm({
       : { name: '', confirmed: false },
   )
   const [error, setError] = useState('')
-  const { dirty } = useFormChanges({ name, quantity, unit, choice })
   const selected = ingredients.find((item) => item.id === choice.id)
-  function clearErrors() {
-    setError('')
-    onAttempt()
-  }
   function submit(event: FormEvent) {
     event.preventDefault()
-    if (busy) return
-    clearErrors()
     if (!choice.confirmed) {
       setError('Escolha uma sugestão ou confirme o novo ingrediente antes de salvar.')
       return
     }
+    setError('')
     onSave({ name, quantity, unit, ...reference(choice) })
   }
   return (
-    <form
-      onSubmit={submit}
-      onInvalidCapture={clearErrors}
-      aria-busy={saving}
-      className="mb-6 rounded-lg border border-line bg-paper p-4"
-    >
-      <FormHeader
-        module="Produção · Estoque"
-        title={stock ? 'Editar item de estoque' : 'Novo item de estoque'}
-        description="Informe o saldo e associe o item ao ingrediente usado nas receitas."
-        mode={stock ? 'edit' : 'create'}
-        heading="h3"
-        dirty={dirty}
-        blocked={saving}
-        back={{ onClick: onCancel, label: 'Voltar ao estoque' }}
-      />
+    <form onSubmit={submit} className="mb-6 rounded-lg border border-line bg-paper p-4">
+      <h3 className="mb-4 font-display text-lg font-semibold">
+        {stock ? 'Editar item, saldo e associação' : 'Novo item de estoque'}
+      </h3>
       <fieldset disabled={busy} className="grid gap-4">
         <label className="form-label">
-          <span>
-            Nome do item ou marca
-            <RequiredMark />
-          </span>
+          Nome do item ou marca
           <input
             className="form-input"
             required
@@ -103,10 +75,7 @@ export function StockForm({
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="form-label">
-            <span>
-              Quantidade em estoque
-              <RequiredMark />
-            </span>
+            Quantidade em estoque
             <input
               className="form-input"
               type="number"
@@ -152,12 +121,12 @@ export function StockForm({
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-2">
-        <SaveButton saving={saving} disabled={busy}>
-          Salvar item
-        </SaveButton>
-        <FormExit onClick={onCancel} blocked={saving}>
+        <button className="primary-button" disabled={busy}>
+          {busy ? 'Salvando...' : 'Salvar item'}
+        </button>
+        <button type="button" className="secondary-button" disabled={busy} onClick={onCancel}>
           Cancelar
-        </FormExit>
+        </button>
       </div>
     </form>
   )
@@ -167,16 +136,12 @@ export function RecipeForm({
   recipe,
   ingredients,
   busy,
-  saving,
-  onAttempt,
   onSave,
   onCancel,
 }: {
   recipe: Recipe | null
   ingredients: Ingredient[]
   busy: boolean
-  saving: boolean
-  onAttempt: () => void
   onSave: (draft: RecipeDraft) => void
   onCancel: () => void
 }) {
@@ -205,24 +170,13 @@ export function RecipeForm({
           },
         ],
   )
-  const { dirty } = useFormChanges({
-    name,
-    yieldQuantity,
-    yieldUnit,
-    items: items.map(({ key: _key, ...item }) => item),
-  })
-  function clearErrors() {
-    setError('')
-    onAttempt()
-  }
   function submit(event: FormEvent) {
     event.preventDefault()
-    if (busy) return
-    clearErrors()
     if (items.some((item) => !item.choice.confirmed)) {
       setError('Escolha uma sugestão ou confirme o nome de cada novo ingrediente antes de salvar.')
       return
     }
+    setError('')
     onSave({
       name,
       yield_quantity: yieldQuantity,
@@ -235,29 +189,14 @@ export function RecipeForm({
     })
   }
   return (
-    <form
-      onSubmit={submit}
-      onInvalidCapture={clearErrors}
-      aria-busy={saving}
-      className="mb-6 rounded-lg border border-line bg-paper p-4"
-    >
-      <FormHeader
-        module="Produção · Receitas"
-        title={recipe ? 'Editar receita' : 'Nova receita'}
-        description="Defina os ingredientes, as quantidades e o rendimento da receita."
-        mode={recipe ? 'edit' : 'create'}
-        heading="h3"
-        dirty={dirty}
-        blocked={saving}
-        back={{ onClick: onCancel, label: 'Voltar às receitas' }}
-      />
+    <form onSubmit={submit} className="mb-6 rounded-lg border border-line bg-paper p-4">
+      <h3 className="mb-4 font-display text-lg font-semibold">
+        {recipe ? 'Editar receita' : 'Nova receita'}
+      </h3>
       <fieldset disabled={busy} className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="form-label">
-            <span>
-              Nome da receita
-              <RequiredMark />
-            </span>
+            Nome da receita
             <input
               className="form-input"
               required
@@ -268,10 +207,7 @@ export function RecipeForm({
             />
           </label>
           <label className="form-label">
-            <span>
-              Rendimento por receita
-              <RequiredMark />
-            </span>
+            Rendimento por receita
             <input
               className="form-input"
               type="number"
@@ -285,10 +221,7 @@ export function RecipeForm({
             />
           </label>
           <label className="form-label">
-            <span>
-              Medida do rendimento
-              <RequiredMark />
-            </span>
+            Medida do rendimento
             <input
               className="form-input"
               required
@@ -326,10 +259,7 @@ export function RecipeForm({
               />
               <div className="mt-3 grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <label className="form-label">
-                  <span>
-                    Quantidade
-                    <RequiredMark />
-                  </span>
+                  Quantidade
                   <input
                     aria-label={`Quantidade do ingrediente ${index + 1}`}
                     className="form-input"
@@ -398,12 +328,12 @@ export function RecipeForm({
         </p>
       )}
       <div className="mt-5 flex flex-wrap gap-2">
-        <SaveButton saving={saving} disabled={busy}>
-          Salvar receita
-        </SaveButton>
-        <FormExit onClick={onCancel} blocked={saving}>
+        <button className="primary-button" disabled={busy}>
+          {busy ? 'Salvando...' : 'Salvar receita'}
+        </button>
+        <button type="button" className="secondary-button" disabled={busy} onClick={onCancel}>
           Cancelar
-        </FormExit>
+        </button>
       </div>
     </form>
   )

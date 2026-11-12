@@ -12,7 +12,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useSession } from '../../contexts/SessionContext'
-import { apiFetch } from '../../services/api'
+import { apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
 type CustomerCategory = 'final_consumer' | 'reseller' | 'event'
@@ -86,10 +86,10 @@ export function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<Customer[]>('/api/customers'),
-      apiFetch<Product[]>('/api/products'),
-      apiFetch<Order[]>('/api/orders'),
-      apiFetch<Quote[]>('/api/quotes'),
+      apiFetchItems<Customer>('/api/customers'),
+      apiFetchItems<Product>('/api/products'),
+      apiFetchItems<Order>('/api/orders'),
+      apiFetchItems<Quote>('/api/quotes'),
     ])
       .then(([customerList, productList, orderList, quoteList]) => {
         setCustomers(customerList)

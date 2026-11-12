@@ -262,8 +262,10 @@ def test_quote_conversion_rolls_back_if_marking_fails(
 
     db.expire_all()
 
-    orders = OrderRepository.list_for_organization(db, organization.id)
-    assert orders == []
+    orders = OrderRepository.list_for_organization(
+        db, organization.id, page=1, page_size=100
+    )
+    assert orders["items"] == []
 
     db.refresh(product)
     assert product.stock_quantity == Decimal(5)
@@ -325,9 +327,11 @@ def test_quote_cannot_be_converted_twice(db: Session) -> None:
 
     db.expire_all()
 
-    orders = OrderRepository.list_for_organization(db, organization.id)
-    assert len(orders) == 1
-    assert orders[0].id == first_order_id
+    orders = OrderRepository.list_for_organization(
+        db, organization.id, page=1, page_size=100
+    )
+    assert len(orders["items"]) == 1
+    assert orders["items"][0].id == first_order_id
 
     db.refresh(product)
     assert product.stock_quantity == Decimal(3)

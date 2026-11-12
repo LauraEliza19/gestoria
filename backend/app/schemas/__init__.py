@@ -5,7 +5,7 @@ from app.schemas.auth import (
     OrganizationUpdate,
     SessionRead,
 )
-from app.schemas.common import Money, normalize_phone
+from app.schemas.common import Money, PaginatedResponse, normalize_phone
 from app.schemas.copilot import (
     CopilotActionRead,
     CopilotChatRequest,
@@ -130,6 +130,7 @@ __all__ = [
     "LoginRequest",
     "ManagementOverviewRead",
     "Money",
+    "PaginatedResponse",
     "OrderCreate",
     "OrderItemCreate",
     "OrderItemRead",

@@ -3,7 +3,7 @@ import uuid
 import pytest
 from order_helpers import secure_order
 from sqlalchemy.exc import IntegrityError
-from test_api import login
+from test_api import login, page_items
 from test_production import ROOT, create_recipe, item, recipe_payload
 
 from app.models import Product
@@ -52,7 +52,7 @@ def test_products_link_recipes_by_id_and_orders_expose_the_link(client):
     order = create_order(client, headers, product["id"])
     assert order["items"][0]["recipe_id"] == recipe_id
     assert order["items"][0]["unit_of_measure"] == "unit"
-    listed = client.get("/api/orders", headers=headers).json()
+    listed = page_items(client.get("/api/orders", headers=headers))
     assert listed[0]["items"][0]["recipe_id"] == recipe_id
 
     unlinked = client.patch(
@@ -92,7 +92,7 @@ def test_recipe_must_exist_in_the_same_company(client, method):
             )
         assert response.status_code == 422, response.text
         assert response.json()["detail"] == "Receita não encontrada nesta empresa."
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert [entry["recipe_id"] for entry in products] == [None]
 
 
@@ -104,7 +104,7 @@ def test_deleting_a_recipe_unlinks_products_and_keeps_them(client):
         client.delete(ROOT + "/recipes/" + recipe_id, headers=headers).status_code
         == 204
     )
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert [(entry["id"], entry["recipe_id"]) for entry in products] == [
         (product["id"], None)
     ]

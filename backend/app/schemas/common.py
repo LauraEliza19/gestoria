@@ -1,8 +1,18 @@
 import re
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Generic, TypeVar
 
-from pydantic import Field
+from pydantic import BaseModel, Field
+
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
+    has_next: bool
 
 Money = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2)]
 

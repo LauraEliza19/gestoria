@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChefHat, Check, Clock3, RefreshCw, Search } from 'lucide-react'
-import { apiFetch } from '../../services/api'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { ProductionPanel } from './ProductionPanel'
 import type { ProductionView } from './ProductionPanel'
 import { OrderSupplies, SupplyBadge } from './OrderSupplies'
@@ -52,7 +52,7 @@ export function FactoryModePage() {
     const controller = new AbortController()
 
     void loadQueueAndSupplies(
-      () => apiFetch<Order[]>('/api/orders', { signal: controller.signal }),
+      () => apiFetchItems<Order>('/api/orders', { signal: controller.signal }),
       () => apiFetch<Snapshot>('/api/production', { signal: controller.signal }),
       getErrorMessage,
     ).then((result) => {
@@ -105,7 +105,7 @@ export function FactoryModePage() {
     setCompletedOrder(null)
     // The notice only appears after both the queue and the supplies have settled.
     const result = await loadQueueAndSupplies(
-      () => apiFetch<Order[]>('/api/orders'),
+      () => apiFetchItems<Order>('/api/orders'),
       () => apiFetch<Snapshot>('/api/production'),
       getErrorMessage,
     )

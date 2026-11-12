@@ -128,7 +128,9 @@ def test_create_order_rolls_back_when_stock_is_insufficient(db: Session) -> None
 
     db.refresh(product)
     assert product.stock_quantity == 1
-    assert OrderRepository.list_for_organization(db, organization.id) == []
+    assert OrderRepository.list_for_organization(
+        db, organization.id, page=1, page_size=100
+    )["items"] == []
     assert "Última unidade" not in str(exc.value)
     assert "disponível 1.000, solicitado 2" in str(exc.value)
     assert exc.value.product_name == "Café"
@@ -216,7 +218,9 @@ def test_delete_order_restores_stock_unless_already_cancelled(db: Session) -> No
     delete_order_record(db, order)
     db.refresh(product)
     assert product.stock_quantity == 4
-    assert OrderRepository.list_for_organization(db, organization.id) == []
+    assert OrderRepository.list_for_organization(
+        db, organization.id, page=1, page_size=100
+    )["items"] == []
 
     order = create_order(
         db,
@@ -347,6 +351,8 @@ def test_deleting_order_rolls_back_stock_if_deletion_fails(
     orders = OrderRepository.list_for_organization(
         db,
         organization.id,
+        page=1,
+        page_size=100,
     )
-    assert len(orders) == 1
-    assert orders[0].id == order_id
+    assert len(orders["items"]) == 1
+    assert orders["items"][0].id == order_id

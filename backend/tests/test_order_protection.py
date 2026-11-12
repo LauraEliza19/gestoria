@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy import func, select
-from test_api import login
+from test_api import login, page_items
 
 from app.config import settings
 from app.models import (
@@ -60,10 +60,10 @@ def confirm(client, prepared, envelope=None):
 
 def test_preparation_does_not_write_order_or_change_stock(client, prepared):
     headers, _, _, proposal = prepared
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
     assert (
         Decimal(
-            client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+            page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
         )
         == 10
     )
@@ -79,7 +79,7 @@ def test_confirmation_receipt_and_retry_are_consistent(client, prepared):
     assert retry.headers["X-Idempotent-Replay"] == "true"
     assert (
         Decimal(
-            client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+            page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
         )
         == 8
     )
@@ -129,10 +129,10 @@ def test_tampering_is_rejected_even_if_attacker_recalculates_hash(
     response = confirm(client, prepared, envelope)
     assert response.status_code == 403, response.text
     headers = prepared[0]
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
     assert (
         Decimal(
-            client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+            page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
         )
         == 10
     )
@@ -165,7 +165,7 @@ def test_same_key_reuses_proposal_and_changed_body_conflicts(client, prepared):
 def test_old_direct_creation_is_closed(client, prepared):
     response = client.post("/api/orders", headers=prepared[0], json=prepared[1])
     assert response.status_code == 428
-    assert client.get("/api/orders", headers=prepared[0]).json() == []
+    assert page_items(client.get("/api/orders", headers=prepared[0])) == []
 
 
 @pytest.mark.parametrize("email", ["membro@gestoria.dev", "empresa-b@gestoria.dev"])
@@ -216,7 +216,7 @@ def test_changed_price_requires_new_review(client, prepared):
     response = confirm(client, prepared)
     assert response.status_code == 409
     assert response.headers["X-Error-Code"] == "proposal_stale"
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
 
 
 def test_insufficient_stock_is_rechecked_at_execution(client, prepared):
@@ -226,7 +226,7 @@ def test_insufficient_stock_is_rechecked_at_execution(client, prepared):
         f"/api/products/{pid}", headers=headers, json={"stock_quantity": "1.000"}
     )
     assert confirm(client, prepared).status_code == 409
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
 
 
 def test_membership_revocation_blocks_confirmation(client, prepared, db):
@@ -266,7 +266,7 @@ def test_receipt_tamper_detected_and_deleted_order_not_recreated(client, prepare
         == 204
     )
     assert confirm(client, prepared).json() == result.json()
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
     operation = db.get(OrderOperation, uuid.UUID(proposal["operation_id"]))
     receipt = copy.deepcopy(operation.receipt)
     receipt["result"]["total_amount"] = "0.01"
@@ -314,7 +314,7 @@ def test_key_rotation_accepts_old_proposal_and_signs_receipt_with_new_key(
 def test_no_key_fails_closed(client, prepared, monkeypatch):
     monkeypatch.setattr(settings, "operation_signing_keys", "")
     assert confirm(client, prepared).status_code == 503
-    assert client.get("/api/orders", headers=prepared[0]).json() == []
+    assert page_items(client.get("/api/orders", headers=prepared[0])) == []
 
 
 def test_cancel_is_idempotent_and_blocks_execution(client, prepared):

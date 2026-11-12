@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch, apiFetchItems } from './api'
 
 export type FinanceCategory = {
   id: string
@@ -83,7 +83,7 @@ function buildQuery(filters: FinanceEntryFilters = {}) {
 }
 
 export function getFinanceEntries(filters: FinanceEntryFilters = {}) {
-  return apiFetch<FinanceEntry[]>(`/api/finance/entries${buildQuery(filters)}`)
+  return apiFetchItems<FinanceEntry>(`/api/finance/entries${buildQuery(filters)}`)
 }
 
 export type FinanceEntryPayload = {

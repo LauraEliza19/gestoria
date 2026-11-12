@@ -8,7 +8,6 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
-from conftest import seed_test_data
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from test_fiscal_migration import migrated_database
@@ -188,8 +187,46 @@ def test_downgrade_refuses_to_delete_audit_history(sqlite_gateway):
 def test_online_gateway_upgrade_from_previous_head_and_persistence(monkeypatch):
     with migrated_database(monkeypatch) as engine:
         command.upgrade(Config("alembic.ini"), PREVIOUS)
-        with Session(engine) as db:
-            seed_test_data(db)
+        org_id, other_org_id = uuid.uuid4(), uuid.uuid4()
+        user_id, other_user_id = uuid.uuid4(), uuid.uuid4()
+        member_id = uuid.uuid4()
+        with engine.begin() as connection:
+            connection.execute(
+                sa.text(
+                    """
+                    INSERT INTO organizations (id, name, slug)
+                    VALUES (:id, 'Empresa A', 'empresa-a'),
+                           (:other_id, 'Empresa B', 'empresa-b')
+                    """
+                ),
+                {"id": org_id, "other_id": other_org_id},
+            )
+            connection.execute(
+                sa.text(
+                    """
+                    INSERT INTO users (id, full_name, email, password_hash, is_active)
+                    VALUES (:id, 'Lucas Teste', 'lucas@gestoria.dev', 'test', true),
+                           (:other_id, 'Outro Usuário', 'outro@gestoria.dev', 'test', true)
+                    """
+                ),
+                {"id": user_id, "other_id": other_user_id},
+            )
+            connection.execute(
+                sa.text(
+                    """
+                    INSERT INTO organization_members
+                        (organization_id, user_id, role, is_active)
+                    VALUES (:org_id, :user_id, 'owner', true),
+                           (:other_org_id, :other_user_id, 'owner', true)
+                    """
+                ),
+                {
+                    "org_id": org_id,
+                    "user_id": user_id,
+                    "other_org_id": other_org_id,
+                    "other_user_id": other_user_id,
+                },
+            )
         command.upgrade(Config("alembic.ini"), "head")
         with Session(engine) as db:
             org = db.scalar(
@@ -222,7 +259,7 @@ def test_online_gateway_upgrade_from_previous_head_and_persistence(monkeypatch):
         with engine.connect() as connection:
             assert (
                 connection.scalar(sa.text("SELECT version_num FROM alembic_version"))
-                == MERGE_REVISION
+                == CURRENT_HEAD
             )
             assert (
                 connection.scalar(

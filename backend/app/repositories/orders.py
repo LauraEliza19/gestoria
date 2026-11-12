@@ -1,15 +1,25 @@
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Order, OrderItem
+from app.models import Customer, Order, OrderItem
+from app.repositories.pagination import paginate
 
 
 class OrderRepository:
     @staticmethod
-    def list_for_organization(db: Session, organization_id: uuid.UUID) -> list[Order]:
+    def list_for_organization(
+        db: Session,
+        organization_id: uuid.UUID,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        status: str | None = None,
+        sort: str = "created_at",
+    ):
         query = (
             select(Order)
             .options(
@@ -17,9 +27,20 @@ class OrderRepository:
                 selectinload(Order.items).joinedload(OrderItem.product),
             )
             .where(Order.organization_id == organization_id)
-            .order_by(Order.created_at.desc())
         )
-        return list(db.scalars(query).unique())
+        if search:
+            term = f"%{search}%"
+            query = query.where(Order.customer.has(Customer.name.ilike(term)))
+        if status:
+            query = query.where(Order.status == status)
+        query = query.order_by(
+            {
+                "created_at": Order.created_at.desc(),
+                "total_amount": Order.total_amount.desc(),
+            }[sort],
+            Order.id,
+        )
+        return paginate(db, query, page, page_size, unique=True)
 
     @staticmethod
     def list_for_customer(

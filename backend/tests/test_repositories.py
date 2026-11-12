@@ -51,8 +51,8 @@ def test_product_repository_is_scoped_to_organization(db: Session) -> None:
         },
     )
 
-    listed = ProductRepository.list_for_organization(db, org_a.id)
-    assert [item.name for item in listed] == ["Croissant"]
+    listed = ProductRepository.list_for_organization(db, org_a.id, page=1, page_size=100)
+    assert [item.name for item in listed["items"]] == ["Croissant"]
     assert ProductRepository.get_for_organization(db, created.id, org_b.id) is None
     assert ProductRepository.get_for_organization(db, created.id, org_a.id) is not None
 
@@ -90,11 +90,13 @@ def test_customer_repository_aggregates_completed_orders_only(db: Session) -> No
         [OrderItemCreate(product_id=product.id, quantity=1)],
     )
 
-    summaries = CustomerRepository.list_for_organization(db, org_a.id)
-    assert summaries[0].name == "Ana"
-    assert summaries[0].total_spent == Decimal("40.00")
-    assert summaries[0].orders_count == 2
-    assert summaries[0].last_purchase_at == completed.created_at
+    summaries = CustomerRepository.list_for_organization(
+        db, org_a.id, page=1, page_size=100
+    )
+    assert summaries["items"][0].name == "Ana"
+    assert summaries["items"][0].total_spent == Decimal("40.00")
+    assert summaries["items"][0].orders_count == 2
+    assert summaries["items"][0].last_purchase_at == completed.created_at
 
 
 def test_quote_repository_can_lock_quote_for_conversion() -> None:

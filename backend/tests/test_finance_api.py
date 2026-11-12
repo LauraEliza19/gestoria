@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from test_api import login
+from test_api import login, page_items
 
 from app.models import (
     FinanceAuditEvent,
@@ -86,8 +86,8 @@ def test_finance_summary_filters_and_audit(client: TestClient, db: Session) -> N
         headers=headers,
     )
     assert filtered.status_code == 200
-    assert len(filtered.json()) == 1
-    assert filtered.json()[0]["entry_type"] == "expense"
+    assert filtered.json()["total"] == 1
+    assert page_items(filtered)[0]["entry_type"] == "expense"
 
     audit_events = db.scalars(select(FinanceAuditEvent)).all()
     assert {event.event_type for event in audit_events} == {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
 import { useSession } from '../../contexts/SessionContext'
-import { apiFetch } from '../../services/api'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
 type Product = {
@@ -29,7 +29,7 @@ export function ProductsPage() {
     setLoadError('')
 
     try {
-      const list = await apiFetch<Product[]>('/api/products')
+      const list = await apiFetchItems<Product>('/api/products')
       setProducts(list)
     } catch (error) {
       setLoadError(getErrorMessage(error, 'Não foi possível carregar os produtos.'))

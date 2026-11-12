@@ -31,6 +31,12 @@ def login(
     }
 
 
+def page_items(response):
+    payload = response.json()
+    assert set(("items", "page", "page_size", "total", "has_next")) <= payload.keys()
+    return payload["items"]
+
+
 def test_health_and_frontend_are_available(client: TestClient) -> None:
     assert client.get("/api/health").json() == {"status": "ok"}
     assert "GestorIA" in client.get("/").text
@@ -62,7 +68,7 @@ def test_authenticated_product_flow_is_tenant_scoped(client: TestClient) -> None
 
     initial_products = client.get("/api/products", headers=headers)
     assert initial_products.status_code == 200
-    assert initial_products.json() == []
+    assert initial_products.json()["items"] == []
 
     created = client.post(
         "/api/products",
@@ -73,7 +79,7 @@ def test_authenticated_product_flow_is_tenant_scoped(client: TestClient) -> None
     product = created.json()
     assert product["status"] == "Estoque baixo"
 
-    listed = client.get("/api/products", headers=headers).json()
+    listed = page_items(client.get("/api/products", headers=headers))
     assert [item["name"] for item in listed] == ["Café especial"]
     assert "Produto privado da Empresa B" not in [item["name"] for item in listed]
 
@@ -87,7 +93,7 @@ def test_authenticated_product_flow_is_tenant_scoped(client: TestClient) -> None
 
     deleted = client.delete(f"/api/products/{product['id']}", headers=headers)
     assert deleted.status_code == 204
-    assert client.get("/api/products", headers=headers).json() == []
+    assert page_items(client.get("/api/products", headers=headers)) == []
 
 
 def test_duplicate_product_name_returns_conflict(client: TestClient) -> None:
@@ -267,7 +273,8 @@ def test_customer_profile_returns_order_history_and_is_tenant_scoped(
     private_customers = client.get(
         "/api/customers",
         headers=other_organization_headers,
-    ).json()
+    )
+    private_customers = page_items(private_customers)
     private_customer = private_customers[0]
 
     cross_organization_response = client.get(
@@ -309,7 +316,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert len(order["items"]) == 1
     assert Decimal(order["items"][0]["quantity"]) == Decimal(3)
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(2)
 
     completed = client.patch(
@@ -320,14 +327,14 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert completed.status_code == 200
     assert completed.json()["status"] == "completed"
 
-    customers = client.get("/api/customers", headers=headers).json()
+    customers = page_items(client.get("/api/customers", headers=headers))
     assert customers[0]["total_spent"] == "37.50"
     assert customers[0]["orders_count"] == 1
     assert customers[0]["last_purchase_at"] is not None
 
     listed = client.get("/api/orders", headers=headers)
     assert listed.status_code == 200
-    assert listed.json()[0]["customer_name"] == "Cliente Pedido"
+    assert page_items(listed)[0]["customer_name"] == "Cliente Pedido"
 
     cancelled = client.patch(
         f"/api/orders/{order['id']}",
@@ -336,13 +343,13 @@ def test_order_flow_updates_stock_status_and_customer_total(
     )
     assert cancelled.status_code == 200
     assert Decimal(
-        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
     ) == Decimal(5)
 
-    customers_after_cancellation = client.get(
+    customers_after_cancellation = page_items(client.get(
         "/api/customers",
         headers=headers,
-    ).json()
+    ))
 
     assert Decimal(customers_after_cancellation[0]["total_spent"]) == Decimal(0)
     assert customers_after_cancellation[0]["last_purchase_at"] is None
@@ -355,7 +362,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
     assert reactivated.status_code == 200
     assert reactivated.json()["status"] == "in_preparation"
     assert Decimal(
-        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
     ) == Decimal(2)
 
     assert (
@@ -371,7 +378,7 @@ def test_order_flow_updates_stock_status_and_customer_total(
         client.delete(f"/api/orders/{order['id']}", headers=headers).status_code == 204
     )
     assert Decimal(
-        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
     ) == Decimal(5)
     assert (
         client.delete(f"/api/customers/{customer['id']}", headers=headers).status_code
@@ -407,9 +414,9 @@ def test_order_with_insufficient_stock_rolls_back_everything(
         },
     )
     assert response.status_code == 409
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
     assert Decimal(
-        client.get("/api/products", headers=headers).json()[0]["stock_quantity"]
+        page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
     ) == Decimal(1)
 
 
@@ -419,12 +426,12 @@ def test_customer_and_product_are_isolated_between_organizations(
     company_a_headers = login(client)
     company_b_headers = login(client, "empresa-b@gestoria.dev")
 
-    company_b_customer = client.get("/api/customers", headers=company_b_headers).json()[
+    company_b_customer = page_items(client.get("/api/customers", headers=company_b_headers))[
         0
     ]
-    company_b_product = client.get("/api/products", headers=company_b_headers).json()[0]
+    company_b_product = page_items(client.get("/api/products", headers=company_b_headers))[0]
 
-    assert client.get("/api/customers", headers=company_a_headers).json() == []
+    assert page_items(client.get("/api/customers", headers=company_a_headers)) == []
     assert (
         client.patch(
             f"/api/customers/{company_b_customer['id']}",
@@ -492,7 +499,7 @@ def test_quote_api_flow_converts_only_once(client: TestClient) -> None:
     assert len(quote["items"]) == 1
     assert quote["items"][0]["unit_price"] == "10.00"
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
 
     price_change_response = client.patch(
@@ -536,14 +543,14 @@ def test_quote_api_flow_converts_only_once(client: TestClient) -> None:
     assert second_conversion.status_code == 409
     assert "status atual: 'converted'" in second_conversion.json()["detail"]
 
-    orders = client.get("/api/orders", headers=headers).json()
+    orders = page_items(client.get("/api/orders", headers=headers))
     assert len(orders) == 1
     assert orders[0]["id"] == converted_quote["converted_order_id"]
     assert orders[0]["total_amount"] == "20.00"
     assert len(orders[0]["items"]) == 1
     assert orders[0]["items"][0]["unit_price"] == "10.00"
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
 
 
@@ -630,9 +637,9 @@ def test_expired_quote_cannot_be_approved_or_converted(
     assert conversion.status_code == 409
     assert "vencido" in conversion.json()["detail"]
 
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
 
 
@@ -642,15 +649,15 @@ def test_quote_api_is_isolated_between_organizations(
     company_a_headers = login(client)
     company_b_headers = login(client, "empresa-b@gestoria.dev")
 
-    company_b_customer = client.get(
+    company_b_customer = page_items(client.get(
         "/api/customers",
         headers=company_b_headers,
-    ).json()[0]
+    ))[0]
 
-    company_b_product = client.get(
+    company_b_product = page_items(client.get(
         "/api/products",
         headers=company_b_headers,
-    ).json()[0]
+    ))[0]
 
     created_response = client.post(
         "/api/quotes",
@@ -677,10 +684,10 @@ def test_quote_api_is_isolated_between_organizations(
     assert approved_response.status_code == 200
 
     assert (
-        client.get(
+        page_items(client.get(
             "/api/quotes",
             headers=company_a_headers,
-        ).json()
+        ))
         == []
     )
 
@@ -703,19 +710,19 @@ def test_quote_api_is_isolated_between_organizations(
     )
     assert unauthorized_deletion.status_code == 404
 
-    company_b_quotes = client.get(
+    company_b_quotes = page_items(client.get(
         "/api/quotes",
         headers=company_b_headers,
-    ).json()
+    ))
     assert len(company_b_quotes) == 1
     assert company_b_quotes[0]["id"] == company_b_quote["id"]
     assert company_b_quotes[0]["status"] == "approved"
 
     assert (
-        client.get(
+        page_items(client.get(
             "/api/orders",
             headers=company_b_headers,
-        ).json()
+        ))
         == []
     )
 
@@ -768,10 +775,10 @@ def test_only_owner_or_admin_can_delete_quote(
     )
     assert forbidden.status_code == 403
 
-    quotes_after_forbidden_attempt = client.get(
+    quotes_after_forbidden_attempt = page_items(client.get(
         "/api/quotes",
         headers=owner_headers,
-    ).json()
+    ))
     assert len(quotes_after_forbidden_attempt) == 1
     assert quotes_after_forbidden_attempt[0]["id"] == quote["id"]
 
@@ -782,10 +789,10 @@ def test_only_owner_or_admin_can_delete_quote(
     assert deleted.status_code == 204
 
     assert (
-        client.get(
+        page_items(client.get(
             "/api/quotes",
             headers=owner_headers,
-        ).json()
+        ))
         == []
     )
 
@@ -845,12 +852,12 @@ def test_quote_conversion_with_insufficient_stock_returns_conflict(
     assert conversion.status_code == 409
     assert "Estoque insuficiente" in conversion.json()["detail"]
 
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(1)
 
-    quotes = client.get("/api/quotes", headers=headers).json()
+    quotes = page_items(client.get("/api/quotes", headers=headers))
     assert len(quotes) == 1
     assert quotes[0]["status"] == "approved"
     assert quotes[0]["converted_order_id"] is None
@@ -896,7 +903,7 @@ def test_cancelling_order_twice_restores_stock_only_once(
     assert order_response.status_code == 201
     order = order_response.json()
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
 
     first_cancellation = client.patch(
@@ -907,7 +914,7 @@ def test_cancelling_order_twice_restores_stock_only_once(
     assert first_cancellation.status_code == 200
     assert first_cancellation.json()["status"] == "cancelled"
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
 
     second_cancellation = client.patch(
@@ -918,10 +925,10 @@ def test_cancelling_order_twice_restores_stock_only_once(
     assert second_cancellation.status_code == 200
     assert second_cancellation.json()["status"] == "cancelled"
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
 
-    orders = client.get("/api/orders", headers=headers).json()
+    orders = page_items(client.get("/api/orders", headers=headers))
     assert len(orders) == 1
     assert orders[0]["status"] == "cancelled"
 
@@ -966,7 +973,7 @@ def test_deleting_order_twice_restores_stock_only_once(
     assert order_response.status_code == 201
     order = order_response.json()
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
 
     first_deletion = client.delete(
@@ -975,7 +982,7 @@ def test_deleting_order_twice_restores_stock_only_once(
     )
     assert first_deletion.status_code == 204
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
 
     second_deletion = client.delete(
@@ -984,10 +991,10 @@ def test_deleting_order_twice_restores_stock_only_once(
     )
     assert second_deletion.status_code == 404
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(5)
 
-    assert client.get("/api/orders", headers=headers).json() == []
+    assert page_items(client.get("/api/orders", headers=headers)) == []
 
 
 def test_order_update_and_delete_request_row_lock(
@@ -1145,7 +1152,7 @@ def test_order_api_rejects_invalid_status_transitions(
     assert reactivated.status_code == 200
     assert reactivated.json()["status"] == "in_preparation"
 
-    products = client.get("/api/products", headers=headers).json()
+    products = page_items(client.get("/api/products", headers=headers))
     assert Decimal(products[0]["stock_quantity"]) == Decimal(3)
 
 
@@ -1184,7 +1191,9 @@ def test_customer_codes_are_sequential_and_listed(client: TestClient) -> None:
     listed = client.get("/api/customers", headers=headers)
 
     assert listed.status_code == 200
-    codes_by_id = {customer["id"]: customer["code"] for customer in listed.json()}
+    codes_by_id = {
+        customer["id"]: customer["code"] for customer in page_items(listed)
+    }
     assert codes_by_id[first["id"]] == "CLI-000001"
     assert codes_by_id[second["id"]] == "CLI-000002"
 
@@ -1261,7 +1270,9 @@ def test_product_codes_are_sequential_and_listed(client: TestClient) -> None:
     listed = client.get("/api/products", headers=headers)
 
     assert listed.status_code == 200
-    codes_by_id = {product["id"]: product["code"] for product in listed.json()}
+    codes_by_id = {
+        product["id"]: product["code"] for product in page_items(listed)
+    }
     assert codes_by_id[first["id"]] == "PRO-000001"
     assert codes_by_id[second["id"]] == "PRO-000002"
 

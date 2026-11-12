@@ -1,9 +1,10 @@
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import CostCenter, Employee, EmployeeRecord, Employment
+from app.repositories.pagination import paginate
 
 
 class CostCenterRepository:
@@ -75,18 +76,33 @@ class EmployeeRepository:
         organization_id: uuid.UUID,
         *,
         active_only: bool = False,
-    ) -> list[Employee]:
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        sort: str = "full_name",
+    ):
         query = select(Employee).where(Employee.organization_id == organization_id)
 
         if active_only:
             query = query.where(Employee.is_active.is_(True))
-
+        if search:
+            term = f"%{search}%"
+            query = query.where(
+                or_(
+                    Employee.full_name.ilike(term),
+                    Employee.email.ilike(term),
+                    Employee.phone.ilike(term),
+                )
+            )
         query = query.order_by(
             Employee.is_active.desc(),
-            Employee.full_name,
+            {
+                "full_name": Employee.full_name.asc(),
+                "created_at": Employee.created_at.desc(),
+            }[sort],
+            Employee.id,
         )
-
-        return list(db.scalars(query))
+        return paginate(db, query, page, page_size)
 
     @staticmethod
     def get_for_organization(

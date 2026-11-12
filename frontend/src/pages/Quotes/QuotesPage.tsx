@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { SaveButton, SavingForm } from '../../components/forms/FormActions'
-import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
-import { useFormChanges, useSaveAction } from '../../components/forms/useFormState'
-import { apiFetch } from '../../services/api'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 import { useSession } from '../../contexts/SessionContext'
 import { QuotePrintArea } from './QuotePrintArea'
@@ -38,16 +35,15 @@ type DraftItem = {
   discountPercent: string
 }
 
-const defaultItem: Omit<DraftItem, 'key'> = {
-  productId: '',
-  productSearch: '',
-  productSearchField: 'name',
-  quantity: '1',
-  discountPercent: '0',
-}
-
 function newItem(): DraftItem {
-  return { key: crypto.randomUUID(), ...defaultItem }
+  return {
+    key: crypto.randomUUID(),
+    productId: '',
+    productSearch: '',
+    productSearchField: 'name',
+    quantity: '1',
+    discountPercent: '0',
+  }
 }
 
 type QuoteItem = {
@@ -146,9 +142,9 @@ const productSearchConfig: Record<
 
 async function fetchQuotes() {
   return Promise.all([
-    apiFetch<Quote[]>('/api/quotes'),
-    apiFetch<Customer[]>('/api/customers'),
-    apiFetch<Product[]>('/api/products'),
+    apiFetchItems<Quote>('/api/quotes'),
+    apiFetchItems<Customer>('/api/customers'),
+    apiFetchItems<Product>('/api/products'),
   ])
 }
 
@@ -206,7 +202,7 @@ export function QuotesPage() {
   const [generalDiscountPercent, setGeneralDiscountPercent] = useState('0')
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>('cash')
   const [installmentCount, setInstallmentCount] = useState('2')
-  const { busy: submitting, run: save } = useSaveAction()
+  const [submitting, setSubmitting] = useState(false)
 
   const activeCustomerSearch = customerSearchConfig[customerSearchField]
   const selectedCustomer = customers.find((customer) => customer.id === customerId) ?? null
@@ -306,22 +302,6 @@ export function QuotesPage() {
     new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
   )
   const [status, setStatus] = useState('Carregando orçamentos...')
-  const [notice, setNotice] = useState('')
-  const formValues = {
-    customerId,
-    customerSearch,
-    validUntil,
-    generalDiscountPercent,
-    paymentTerms,
-    installmentCount,
-    items: items.map(({ key: _key, ...item }) => item),
-  }
-  const { dirty, resetBaseline } = useFormChanges(formValues)
-
-  function clearFeedback() {
-    setStatus('')
-    setNotice('')
-  }
 
   useEffect(() => {
     fetchQuotes()
@@ -339,87 +319,81 @@ export function QuotesPage() {
   async function createQuote(event: React.FormEvent) {
     event.preventDefault()
 
-    await save(async () => {
-      clearFeedback()
+    if (submitting) return
 
-      if (!customerId || !validUntil) {
-        setStatus('Selecione um cliente nos resultados e informe a validade do orçamento.')
-        return
-      }
+    if (!customerId || !validUntil) {
+      setStatus('Selecione um cliente nos resultados e informe a validade do orçamento.')
+      return
+    }
 
-      const invalidItem = items.some(
-        (item) =>
-          !item.productId ||
-          !/^\d+(?:\.\d{1,3})?$/.test(item.quantity) ||
-          Number(item.quantity) <= 0 ||
-          Number(item.quantity) > 1_000_000 ||
-          !isValidPercentage(item.discountPercent),
-      )
+    const invalidItem = items.some(
+      (item) =>
+        !item.productId ||
+        !/^\d+(?:\.\d{1,3})?$/.test(item.quantity) ||
+        Number(item.quantity) <= 0 ||
+        Number(item.quantity) > 1_000_000 ||
+        !isValidPercentage(item.discountPercent),
+    )
 
-      if (invalidItem) {
-        setStatus('Selecione os produtos, informe quantidades válidas e descontos entre 0% e 100%.')
-        return
-      }
+    if (invalidItem) {
+      setStatus('Selecione os produtos, informe quantidades válidas e descontos entre 0% e 100%.')
+      return
+    }
 
-      if (selectedProductIds.size !== items.length) {
-        setStatus('Cada produto deve aparecer somente uma vez no orçamento.')
-        return
-      }
+    if (selectedProductIds.size !== items.length) {
+      setStatus('Cada produto deve aparecer somente uma vez no orçamento.')
+      return
+    }
 
-      if (!isValidPercentage(generalDiscountPercent)) {
-        setStatus('Informe um desconto geral entre 0% e 100%, com até duas casas decimais.')
-        return
-      }
+    if (!isValidPercentage(generalDiscountPercent)) {
+      setStatus('Informe um desconto geral entre 0% e 100%, com até duas casas decimais.')
+      return
+    }
 
-      const installments = Number(installmentCount)
+    const installments = Number(installmentCount)
 
-      if (
-        paymentTerms === 'installments' &&
-        (!Number.isInteger(installments) || installments < 2 || installments > 24)
-      ) {
-        setStatus('Informe uma quantidade entre 2 e 24 parcelas.')
-        return
-      }
+    if (
+      paymentTerms === 'installments' &&
+      (!Number.isInteger(installments) || installments < 2 || installments > 24)
+    ) {
+      setStatus('Informe uma quantidade entre 2 e 24 parcelas.')
+      return
+    }
 
-      try {
-        const created = await apiFetch<Quote>('/api/quotes', {
-          method: 'POST',
-          body: JSON.stringify({
-            customer_id: customerId,
-            valid_until: validUntil,
-            general_discount_percent: Number(generalDiscountPercent),
-            payment_terms: paymentTerms,
-            installment_count: paymentTerms === 'installments' ? Number(installmentCount) : 1,
-            items: items.map((item) => ({
-              product_id: item.productId,
-              quantity: Number(item.quantity),
-              discount_percent: Number(item.discountPercent),
-            })),
-          }),
-        })
+    try {
+      setSubmitting(true)
+      setStatus('')
 
-        setQuotes((current) => [created, ...current])
-        setReviewQuoteId(created.id)
-        setCustomerId('')
-        setCustomerSearch('')
-        setItems([newItem()])
-        setGeneralDiscountPercent('0')
-        setPaymentTerms('cash')
-        setInstallmentCount('2')
-        resetBaseline({
-          ...formValues,
-          customerId: '',
-          customerSearch: '',
-          generalDiscountPercent: '0',
-          paymentTerms: 'cash',
-          installmentCount: '2',
-          items: [defaultItem],
-        })
-        setNotice('Orçamento criado. Confira os valores registrados antes de gerar o PDF.')
-      } catch (error) {
-        setStatus(getErrorMessage(error, 'Não foi possível criar o orçamento.'))
-      }
-    })
+      const created = await apiFetch<Quote>('/api/quotes', {
+        method: 'POST',
+        body: JSON.stringify({
+          customer_id: customerId,
+          valid_until: validUntil,
+          general_discount_percent: Number(generalDiscountPercent),
+          payment_terms: paymentTerms,
+          installment_count: paymentTerms === 'installments' ? Number(installmentCount) : 1,
+          items: items.map((item) => ({
+            product_id: item.productId,
+            quantity: Number(item.quantity),
+            discount_percent: Number(item.discountPercent),
+          })),
+        }),
+      })
+
+      setQuotes((current) => [created, ...current])
+      setReviewQuoteId(created.id)
+      setCustomerId('')
+      setCustomerSearch('')
+      setItems([newItem()])
+      setGeneralDiscountPercent('0')
+      setPaymentTerms('cash')
+      setInstallmentCount('2')
+      setStatus('Orçamento criado. Confira os valores registrados antes de gerar o PDF.')
+    } catch (error) {
+      setStatus(getErrorMessage(error, 'Não foi possível criar o orçamento.'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function updateQuote(quote: Quote, nextStatus: string) {
@@ -475,28 +449,17 @@ export function QuotesPage() {
           <h1>Orçamentos</h1>
           <p>Monte propostas, acompanhe aprovações e converta vendas.</p>
         </div>
+
+        {selectedCustomerId && (
+          <Link className="secondary-button" to={`/clientes/${selectedCustomerId}`}>
+            <ArrowLeft size={16} />
+            Voltar ao cliente
+          </Link>
+        )}
       </header>
 
-      <SavingForm
-        className="page-card quote-form"
-        saving={submitting}
-        onInvalidCapture={clearFeedback}
-        onSubmit={createQuote}
-      >
-        <FormHeader
-          module="Orçamentos"
-          title="Novo orçamento"
-          description="Selecione o cliente, adicione os produtos e defina as condições da proposta."
-          mode="create"
-          heading="h2"
-          dirty={dirty}
-          blocked={submitting}
-          back={
-            selectedCustomerId
-              ? { to: `/clientes/${selectedCustomerId}`, label: 'Voltar ao cliente' }
-              : { href: '#lista-orcamentos', label: 'Voltar para a lista de orçamentos' }
-          }
-        />
+      <form className="page-card quote-form" onSubmit={createQuote}>
+        <h2>Novo orçamento</h2>
 
         <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
           <div className="grid gap-3">
@@ -505,6 +468,7 @@ export function QuotesPage() {
                 Pesquisar por
                 <select
                   value={customerSearchField}
+                  disabled={submitting}
                   onChange={(event) => {
                     setCustomerSearchField(event.target.value as CustomerSearchField)
                     setCustomerSearch('')
@@ -519,15 +483,13 @@ export function QuotesPage() {
               </label>
 
               <label>
-                <span>
-                  {activeCustomerSearch.label}
-                  <RequiredMark />
-                </span>
+                {activeCustomerSearch.label}
                 <input
                   type="search"
                   inputMode={activeCustomerSearch.inputMode}
                   placeholder={activeCustomerSearch.placeholder}
                   value={customerSearch}
+                  disabled={submitting}
                   autoComplete="off"
                   aria-describedby="customer-search-feedback"
                   onChange={(event) => {
@@ -592,6 +554,7 @@ export function QuotesPage() {
                 <button
                   className="font-semibold text-signal"
                   type="button"
+                  disabled={submitting}
                   onClick={() => {
                     setCustomerId('')
                     setCustomerSearch('')
@@ -612,10 +575,7 @@ export function QuotesPage() {
           </div>
 
           <label>
-            <span>
-              Válido até
-              <RequiredMark />
-            </span>
+            Válido até
             <input
               required
               type="date"
@@ -688,6 +648,7 @@ export function QuotesPage() {
                         Pesquisar por
                         <select
                           value={item.productSearchField}
+                          disabled={submitting}
                           onChange={(event) =>
                             updateItem(item.key, {
                               productId: '',
@@ -702,13 +663,11 @@ export function QuotesPage() {
                       </label>
 
                       <label>
-                        <span>
-                          {activeProductSearch.label}
-                          <RequiredMark />
-                        </span>
+                        {activeProductSearch.label}
                         <input
                           type="search"
                           autoComplete="off"
+                          disabled={submitting}
                           placeholder={activeProductSearch.placeholder}
                           value={item.productSearch}
                           onChange={(event) =>
@@ -766,6 +725,7 @@ export function QuotesPage() {
                         <button
                           className="font-semibold text-signal"
                           type="button"
+                          disabled={submitting}
                           onClick={() =>
                             updateItem(item.key, {
                               productId: '',
@@ -788,10 +748,7 @@ export function QuotesPage() {
                   </div>
 
                   <label>
-                    <span>
-                      Quantidade
-                      <RequiredMark />
-                    </span>
+                    Quantidade
                     <input
                       min="0.001"
                       step="0.001"
@@ -806,10 +763,7 @@ export function QuotesPage() {
                   </label>
 
                   <label>
-                    <span>
-                      Desconto (%)
-                      <RequiredMark />
-                    </span>
+                    Desconto (%)
                     <input
                       min="0"
                       max="100"
@@ -855,6 +809,7 @@ export function QuotesPage() {
               Condição de pagamento
               <select
                 value={paymentTerms}
+                disabled={submitting}
                 onChange={(event) => setPaymentTerms(event.target.value as PaymentTerms)}
               >
                 <option value="cash">À vista</option>
@@ -863,32 +818,28 @@ export function QuotesPage() {
             </label>
 
             <label>
-              <span>
-                {paymentTerms === 'cash' ? 'Desconto à vista (%)' : 'Desconto geral (%)'}
-                <RequiredMark />
-              </span>
+              {paymentTerms === 'cash' ? 'Desconto à vista (%)' : 'Desconto geral (%)'}
               <input
                 min="0"
                 max="100"
                 step="0.01"
                 type="number"
                 value={generalDiscountPercent}
+                disabled={submitting}
                 onChange={(event) => setGeneralDiscountPercent(event.target.value)}
               />
             </label>
 
             {paymentTerms === 'installments' ? (
               <label>
-                <span>
-                  Quantidade de parcelas
-                  <RequiredMark />
-                </span>
+                Quantidade de parcelas
                 <input
                   min="2"
                   max="24"
                   step="1"
                   type="number"
                   value={installmentCount}
+                  disabled={submitting}
                   onChange={(event) => setInstallmentCount(event.target.value)}
                 />
               </label>
@@ -932,14 +883,11 @@ export function QuotesPage() {
           </p>
         </section>
 
-        <SaveButton className="primary-button mt-5" saving={submitting}>
-          Criar orçamento
-        </SaveButton>
-      </SavingForm>
+        <button className="primary-button mt-5" disabled={submitting} type="submit">
+          {submitting ? 'Criando...' : 'Criar orçamento'}
+        </button>
+      </form>
 
-      <p className={notice ? 'table-status mb-4' : 'sr-only'} role="status">
-        {notice}
-      </p>
       {status && <p className="table-status">{status}</p>}
       {reviewedQuote && (
         <section className="page-card mb-6" aria-labelledby="quote-review-title">
@@ -1069,7 +1017,7 @@ export function QuotesPage() {
         </section>
       )}
 
-      <section id="lista-orcamentos" className="page-card scroll-mt-4" tabIndex={-1}>
+      <section className="page-card">
         <div className="data-table quote-table">
           <div className="data-table-row data-table-head">
             <span>Cliente</span>

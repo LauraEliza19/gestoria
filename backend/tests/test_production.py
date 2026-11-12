@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from test_api import login
+from test_api import login, page_items
 
 from app.models.production import RecipeIngredient, StockItem
 from app.services.production import ProductionError, convert, normalize_name
@@ -136,7 +136,7 @@ def test_brands_sum_after_conversion_and_deleting_stock_preserves_recipe(client)
     assert data["recipes"][0]["max_batches"] == 0
     assert Decimal(data["recipes"][0]["items"][0]["missing_quantity"]) == 500
     assert len(data["ingredients"]) == 1
-    assert client.get("/api/products", headers=headers).json() == []
+    assert page_items(client.get("/api/products", headers=headers)) == []
 
 
 def test_reassociate_stock_without_rewriting_recipes(client):

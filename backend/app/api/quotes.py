@@ -1,10 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import QuoteRepository
-from app.schemas import QuoteCreate, QuoteRead, QuoteStatusUpdate
+from app.schemas import PaginatedResponse, QuoteCreate, QuoteRead, QuoteStatusUpdate
 from app.services import (
     CustomerNotFoundError,
     InsufficientStockError,
@@ -31,17 +31,30 @@ def quote_not_found() -> HTTPException:
 
 @router.get(
     "",
-    response_model=list[QuoteRead],
+    response_model=PaginatedResponse[QuoteRead],
 )
 def list_quotes(
     db: DatabaseSession,
     current: CurrentUser,
-) -> list[QuoteRead]:
-    quotes = QuoteRepository.list_for_organization(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=120),
+    status_filter: str | None = Query(
+        default=None, alias="status", pattern="^(pending|approved|rejected|converted)$"
+    ),
+    sort: str = Query(default="created_at", pattern="^(created_at|total_amount)$"),
+) -> PaginatedResponse[QuoteRead]:
+    result = QuoteRepository.list_for_organization(
         db,
         current.organization.id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        status=status_filter,
+        sort=sort,
     )
-    return [quote_to_read(quote) for quote in quotes]
+    result["items"] = [quote_to_read(quote) for quote in result["items"]]
+    return result
 
 
 @router.post(

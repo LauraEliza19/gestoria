@@ -120,6 +120,25 @@ Também é necessário ter o build do frontend em `frontend/dist/`, pois a inici
 
 A especificação detalhada das rotas fica disponível no Swagger durante o desenvolvimento.
 
+### Paginação das listagens principais
+
+As listagens de clientes, produtos, pedidos, orçamentos, lançamentos,
+fornecedores e funcionários retornam o envelope:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "page_size": 50,
+  "total": 0,
+  "has_next": false
+}
+```
+
+Use `page` (mínimo 1) e `page_size` (máximo 100). Os parâmetros de busca,
+filtros e ordenação são aplicados no servidor antes da paginação. A ordenação
+é estável e usa o identificador do registro como critério de desempate.
+
 ## Regras de segurança
 
 - a organização vem da sessão, nunca de um identificador livre enviado pelo cliente;

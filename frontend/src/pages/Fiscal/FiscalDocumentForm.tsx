@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
-import { FormHeader } from '../../components/forms/FormHeader'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import type {
   FiscalDraftItem,
@@ -23,7 +21,7 @@ import {
 import { FiscalItems } from './FiscalItems'
 import { FiscalEntryItems } from './FiscalEntryItems'
 import { FiscalSupplierForm } from './FiscalSupplierForm'
-import { RequiredMark } from './FiscalRequired'
+import { RequiredLegend, RequiredMark } from './FiscalRequired'
 
 type FiscalDocumentFormProps = {
   form: FiscalFormState
@@ -36,9 +34,6 @@ type FiscalDocumentFormProps = {
   supplierForm: SupplierFormState
   setSupplierForm: Dispatch<SetStateAction<SupplierFormState>>
   busy: boolean
-  saving: boolean
-  supplierSaving: boolean
-  onAttempt: () => void
   loading: boolean
   dirty?: boolean
   openedAt?: number
@@ -90,9 +85,6 @@ export function FiscalDocumentForm({
   supplierForm,
   setSupplierForm,
   busy,
-  saving,
-  supplierSaving,
-  onAttempt,
   loading,
   dirty = false,
   openedAt = 0,
@@ -137,12 +129,6 @@ export function FiscalDocumentForm({
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (busy || loading) {
-      event.preventDefault()
-      return
-    }
-
-    onAttempt()
     setSubmitted(true)
 
     if (hasErrors) {
@@ -160,29 +146,21 @@ export function FiscalDocumentForm({
       className="page-card fiscal-new-document space-y-4"
       aria-labelledby="fiscal-new-document-title"
     >
-      <p className="sr-only" role="status">
-        Formulário de nova nota aberto.
-      </p>
+      <div className="fiscal-form-opened" role="status">
+        <strong>Formulário de nova nota aberto.</strong>
+        <span>
+          Preencha os campos obrigatórios (*) e clique em “Registrar documento”.
+          {dirty ? ' Há alterações ainda não salvas.' : ''}
+        </span>
+      </div>
 
-      <FormHeader
-        module="Fiscal"
-        title="Novo registro fiscal"
-        description="Registre uma nota de entrada ou saída emitida no serviço fiscal externo."
-        mode="create"
-        heading="h2"
-        headingId="fiscal-new-document-title"
-        headingRef={headingRef}
-        back={{ onClick: onClose, label: 'Voltar à lista de notas fiscais' }}
-        dirty={dirty}
-        blocked={saving || supplierSaving}
-      />
+      <form className="fiscal-form space-y-4" noValidate onSubmit={handleSubmit}>
+        <h2 id="fiscal-new-document-title" ref={headingRef} tabIndex={-1}>
+          Novo registro fiscal
+        </h2>
 
-      <SavingForm
-        className="fiscal-form [&>fieldset]:space-y-4"
-        saving={saving || supplierSaving}
-        noValidate
-        onSubmit={handleSubmit}
-      >
+        <RequiredLegend />
+
         <div className="fiscal-form-grid">
           <label>
             <span>
@@ -449,21 +427,20 @@ export function FiscalDocumentForm({
         )}
 
         <div className="flex flex-wrap gap-3">
-          <SaveButton saving={saving} disabled={busy || loading}>
+          <button className="primary-button" disabled={busy || loading} type="submit">
             Registrar documento
-          </SaveButton>
-          <FormExit onClick={onClose} blocked={saving || supplierSaving}>
+          </button>
+
+          <button className="secondary-button" type="button" onClick={onClose}>
             Fechar formulário
-          </FormExit>
+          </button>
         </div>
-      </SavingForm>
+      </form>
 
       {form.document_type === 'entrada' && (
         <FiscalSupplierForm
           form={supplierForm}
-          busy={busy || loading}
-          saving={supplierSaving}
-          onAttempt={onAttempt}
+          busy={busy}
           onChange={setSupplierForm}
           onSubmit={onCreateSupplier}
         />

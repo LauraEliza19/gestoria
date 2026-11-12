@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
 import { useSession } from '../../contexts/SessionContext'
-import { apiFetch } from '../../services/api'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
 type CustomerCategory = 'final_consumer' | 'reseller' | 'event'
@@ -72,7 +72,7 @@ export function CustomersPage() {
     setLoadError('')
 
     try {
-      const list = await apiFetch<Customer[]>('/api/customers')
+      const list = await apiFetchItems<Customer>('/api/customers')
       setCustomers(list)
     } catch (error) {
       setLoadError(getErrorMessage(error, 'Não foi possível carregar os clientes.'))

@@ -3,7 +3,8 @@ import uuid
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import FiscalDocument
+from app.models import FiscalDocument, Supplier
+from app.repositories.pagination import paginate
 
 
 class FiscalDocumentRepository:
@@ -70,3 +71,32 @@ class FiscalDocumentRepository:
                 populate_existing=True
             )
         return db.scalar(query)
+
+
+class SupplierRepository:
+    @staticmethod
+    def list_for_organization(
+        db: Session,
+        organization_id: uuid.UUID,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        active_only: bool | None = None,
+        sort: str = "name",
+    ):
+        query = select(Supplier).where(Supplier.organization_id == organization_id)
+        if search:
+            term = f"%{search}%"
+            query = query.where(
+                or_(Supplier.name.ilike(term), Supplier.document.ilike(term))
+            )
+        if active_only is not None:
+            query = query.where(Supplier.is_active.is_(active_only))
+        query = query.order_by(
+            {"name": Supplier.name.asc(), "created_at": Supplier.created_at.desc()}[
+                sort
+            ],
+            Supplier.id,
+        )
+        return paginate(db, query, page, page_size)

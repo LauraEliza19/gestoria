@@ -11,6 +11,22 @@ export class ApiError extends Error {
   }
 }
 
+export type PaginatedResponse<T> = {
+  items: T[]
+  page: number
+  page_size: number
+  total: number
+  has_next: boolean
+}
+
+export async function apiFetchItems<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T[]> {
+  const response = await apiFetch<PaginatedResponse<T>>(path, options)
+  return response.items
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},

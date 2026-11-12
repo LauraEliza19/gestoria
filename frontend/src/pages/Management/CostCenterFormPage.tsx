@@ -1,10 +1,7 @@
-import { Building2, CheckCircle2, CircleDollarSign, Save, Users } from 'lucide-react'
+import { ArrowLeft, Building2, CheckCircle2, CircleDollarSign, Save, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
-import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
-import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import {
   createCostCenter,
@@ -35,9 +32,7 @@ export function CostCenterFormPage() {
 
   const [values, setValues] = useState<CostCenterFormValues>(initialValues)
   const [loading, setLoading] = useState(editing)
-  const { busy: saving, run: save } = useSaveAction()
-  const { dirty, resetBaseline } = useFormChanges(values)
-  const announceSuccess = useFormSuccess()
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -49,14 +44,12 @@ export function CostCenterFormPage() {
       .then((costCenter) => {
         if (cancelled) return
 
-        const loadedValues = {
+        setValues({
           code: costCenter.code,
           name: costCenter.name,
           description: costCenter.description || '',
           isActive: costCenter.is_active,
-        }
-        setValues(loadedValues)
-        resetBaseline(loadedValues)
+        })
         setLoading(false)
       })
       .catch((requestError) => {
@@ -69,7 +62,7 @@ export function CostCenterFormPage() {
     return () => {
       cancelled = true
     }
-  }, [costCenterId, resetBaseline])
+  }, [costCenterId])
 
   function updateField(field: keyof CostCenterFormValues, value: string | boolean) {
     setValues((current) => ({
@@ -80,40 +73,40 @@ export function CostCenterFormPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    await save(async () => {
-      setError('')
+    setSaving(true)
+    setError('')
 
-      const payload: CostCenterCreatePayload = {
-        code: values.code.trim(),
-        name: values.name.trim(),
-        description: values.description.trim() || null,
-      }
+    const payload: CostCenterCreatePayload = {
+      code: values.code.trim(),
+      name: values.name.trim(),
+      description: values.description.trim() || null,
+    }
 
-      try {
-        if (costCenterId) {
-          await updateCostCenter(costCenterId, {
-            ...payload,
-            is_active: values.isActive,
-          })
-        } else {
-          await createCostCenter(payload)
-        }
-
-        announceSuccess(editing ? 'Centro de custo atualizado.' : 'Centro de custo cadastrado.')
-        navigate('/gestao/centros-de-custo', {
-          replace: true,
+    try {
+      if (costCenterId) {
+        await updateCostCenter(costCenterId, {
+          ...payload,
+          is_active: values.isActive,
         })
-      } catch (requestError) {
-        setError(
-          getErrorMessage(
-            requestError,
-            editing
-              ? 'Não foi possível atualizar o centro de custo.'
-              : 'Não foi possível cadastrar o centro de custo.',
-          ),
-        )
+      } else {
+        await createCostCenter(payload)
       }
-    })
+
+      navigate('/gestao/centros-de-custo', {
+        replace: true,
+      })
+    } catch (requestError) {
+      setError(
+        getErrorMessage(
+          requestError,
+          editing
+            ? 'Não foi possível atualizar o centro de custo.'
+            : 'Não foi possível cadastrar o centro de custo.',
+        ),
+      )
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -134,21 +127,28 @@ export function CostCenterFormPage() {
 
   return (
     <main className="page-wrap">
-      <FormHeader
-        module="Gestão interna"
-        title={editing ? 'Editar centro de custo' : 'Novo centro de custo'}
-        description="Organize funcionários e despesas por área da empresa."
-        mode={editing ? 'edit' : 'create'}
-        back={{ to: '/gestao/centros-de-custo', label: 'Voltar para centros de custo' }}
-        dirty={dirty}
-        blocked={saving}
-      />
+      <header className="page-header">
+        <div>
+          <Link
+            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
+            to="/gestao/centros-de-custo"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            Voltar para centros de custo
+          </Link>
 
-      <SavingForm
+          <p className="eyebrow">Gestão interna</p>
+          <h1>{editing ? 'Editar centro de custo' : 'Cadastrar centro de custo'}</h1>
+          <p>
+            Organize uma área da empresa e prepare sua utilização em vínculos, despesas, relatórios
+            e planejamento financeiro.
+          </p>
+        </div>
+      </header>
+
+      <form
         className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]"
         onSubmit={handleSubmit}
-        saving={saving}
-        onInvalidCapture={() => setError('')}
       >
         <section className="page-card min-w-0">
           <div className="mb-7 flex items-start gap-3 border-b border-line pb-5">
@@ -166,10 +166,7 @@ export function CostCenterFormPage() {
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <label className="form-label">
-              <span>
-                Código
-                <RequiredMark />
-              </span>
+              Código
               <input
                 className="form-input uppercase"
                 type="text"
@@ -186,10 +183,7 @@ export function CostCenterFormPage() {
             </label>
 
             <label className="form-label">
-              <span>
-                Nome
-                <RequiredMark />
-              </span>
+              Nome
               <input
                 className="form-input"
                 type="text"
@@ -249,13 +243,14 @@ export function CostCenterFormPage() {
           )}
 
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-            <FormExit to="/gestao/centros-de-custo" blocked={saving}>
+            <Link className="secondary-button" to="/gestao/centros-de-custo">
               Cancelar
-            </FormExit>
+            </Link>
 
-            <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>
-              {editing ? 'Salvar alterações' : 'Cadastrar centro de custo'}
-            </SaveButton>
+            <button className="primary-button gap-2" type="submit" disabled={saving}>
+              <Save size={17} aria-hidden="true" />
+              {saving ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar centro de custo'}
+            </button>
           </div>
         </section>
 
@@ -318,7 +313,7 @@ export function CostCenterFormPage() {
             </section>
           )}
         </aside>
-      </SavingForm>
+      </form>
     </main>
   )
 }

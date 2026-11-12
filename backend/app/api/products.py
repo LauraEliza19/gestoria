@@ -1,11 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import ProductRepository
-from app.schemas import ProductCreate, ProductRead, ProductUpdate
+from app.schemas import PaginatedResponse, ProductCreate, ProductRead, ProductUpdate
 from app.services import ProductServiceError, create_product, update_product
 
 router = APIRouter(prefix="/api/products", tags=["products"])
@@ -36,14 +36,24 @@ def product_in_use() -> HTTPException:
     )
 
 
-@router.get("", response_model=list[ProductRead])
+@router.get("", response_model=PaginatedResponse[ProductRead])
 def list_products(
     db: DatabaseSession,
     current: CurrentUser,
-) -> list[ProductRead]:
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=120),
+    active_only: bool | None = None,
+    sort: str = Query(default="created_at", pattern="^(created_at|name|price)$"),
+) -> PaginatedResponse[ProductRead]:
     return ProductRepository.list_for_organization(
         db,
         current.organization.id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        active_only=active_only,
+        sort=sort,
     )
 
 

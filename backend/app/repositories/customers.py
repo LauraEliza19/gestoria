@@ -3,10 +3,11 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import and_, case, func, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Customer, Order, Organization
+from app.repositories.pagination import paginate
 
 
 @dataclass(frozen=True)
@@ -49,8 +50,15 @@ class CustomerSummary:
 class CustomerRepository:
     @staticmethod
     def list_for_organization(
-        db: Session, organization_id: uuid.UUID
-    ) -> list[CustomerSummary]:
+        db: Session,
+        organization_id: uuid.UUID,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        active_only: bool | None = None,
+        sort: str = "created_at",
+    ):
         completed_total = func.coalesce(
             func.sum(
                 case(
@@ -87,9 +95,29 @@ class CustomerRepository:
             )
             .where(Customer.organization_id == organization_id)
             .group_by(Customer.id)
-            .order_by(Customer.created_at.desc())
         )
-        return [
+        if search:
+            term = f"%{search}%"
+            query = query.where(
+                or_(
+                    Customer.name.ilike(term),
+                    Customer.code.ilike(term),
+                    Customer.phone.ilike(term),
+                    Customer.document.ilike(term),
+                )
+            )
+        if active_only is not None:
+            query = query.where(Customer.is_active.is_(active_only))
+        query = query.order_by(
+            {
+                "name": Customer.name.asc(),
+                "created_at": Customer.created_at.desc(),
+            }[sort],
+            Customer.id,
+        )
+        result = paginate(db, query, page, page_size, scalars=False)
+        rows = result["items"]
+        items = [
             CustomerSummary(
                 id=customer.id,
                 organization_id=customer.organization_id,
@@ -125,8 +153,10 @@ class CustomerRepository:
                 total_spent,
                 orders_count,
                 last_purchase_at,
-            ) in db.execute(query)
+            ) in rows
         ]
+        result["items"] = items
+        return result
 
     @staticmethod
     def get_for_organization(

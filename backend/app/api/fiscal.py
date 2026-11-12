@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.models import Supplier
-from app.repositories import FiscalDocumentRepository
+from app.repositories import FiscalDocumentRepository, SupplierRepository
 from app.schemas.fiscal import (
     FiscalDocumentCreate,
     FiscalDocumentRead,
@@ -19,6 +19,7 @@ from app.schemas.fiscal import (
     SupplierRead,
     SupplierUpdate,
 )
+from app.schemas import PaginatedResponse
 from app.services import fiscal as service
 
 router = APIRouter(prefix="/api/fiscal-documents", tags=["fiscal documents"])
@@ -133,14 +134,24 @@ def delete_fiscal_document(
     )
 
 
-@supplier_router.get("", response_model=list[SupplierRead])
-def list_suppliers(db: DatabaseSession, current: CurrentUser):
-    return list(
-        db.scalars(
-            select(Supplier)
-            .where(Supplier.organization_id == current.organization.id)
-            .order_by(Supplier.name)
-        )
+@supplier_router.get("", response_model=PaginatedResponse[SupplierRead])
+def list_suppliers(
+    db: DatabaseSession,
+    current: CurrentUser,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=120),
+    active_only: bool | None = None,
+    sort: str = Query(default="name", pattern="^(name|created_at)$"),
+):
+    return SupplierRepository.list_for_organization(
+        db,
+        current.organization.id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        active_only=active_only,
+        sort=sort,
     )
 
 

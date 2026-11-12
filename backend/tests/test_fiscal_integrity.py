@@ -8,7 +8,7 @@ import pytest
 from order_helpers import secure_order
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
-from test_api import login
+from test_api import login, page_items
 
 from app.models import (
     FiscalDocument,
@@ -115,7 +115,7 @@ def stock(client, headers, product):
     return Decimal(
         next(
             p["stock_quantity"]
-            for p in client.get("/api/products", headers=headers).json()
+            for p in page_items(client.get("/api/products", headers=headers))
             if p["id"] == product["id"]
         )
     )
@@ -356,7 +356,7 @@ def test_incoming_tenant_duplicate_items_and_inactive_supplier(client):
         == 422
     )
     other = login(client, "empresa-b@gestoria.dev")
-    other_product = client.get("/api/products", headers=other).json()[0]
+    other_product = page_items(client.get("/api/products", headers=other))[0]
     assert (
         client.post(
             URL,
@@ -465,7 +465,7 @@ def test_database_rejects_cross_tenant_links_missing_links_and_deletion(client, 
     h, _, _, order = setup_sale(client)
     doc = create(client, h, outgoing(order))
     other = login(client, "empresa-b@gestoria.dev")
-    other_customer = client.get("/api/customers", headers=other).json()[0]
+    other_customer = page_items(client.get("/api/customers", headers=other))[0]
     for values in (
         {"customer_id": uuid.UUID(other_customer["id"])},
         {"order_id": None},

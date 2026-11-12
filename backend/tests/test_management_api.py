@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from test_api import login
+from test_api import login, page_items
 
 COST_CENTERS_URL = "/api/management/cost-centers"
 EMPLOYEES_URL = "/api/management/employees"
@@ -188,9 +188,9 @@ def test_employee_api_flow_and_summary_privacy(
         headers=owner_headers,
     )
     assert listed.status_code == 200
-    assert len(listed.json()) == 1
+    assert listed.json()["total"] == 1
 
-    summary = listed.json()[0]
+    summary = page_items(listed)[0]
     assert summary["id"] == employee["id"]
     assert summary["full_name"] == "Maria da Silva"
     assert "document" not in summary
@@ -222,7 +222,7 @@ def test_employee_api_flow_and_summary_privacy(
         headers=owner_headers,
     )
     assert active_items.status_code == 200
-    assert active_items.json() == []
+    assert active_items.json()["items"] == []
 
 
 def test_employee_api_rejects_duplicates_and_foreign_user(
@@ -326,7 +326,7 @@ def test_employee_api_permissions_and_tenant_isolation(
         headers=company_b_headers,
     )
     assert company_b_list.status_code == 200
-    assert company_b_list.json() == []
+    assert company_b_list.json()["items"] == []
 
     foreign_detail = client.get(
         f"{EMPLOYEES_URL}/{employee['id']}",

@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
-from test_api import login
+from test_api import login, page_items
 
 from app.database import Base, get_db
 from app.main import app
@@ -108,9 +108,9 @@ def test_simultaneous_confirmations_create_only_one_order(concurrent_client):
         r.text for r in results
     ]
     assert len({r.json()["id"] for r in results}) == 1
-    assert len(client.get("/api/orders", headers=headers).json()) == 1
+    assert len(page_items(client.get("/api/orders", headers=headers))) == 1
     assert (
-        float(client.get("/api/products", headers=headers).json()[0]["stock_quantity"])
+        float(page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"])
         == 9
     )
     events = client.get("/api/orders/security/events", headers=headers).json()
@@ -162,8 +162,8 @@ def test_different_orders_cannot_oversell_last_item(concurrent_client):
     assert sorted(r.status_code for r in results) == [201, 409], [
         r.text for r in results
     ]
-    assert len(client.get("/api/orders", headers=headers).json()) == 1
+    assert len(page_items(client.get("/api/orders", headers=headers))) == 1
     assert (
-        float(client.get("/api/products", headers=headers).json()[0]["stock_quantity"])
+        float(page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"])
         == 0
     )

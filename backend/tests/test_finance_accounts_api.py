@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from test_api import login
+from test_api import login, page_items
 from test_finance_api import create_category
 
 from app.models import FinanceAttachment, FinanceAuditEvent, OrganizationMember
@@ -191,7 +191,7 @@ def test_sort_by_due_date_lists_earliest_first(client, owner, entry_type):
         headers=headers,
     )
     assert response.status_code == 200
-    dues = [item["due_date"] for item in response.json()]
+    dues = [item["due_date"] for item in page_items(response)]
     assert dues == sorted(dues)
     assert len(dues) == 4
 
@@ -201,12 +201,12 @@ def test_payables_and_receivables_are_separated(client, owner):
     new_entry(client, headers, category_id, entry_type="expense")
     new_entry(client, headers, category_id, entry_type="income")
     new_entry(client, headers, category_id, entry_type="income")
-    payables = client.get(
+    payables = page_items(client.get(
         "/api/finance/entries?entry_type=expense&sort=due_date", headers=headers
-    ).json()
-    receivables = client.get(
+    ))
+    receivables = page_items(client.get(
         "/api/finance/entries?entry_type=income&sort=due_date", headers=headers
-    ).json()
+    ))
     assert {item["entry_type"] for item in payables} == {"expense"}
     assert {item["entry_type"] for item in receivables} == {"income"}
     assert (len(payables), len(receivables)) == (1, 2)
@@ -225,7 +225,7 @@ def test_default_sort_is_unchanged(client, owner):
     recent = new_entry(client, headers, category_id, transaction_date=date(2026, 9, 1))
     ids = [
         item["id"]
-        for item in client.get("/api/finance/entries", headers=headers).json()
+        for item in page_items(client.get("/api/finance/entries", headers=headers))
     ]
     assert ids == [recent["id"], old["id"]]
 

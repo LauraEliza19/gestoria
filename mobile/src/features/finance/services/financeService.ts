@@ -1,4 +1,4 @@
-import { apiFetch } from '@/services/api';
+import { apiFetch, apiFetchItems } from '@/services/api';
 
 import type {
   FinanceCategory,
@@ -34,7 +34,7 @@ export function getFinanceSummary(
 export function getFinanceEntries(
   filters: FinanceEntryFilters = {}
 ) {
-  return apiFetch<FinanceEntry[]>(
+  return apiFetchItems<FinanceEntry>(
     `/api/finance/entries${buildQuery(filters)}`
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { apiFetch } from '../../services/api'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 import { useSession } from '../../contexts/SessionContext'
 
@@ -61,7 +61,7 @@ export function OrdersPage() {
     setLoadError('')
 
     try {
-      const list = await apiFetch<Order[]>('/api/orders')
+      const list = await apiFetchItems<Order>('/api/orders')
       setOrders(list)
     } catch (error) {
       setLoadError(getErrorMessage(error, 'Não foi possível carregar os pedidos.'))

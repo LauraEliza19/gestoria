@@ -1,6 +1,4 @@
 import type { FormEvent } from 'react'
-import { SaveButton, SavingForm } from '../../components/forms/FormActions'
-import { FormHeader } from '../../components/forms/FormHeader'
 import type { FiscalEventFormState } from './fiscalTypes'
 import {
   CRITICAL_FISCAL_STATUSES,
@@ -9,17 +7,13 @@ import {
   fiscalStatusMeta,
   isFiscalEventFormValid,
 } from './fiscalUtils'
-import { RequiredMark } from './FiscalRequired'
+import { RequiredMark, RequiredLegend } from './FiscalRequired'
 
 type FiscalStatusFormProps = {
   currentStatus: string
   allowedStatuses: string[]
   form: FiscalEventFormState
   busy: boolean
-  saving: boolean
-  onAttempt: () => void
-  closeDisabled: boolean
-  onClose: () => void
   documentLabel?: string
   onChange: (form: FiscalEventFormState) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -30,10 +24,6 @@ export function FiscalStatusForm({
   allowedStatuses,
   form,
   busy,
-  saving,
-  onAttempt,
-  closeDisabled,
-  onClose,
   documentLabel = 'esta nota',
   onChange,
   onSubmit,
@@ -49,12 +39,6 @@ export function FiscalStatusForm({
   const isCritical = CRITICAL_FISCAL_STATUSES.includes(form.status)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (busy) {
-      event.preventDefault()
-      return
-    }
-
-    onAttempt()
     if (!isValid) {
       event.preventDefault()
       return
@@ -72,24 +56,17 @@ export function FiscalStatusForm({
 
   return (
     <section className="fiscal-event-panel">
-      <FormHeader
-        module="Fiscal"
-        title="Atualizar situação fiscal"
-        description="Registre somente um evento que já tenha ocorrido no serviço fiscal externo."
-        mode="edit"
-        heading="h3"
-        dirty={Boolean(form.status || form.occurred_at || form.protocol || form.reason)}
-        back={{ onClick: onClose, label: 'Voltar às notas fiscais' }}
-        blocked={closeDisabled}
-      />
-      <p className="fiscal-current-state mb-4">Atual: {currentStatus}</p>
+      <div className="fiscal-section-heading">
+        <div>
+          <h3>Atualizar situação fiscal</h3>
+          <p>Registre somente um evento que já tenha ocorrido no serviço fiscal externo.</p>
+        </div>
+        <span className="fiscal-current-state">Atual: {currentStatus}</span>
+      </div>
 
-      <SavingForm
-        className="fiscal-form-grid"
-        saving={saving}
-        onInvalidCapture={onAttempt}
-        onSubmit={handleSubmit}
-      >
+      <RequiredLegend />
+
+      <form className="fiscal-form-grid" onSubmit={handleSubmit}>
         <label>
           <span>
             Próxima situação
@@ -178,16 +155,21 @@ export function FiscalStatusForm({
         )}
 
         <div className="fiscal-event-submit">
-          <SaveButton saving={saving} disabled={busy || !isValid}>
-            Registrar evento
-          </SaveButton>
+          <button
+            className="primary-button"
+            disabled={busy || !isValid}
+            aria-disabled={busy || !isValid}
+            type="submit"
+          >
+            {busy ? 'Registrando…' : 'Registrar evento'}
+          </button>
           {!isValid && !busy && (
             <small className="text-muted">
               Preencha todos os campos obrigatórios (*) para habilitar o registro.
             </small>
           )}
         </div>
-      </SavingForm>
+      </form>
     </section>
   )
 }
