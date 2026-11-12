@@ -1,7 +1,10 @@
-import { ArrowLeft, CircleDollarSign, Download, Paperclip, Save, Trash2 } from 'lucide-react'
+import { CircleDollarSign, Download, Paperclip, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import {
   ATTACHMENT_ACCEPT,
@@ -25,6 +28,10 @@ import { getErrorMessage } from '../../utils/errors'
 
 export function FinanceEntryFormPage() {
   const { entryId } = useParams()
+  return <FinanceEntryForm key={entryId ?? 'new'} entryId={entryId} />
+}
+
+function FinanceEntryForm({ entryId }: { entryId: string | undefined }) {
   const navigate = useNavigate()
   const editing = Boolean(entryId)
   const [categories, setCategories] = useState<FinanceCategory[]>([])
@@ -37,7 +44,6 @@ export function FinanceEntryFormPage() {
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10))
   const [attachments, setAttachments] = useState<FinanceAttachment[]>([])
   const [attachmentError, setAttachmentError] = useState('')
-  const [uploading, setUploading] = useState(false)
   const [queuedFiles, setQueuedFiles] = useState<File[]>([])
   const [notes, setNotes] = useState('')
   const [expectedVersion, setExpectedVersion] = useState<number | null>(null)
@@ -49,7 +55,20 @@ export function FinanceEntryFormPage() {
   } | null>(null)
   const [history, setHistory] = useState<FinanceEntryHistory[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const { busy, isBusy, pendingAction, run } = useSaveAction<'upload' | 'remove'>()
+  const saving = pendingAction === 'save'
+  const uploading = pendingAction === 'upload'
+  const { dirty, resetBaseline } = useFormChanges({
+    categoryId,
+    description,
+    amount,
+    entryType,
+    status,
+    transactionDate,
+    dueDate,
+    notes,
+  })
+  const announceSuccess = useFormSuccess()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -75,6 +94,16 @@ export function FinanceEntryFormPage() {
           setDueDate(entry.due_date)
           setNotes(entry.notes || '')
           setExpectedVersion(entry.version)
+          resetBaseline({
+            categoryId: entry.category_id,
+            description: entry.description,
+            amount: entry.amount,
+            entryType: entry.entry_type,
+            status: entry.status,
+            transactionDate: entry.transaction_date,
+            dueDate: entry.due_date,
+            notes: entry.notes || '',
+          })
         }
         setHistory(currentHistory)
         setAttachments(currentAttachments)
@@ -84,7 +113,7 @@ export function FinanceEntryFormPage() {
         setLoading(false)
         setError(getErrorMessage(requestError, 'Não foi possível carregar o lançamento.'))
       })
-  }, [entryId])
+  }, [entryId, resetBaseline])
 
   async function refreshAttachments(id: string) {
     const [currentAttachments, currentHistory] = await Promise.all([
@@ -98,6 +127,7 @@ export function FinanceEntryFormPage() {
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || [])
     event.target.value = ''
+    if (isBusy()) return
     setAttachmentError('')
     const tooLarge = files.find((file) => file.size > ATTACHMENT_MAX_BYTES)
     if (tooLarge) {
@@ -109,15 +139,16 @@ export function FinanceEntryFormPage() {
       setQueuedFiles((current) => [...current, ...files])
       return
     }
-    setUploading(true)
-    try {
-      for (const file of files) await uploadFinanceAttachment(entryId, file)
-      await refreshAttachments(entryId)
-    } catch (requestError) {
-      setAttachmentError(getErrorMessage(requestError, 'Não foi possível enviar o anexo.'))
-    } finally {
-      setUploading(false)
-    }
+    if (files.length === 0) return
+    await run(async () => {
+      try {
+        for (const file of files) await uploadFinanceAttachment(entryId, file)
+        await refreshAttachments(entryId)
+        announceSuccess(files.length === 1 ? 'Comprovante enviado.' : 'Comprovantes enviados.')
+      } catch (requestError) {
+        setAttachmentError(getErrorMessage(requestError, 'Não foi possível enviar o anexo.'))
+      }
+    }, 'upload')
   }
 
   async function handleDownload(attachment: FinanceAttachment) {
@@ -137,69 +168,77 @@ export function FinanceEntryFormPage() {
 
   async function handleRemove(attachment: FinanceAttachment) {
     if (!entryId) return
-    setAttachmentError('')
-    try {
-      await deleteFinanceAttachment(entryId, attachment.id)
-      await refreshAttachments(entryId)
-    } catch (requestError) {
-      setAttachmentError(getErrorMessage(requestError, 'Não foi possível remover o anexo.'))
-    }
+    await run(async () => {
+      setAttachmentError('')
+      try {
+        await deleteFinanceAttachment(entryId, attachment.id)
+        await refreshAttachments(entryId)
+        announceSuccess('Comprovante removido.')
+      } catch (requestError) {
+        setAttachmentError(getErrorMessage(requestError, 'Não foi possível remover o anexo.'))
+      }
+    }, 'remove')
+  }
+
+  function clearFormErrors() {
+    setError('')
+    setConflict(null)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSaving(true)
-    setError('')
-    setConflict(null)
-    const payload = {
-      category_id: categoryId,
-      description: description.trim(),
-      amount: amount.replace(',', '.'),
-      entry_type: entryType,
-      status,
-      transaction_date: transactionDate,
-      due_date: dueDate,
-      notes: notes.trim() || null,
-    }
-    try {
-      if (entryId) {
-        if (expectedVersion === null)
-          throw new Error('A versão do lançamento ainda não foi carregada.')
-        await updateFinanceEntry(entryId, { ...payload, expected_version: expectedVersion })
-      } else {
-        const created = await createFinanceEntry(payload)
-        try {
-          for (const file of queuedFiles) await uploadFinanceAttachment(created.id, file)
-        } catch {
-          // O lançamento já foi salvo: abre a edição para reenviar o anexo.
-          navigate(`/financeiro/lancamentos/${created.id}/editar`, { replace: true })
-          return
-        }
+    await run(async () => {
+      clearFormErrors()
+      const payload = {
+        category_id: categoryId,
+        description: description.trim(),
+        amount: amount.replace(',', '.'),
+        entry_type: entryType,
+        status,
+        transaction_date: transactionDate,
+        due_date: dueDate,
+        notes: notes.trim() || null,
       }
-      navigate('/financeiro', { replace: true })
-    } catch (requestError) {
-      if (
-        requestError instanceof ApiError &&
-        requestError.status === 409 &&
-        typeof requestError.detail === 'object' &&
-        requestError.detail !== null &&
-        'current' in requestError.detail
-      ) {
-        const detail = requestError.detail as {
-          current: Record<string, string | number | null>
+      try {
+        if (entryId) {
+          if (expectedVersion === null)
+            throw new Error('A versão do lançamento ainda não foi carregada.')
+          await updateFinanceEntry(entryId, { ...payload, expected_version: expectedVersion })
+        } else {
+          const created = await createFinanceEntry(payload)
+          try {
+            for (const file of queuedFiles) await uploadFinanceAttachment(created.id, file)
+          } catch {
+            // O lançamento já foi salvo: abre a edição para reenviar o anexo.
+            announceSuccess('Lançamento cadastrado. Reenvie os comprovantes pendentes na edição.')
+            navigate(`/financeiro/lancamentos/${created.id}/editar`, { replace: true })
+            return
+          }
         }
-        const current = detail.current
-        setConflict({
-          version: Number(current.version),
-          updatedAt: String(current.updated_at),
-          current,
-          submitted: payload,
-        })
+        announceSuccess(editing ? 'Lançamento atualizado.' : 'Lançamento cadastrado.')
+        navigate('/financeiro', { replace: true })
+      } catch (requestError) {
+        if (
+          requestError instanceof ApiError &&
+          requestError.status === 409 &&
+          typeof requestError.detail === 'object' &&
+          requestError.detail !== null &&
+          'current' in requestError.detail
+        ) {
+          const detail = requestError.detail as {
+            current: Record<string, string | number | null>
+          }
+          const current = detail.current
+          setConflict({
+            version: Number(current.version),
+            updatedAt: String(current.updated_at),
+            current,
+            submitted: payload,
+          })
+        }
+        setError(getErrorMessage(requestError, 'Não foi possível salvar o lançamento.'))
       }
-      setError(getErrorMessage(requestError, 'Não foi possível salvar o lançamento.'))
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   if (loading)
@@ -252,22 +291,20 @@ export function FinanceEntryFormPage() {
 
   return (
     <main className="page-wrap">
-      <header className="page-header">
-        <div>
-          <Link
-            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
-            to="/financeiro"
-          >
-            <ArrowLeft size={16} aria-hidden="true" /> Voltar para o Financeiro
-          </Link>
-          <p className="eyebrow">Controle financeiro</p>
-          <h1>{editing ? 'Editar lançamento' : 'Cadastrar lançamento'}</h1>
-          <p>Registre uma entrada ou saída da empresa.</p>
-        </div>
-      </header>
-      <form
+      <FormHeader
+        module="Financeiro"
+        title={editing ? 'Editar lançamento' : 'Novo lançamento'}
+        description="Registre uma entrada ou saída da empresa."
+        mode={editing ? 'edit' : 'create'}
+        back={{ to: '/financeiro', label: 'Voltar para o Financeiro' }}
+        dirty={dirty || queuedFiles.length > 0}
+        blocked={busy}
+      />
+      <SavingForm
         className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]"
         onSubmit={handleSubmit}
+        onInvalidCapture={clearFormErrors}
+        saving={saving}
       >
         <section className="page-card">
           <div className="mb-7 flex items-start gap-3 border-b border-line pb-5">
@@ -283,7 +320,10 @@ export function FinanceEntryFormPage() {
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <label className="form-label md:col-span-2">
-              Descrição
+              <span>
+                Descrição
+                <RequiredMark />
+              </span>
               <input
                 className="form-input"
                 value={description}
@@ -294,7 +334,10 @@ export function FinanceEntryFormPage() {
               />
             </label>
             <label className="form-label">
-              Valor
+              <span>
+                Valor
+                <RequiredMark />
+              </span>
               <input
                 className="form-input"
                 inputMode="decimal"
@@ -305,7 +348,10 @@ export function FinanceEntryFormPage() {
               />
             </label>
             <label className="form-label">
-              Categoria
+              <span>
+                Categoria
+                <RequiredMark />
+              </span>
               <select
                 className="form-input"
                 value={categoryId}
@@ -329,10 +375,14 @@ export function FinanceEntryFormPage() {
               )}
             </label>
             <label className="form-label">
-              Tipo
+              <span>
+                Tipo
+                <RequiredMark />
+              </span>
               <select
                 className="form-input"
                 value={entryType}
+                required
                 onChange={(event) => setEntryType(event.target.value as 'income' | 'expense')}
               >
                 <option value="income">Entrada</option>
@@ -354,7 +404,10 @@ export function FinanceEntryFormPage() {
               </select>
             </label>
             <label className="form-label">
-              Data
+              <span>
+                Data
+                <RequiredMark />
+              </span>
               <input
                 className="form-input"
                 type="date"
@@ -364,7 +417,10 @@ export function FinanceEntryFormPage() {
               />
             </label>
             <label className="form-label">
-              Vencimento
+              <span>
+                Vencimento
+                <RequiredMark />
+              </span>
               <input
                 className="form-input"
                 type="date"
@@ -424,17 +480,16 @@ export function FinanceEntryFormPage() {
             </div>
           )}
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-            <Link className="secondary-button" to="/financeiro">
+            <FormExit to="/financeiro" blocked={busy}>
               Cancelar
-            </Link>
-            <button
-              className="primary-button gap-2"
-              type="submit"
-              disabled={saving || !categories.length}
+            </FormExit>
+            <SaveButton
+              saving={saving}
+              disabled={busy || !categories.length}
+              icon={<Save size={17} aria-hidden="true" />}
             >
-              <Save size={17} aria-hidden="true" />
-              {saving ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar lançamento'}
-            </button>
+              {editing ? 'Salvar alterações' : 'Cadastrar lançamento'}
+            </SaveButton>
           </div>
         </section>
         <aside className="page-card h-fit">
@@ -468,7 +523,7 @@ export function FinanceEntryFormPage() {
             Somente lançamentos com situação <strong>Realizado</strong> entram no resumo financeiro.
           </p>
         </aside>
-      </form>
+      </SavingForm>
       <section className="page-card mt-5" aria-labelledby="finance-attachments-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -490,7 +545,7 @@ export function FinanceEntryFormPage() {
               type="file"
               multiple
               accept={ATTACHMENT_ACCEPT}
-              disabled={uploading}
+              disabled={busy}
               onChange={handleFiles}
             />
           </label>
@@ -517,6 +572,7 @@ export function FinanceEntryFormPage() {
             <button
               className="inline-flex items-center gap-1 text-sm font-bold text-[#b33d50]"
               type="button"
+              disabled={busy}
               onClick={() =>
                 setQueuedFiles((current) => current.filter((_, position) => position !== index))
               }
@@ -548,6 +604,7 @@ export function FinanceEntryFormPage() {
               <button
                 className="inline-flex items-center gap-1 text-sm font-bold text-[#b33d50]"
                 type="button"
+                disabled={busy}
                 onClick={() => void handleRemove(attachment)}
               >
                 <Trash2 size={15} aria-hidden="true" /> Remover

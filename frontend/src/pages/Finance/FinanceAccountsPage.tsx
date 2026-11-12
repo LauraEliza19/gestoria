@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
+import { FormExit, SaveButton } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { useSession } from '../../contexts/SessionContext'
 import {
   ATTACHMENT_ACCEPT,
@@ -221,10 +224,12 @@ function SettleModal({
   onDone: () => void
 }) {
   const today = todayISO()
-  const [paidDate, setPaidDate] = useState(today)
+  const [initialPaidDate] = useState(today)
+  const [paidDate, setPaidDate] = useState(initialPaidDate)
   const [files, setFiles] = useState<File[]>([])
   const [settled, setSettled] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const { busy: saving, run: save } = useSaveAction()
+  const announceSuccess = useFormSuccess()
   const [error, setError] = useState('')
 
   function handleFiles(event: ChangeEvent<HTMLInputElement>) {
@@ -241,32 +246,37 @@ function SettleModal({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSaving(true)
-    setError('')
-    try {
-      if (!settled) {
-        await settleFinanceEntry(entry.id, {
-          expected_version: entry.version,
-          // Hoje: o servidor registra o horário exato. Outra data: meio-dia local.
-          paid_at: paidDate === today ? null : new Date(`${paidDate}T12:00:00`).toISOString(),
-        })
-        setSettled(true)
+    await save(async () => {
+      setError('')
+      try {
+        if (!settled) {
+          await settleFinanceEntry(entry.id, {
+            expected_version: entry.version,
+            // Hoje: o servidor registra o horário exato. Outra data: meio-dia local.
+            paid_at: paidDate === today ? null : new Date(`${paidDate}T12:00:00`).toISOString(),
+          })
+          setSettled(true)
+        }
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, 'Não foi possível registrar a baixa.'))
+        return
       }
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Não foi possível registrar a baixa.'))
-      setSaving(false)
-      return
-    }
-    try {
-      for (const file of files) await uploadFinanceAttachment(entry.id, file)
-      onDone()
-    } catch (requestError) {
-      setError(
-        `Baixa registrada, mas o comprovante não foi enviado: ${getErrorMessage(requestError)}`,
-      )
-      setSaving(false)
-    }
+      try {
+        for (const file of files) {
+          await uploadFinanceAttachment(entry.id, file)
+          setFiles((current) => current.slice(1))
+        }
+        announceSuccess('Baixa registrada.')
+        onDone()
+      } catch (requestError) {
+        setError(
+          `Baixa registrada, mas o comprovante não foi enviado: ${getErrorMessage(requestError)}`,
+        )
+      }
+    })
   }
+
+  const close = settled ? onDone : onClose
 
   return (
     <div className="fiscal-modal-backdrop" role="presentation">
@@ -277,26 +287,47 @@ function SettleModal({
         aria-labelledby="finance-settle-title"
       >
         <header className="fiscal-modal-header">
-          <h2 id="finance-settle-title">Registrar baixa</h2>
+          <span className="text-sm font-semibold text-muted">Contas a pagar e receber</span>
           <button
             className="detail-close"
             type="button"
             aria-label="Fechar janela"
-            onClick={onClose}
+            disabled={saving}
+            onClick={close}
           >
             <X size={20} aria-hidden="true" />
           </button>
         </header>
-        <form className="fiscal-modal-body" onSubmit={handleSubmit}>
+        <form
+          className="fiscal-modal-body"
+          aria-busy={saving}
+          onInvalidCapture={() => setError('')}
+          onSubmit={handleSubmit}
+        >
+          <FormHeader
+            module="Financeiro"
+            title="Registrar baixa"
+            description="Informe a data da baixa e inclua um comprovante, se houver."
+            mode="edit"
+            heading="h2"
+            headingId="finance-settle-title"
+            dirty={(!settled && paidDate !== initialPaidDate) || files.length > 0}
+            back={{ onClick: close, label: 'Voltar para contas a pagar e receber' }}
+            blocked={saving}
+          />
           <p className="text-sm text-muted">
             {entry.description} · {money(entry.amount)} · vencimento {date(entry.due_date)}
           </p>
           <label className="form-label">
-            Data da baixa
+            <span>
+              Data da baixa
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               type="date"
               value={paidDate}
+              disabled={saving || settled}
               required
               onChange={(event) => setPaidDate(event.target.value)}
             />
@@ -323,19 +354,21 @@ function SettleModal({
               </ul>
             )}
           </div>
+          <p className="text-sm font-semibold text-[#216146]" role="status">
+            {settled && !saving ? 'Baixa registrada.' : ''}
+          </p>
           {error && (
             <p className="text-sm text-[#d84f62]" role="alert">
               {error}
             </p>
           )}
           <div className="flex justify-end gap-3">
-            <button className="secondary-button" type="button" onClick={settled ? onDone : onClose}>
-              {settled ? 'Fechar' : 'Voltar'}
-            </button>
-            <button className="primary-button gap-2" type="submit" disabled={saving}>
-              <CheckCircle2 size={17} aria-hidden="true" />
-              {saving ? 'Registrando...' : settled ? 'Enviar comprovante' : 'Confirmar baixa'}
-            </button>
+            <FormExit onClick={close} blocked={saving}>
+              {settled ? 'Fechar' : 'Cancelar'}
+            </FormExit>
+            <SaveButton saving={saving} icon={<CheckCircle2 size={17} aria-hidden="true" />}>
+              {settled ? 'Enviar comprovante' : 'Confirmar baixa'}
+            </SaveButton>
           </div>
         </form>
       </div>

@@ -42,7 +42,7 @@ test('status badges are reused in list, details and history', () => {
 })
 
 test('fiscal page exposes accessible success and error feedback', () => {
-  assert.match(page, /className="fiscal-feedback fiscal-feedback-success"/)
+  assert.match(page, /'fiscal-feedback fiscal-feedback-success'[^>]+role="status"/s)
   assert.match(page, /className="fiscal-feedback fiscal-feedback-error"/)
   assert.match(page, /role="status"/)
   assert.match(page, /role="alert"/)
