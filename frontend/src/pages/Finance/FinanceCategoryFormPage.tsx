@@ -1,7 +1,10 @@
-import { ArrowLeft, Landmark, Save } from 'lucide-react'
+import { Landmark, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import {
   createFinanceCategory,
@@ -12,13 +15,19 @@ import { getErrorMessage } from '../../utils/errors'
 
 export function FinanceCategoryFormPage() {
   const { categoryId } = useParams()
+  return <FinanceCategoryForm key={categoryId ?? 'new'} categoryId={categoryId} />
+}
+
+function FinanceCategoryForm({ categoryId }: { categoryId: string | undefined }) {
   const navigate = useNavigate()
   const editing = Boolean(categoryId)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [loading, setLoading] = useState(editing)
-  const [saving, setSaving] = useState(false)
+  const { busy: saving, run: save } = useSaveAction()
+  const { dirty, resetBaseline } = useFormChanges({ name, description, isActive })
+  const announceSuccess = useFormSuccess()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -28,31 +37,36 @@ export function FinanceCategoryFormPage() {
         setName(category.name)
         setDescription(category.description || '')
         setIsActive(category.is_active)
+        resetBaseline({
+          name: category.name,
+          description: category.description || '',
+          isActive: category.is_active,
+        })
         setLoading(false)
       })
       .catch((requestError) => {
         setLoading(false)
         setError(getErrorMessage(requestError, 'Não foi possível carregar a categoria.'))
       })
-  }, [categoryId])
+  }, [categoryId, resetBaseline])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSaving(true)
-    setError('')
-    try {
-      const payload = { name: name.trim(), description: description.trim() || null }
-      if (categoryId) {
-        await updateFinanceCategory(categoryId, { ...payload, is_active: isActive })
-      } else {
-        await createFinanceCategory(payload)
+    await save(async () => {
+      setError('')
+      try {
+        const payload = { name: name.trim(), description: description.trim() || null }
+        if (categoryId) {
+          await updateFinanceCategory(categoryId, { ...payload, is_active: isActive })
+        } else {
+          await createFinanceCategory(payload)
+        }
+        announceSuccess(editing ? 'Categoria atualizada.' : 'Categoria cadastrada.')
+        navigate('/financeiro', { replace: true })
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, 'Não foi possível salvar a categoria.'))
       }
-      navigate('/financeiro', { replace: true })
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Não foi possível salvar a categoria.'))
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   if (loading) {
@@ -73,20 +87,21 @@ export function FinanceCategoryFormPage() {
 
   return (
     <main className="page-wrap">
-      <header className="page-header">
-        <div>
-          <Link
-            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
-            to="/financeiro"
-          >
-            <ArrowLeft size={16} aria-hidden="true" /> Voltar para o Financeiro
-          </Link>
-          <p className="eyebrow">Controle financeiro</p>
-          <h1>{editing ? 'Editar categoria' : 'Cadastrar categoria'}</h1>
-          <p>Organize lançamentos por grupos financeiros.</p>
-        </div>
-      </header>
-      <form className="page-card max-w-3xl" onSubmit={handleSubmit}>
+      <FormHeader
+        module="Financeiro"
+        title={editing ? 'Editar categoria' : 'Nova categoria'}
+        description="Organize lançamentos por grupos financeiros."
+        mode={editing ? 'edit' : 'create'}
+        back={{ to: '/financeiro', label: 'Voltar para o Financeiro' }}
+        dirty={dirty}
+        blocked={saving}
+      />
+      <SavingForm
+        className="page-card max-w-3xl"
+        saving={saving}
+        onInvalidCapture={() => setError('')}
+        onSubmit={handleSubmit}
+      >
         <div className="mb-7 flex items-start gap-3 border-b border-line pb-5">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#eef2ff] text-signal">
             <Landmark size={21} aria-hidden="true" />
@@ -100,7 +115,10 @@ export function FinanceCategoryFormPage() {
         </div>
         <div className="grid gap-5">
           <label className="form-label">
-            Nome
+            <span>
+              Nome
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               value={name}
@@ -142,15 +160,14 @@ export function FinanceCategoryFormPage() {
           </p>
         )}
         <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-          <Link className="secondary-button" to="/financeiro">
+          <FormExit to="/financeiro" blocked={saving}>
             Cancelar
-          </Link>
-          <button className="primary-button gap-2" type="submit" disabled={saving}>
-            <Save size={17} aria-hidden="true" />
-            {saving ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar categoria'}
-          </button>
+          </FormExit>
+          <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>
+            {editing ? 'Salvar alterações' : 'Cadastrar categoria'}
+          </SaveButton>
         </div>
-      </form>
+      </SavingForm>
     </main>
   )
 }

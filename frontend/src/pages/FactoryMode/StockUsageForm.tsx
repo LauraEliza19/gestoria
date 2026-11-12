@@ -1,16 +1,22 @@
 import { useId, useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
+import { FormExit, SaveButton } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
 import type { StockItem } from './productionTypes'
 import { defaultUsageUnit, friendlyAmount, parseUsage, usageSuggestions } from './stockUsage'
 
 export function StockUsageForm({
   stock,
   busy,
+  saving,
+  onAttempt,
   onSave,
   onCancel,
 }: {
   stock: StockItem
   busy: boolean
+  saving: boolean
+  onAttempt: () => void
   onSave: (quantity: string) => void
   onCancel: () => void
 }) {
@@ -38,15 +44,32 @@ export function StockUsageForm({
     <form
       className="w-full max-w-lg rounded-lg border border-line bg-paper p-3"
       aria-label={`Registrar uso de ${stock.name}`}
+      aria-busy={saving}
+      onInvalidCapture={onAttempt}
       onSubmit={(event) => {
         event.preventDefault()
-        if (valid && !busy) onSave(result.quantity)
+        if (busy) return
+        onAttempt()
+        if (valid) onSave(result.quantity)
       }}
     >
+      <FormHeader
+        module="Produção · Estoque"
+        title="Registrar uso de estoque"
+        description={`Informe a quantidade consumida de ${stock.name}.`}
+        mode="create"
+        heading="h3"
+        dirty={text !== ''}
+        blocked={saving}
+        back={{ onClick: onCancel, label: 'Voltar ao estoque' }}
+      />
       <fieldset disabled={busy} className="grid gap-2">
         <label className="grid gap-1.5 text-sm font-semibold">
           <span className="flex flex-wrap items-center justify-between gap-1">
-            Quanto você usou?
+            <span>
+              Quanto você usou?
+              <RequiredMark />
+            </span>
             <span className="text-xs font-normal text-muted">
               Saldo: {friendlyAmount(stock.quantity, stock.unit)}
             </span>
@@ -135,23 +158,19 @@ export function StockUsageForm({
             <p className="text-xs text-[#a52c42]">{result.error}</p>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            className="primary-button !min-h-9 !px-3 !py-1.5 !text-sm"
-            disabled={!valid || busy}
-          >
-            {busy ? 'Salvando...' : valid ? `Usei ${amount}` : 'Registrar uso'}
-          </button>
-          <button
-            type="button"
-            className="secondary-button !min-h-9 !px-3 !py-1.5 !text-sm"
-            onClick={onCancel}
-          >
-            Cancelar
-          </button>
-        </div>
       </fieldset>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <SaveButton
+          className="primary-button !min-h-9 !px-3 !py-1.5 !text-sm"
+          saving={saving}
+          disabled={!valid || busy}
+        >
+          {valid ? `Usei ${amount}` : 'Registrar uso'}
+        </SaveButton>
+        <FormExit onClick={onCancel} blocked={saving}>
+          Cancelar
+        </FormExit>
+      </div>
     </form>
   )
 }

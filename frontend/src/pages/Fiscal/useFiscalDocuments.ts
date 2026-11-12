@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useSaveAction } from '../../components/forms/useFormState'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 import type { FiscalDocument, FiscalOrder, FiscalProduct, FiscalSupplier } from './fiscalTypes'
@@ -14,13 +15,15 @@ import {
   taxIdError,
 } from './fiscalUtils'
 
+type FiscalAction = 'document' | 'supplier' | 'link' | 'event' | 'refresh' | 'receive'
+
 export function useFiscalDocuments(orderFilter: string) {
   const [documents, setDocuments] = useState<FiscalDocument[]>([])
   const [orders, setOrders] = useState<FiscalOrder[]>([])
   const [products, setProducts] = useState<FiscalProduct[]>([])
   const [suppliers, setSuppliers] = useState<FiscalSupplier[]>([])
   const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
+  const { busy, pendingAction, isBusy, run: runAction } = useSaveAction<FiscalAction>()
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [type, setType] = useState<'saida' | 'entrada'>('saida')
@@ -56,8 +59,8 @@ export function useFiscalDocuments(orderFilter: string) {
 
     Promise.all([
       apiFetch<FiscalDocument[]>('/api/fiscal-documents'),
-      apiFetch<FiscalOrder[]>('/api/orders'),
-      apiFetch<FiscalProduct[]>('/api/products'),
+      apiFetchItems<FiscalOrder>('/api/orders'),
+      apiFetchItems<FiscalProduct>('/api/products'),
       apiFetchItems<FiscalSupplier>('/api/fiscal-suppliers'),
     ])
       .then(([docs, orderList, productList, supplierList]) => {
@@ -156,18 +159,22 @@ export function useFiscalDocuments(orderFilter: string) {
     selectDocument(document)
   }
 
-  async function run(action: () => Promise<void>) {
-    setBusy(true)
+  function clearFeedback() {
+    if (isBusy()) return
     setError('')
     setNotice('')
+  }
 
-    try {
-      await action()
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Não foi possível concluir a operação.'))
-    } finally {
-      setBusy(false)
-    }
+  async function run(kind: FiscalAction, action: () => Promise<void>) {
+    await runAction(async () => {
+      setError('')
+      setNotice('')
+      try {
+        await action()
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, 'Não foi possível concluir a operação.'))
+      }
+    }, kind)
   }
 
   const formDirty =
@@ -194,7 +201,7 @@ export function useFiscalDocuments(orderFilter: string) {
   }
 
   function closeForm(): boolean {
-    if (!confirmDiscard()) {
+    if (pendingAction === 'document' || pendingAction === 'supplier' || !confirmDiscard()) {
       return false
     }
 
@@ -209,6 +216,7 @@ export function useFiscalDocuments(orderFilter: string) {
   }
 
   function start(orderId = orderFilter) {
+    if (isBusy()) return
     if (showForm && !confirmDiscard()) {
       setFormOpenedAt(Date.now())
       return
@@ -233,32 +241,33 @@ export function useFiscalDocuments(orderFilter: string) {
   // Pedidos, produtos e fornecedores podem ter sido cadastrados depois que a
   // página abriu; recarrega as opções sempre que o formulário é aberto.
   async function reloadFormOptions() {
-    try {
-      const [orderList, productList, supplierList] = await Promise.all([
-        apiFetch<FiscalOrder[]>('/api/orders'),
-        apiFetch<FiscalProduct[]>('/api/products'),
-        apiFetchItems<FiscalSupplier>('/api/fiscal-suppliers'),
-      ])
-      setOrders(orderList)
-      setProducts(productList)
-      setSuppliers(supplierList)
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Falha ao carregar pedidos e fornecedores.'))
-    }
+    await run('refresh', async () => {
+      try {
+        const [orderList, productList, supplierList] = await Promise.all([
+          apiFetchItems<FiscalOrder>('/api/orders'),
+          apiFetchItems<FiscalProduct>('/api/products'),
+          apiFetchItems<FiscalSupplier>('/api/fiscal-suppliers'),
+        ])
+
+        setOrders(orderList)
+        setProducts(productList)
+        setSuppliers(supplierList)
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, 'Falha ao carregar pedidos e fornecedores.'))
+      }
+    })
   }
 
   async function create(event: FormEvent) {
     event.preventDefault()
 
-    const formErrors = Object.values(fiscalDocumentFormErrors(form, draftItems))
+    await run('document', async () => {
+      const formErrors = Object.values(fiscalDocumentFormErrors(form, draftItems))
+      if (formErrors.length > 0) {
+        setError(formErrors[0] || 'Revise os campos obrigatórios.')
+        return
+      }
 
-    if (formErrors.length > 0) {
-      setNotice('')
-      setError(formErrors[0] || 'Revise os campos obrigatórios.')
-      return
-    }
-
-    await run(async () => {
       const { order_id, supplier_id, ...metadata } = form
 
       const payload = {
@@ -291,15 +300,13 @@ export function useFiscalDocuments(orderFilter: string) {
   async function createSupplier(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const documentError = taxIdError(supplierForm.document)
+    await run('supplier', async () => {
+      const documentError = taxIdError(supplierForm.document)
+      if (documentError) {
+        setError(documentError)
+        return
+      }
 
-    if (documentError) {
-      setNotice('')
-      setError(documentError)
-      return
-    }
-
-    await run(async () => {
       const supplier = await apiFetch<FiscalSupplier>('/api/fiscal-suppliers', {
         method: 'POST',
         body: JSON.stringify({
@@ -331,7 +338,7 @@ export function useFiscalDocuments(orderFilter: string) {
       return
     }
 
-    await run(async () => {
+    await run('link', async () => {
       const document = await apiFetch<FiscalDocument>(
         `/api/fiscal-documents/${selected.id}/link-order`,
         {
@@ -352,7 +359,7 @@ export function useFiscalDocuments(orderFilter: string) {
       return
     }
 
-    await run(async () => {
+    await run('event', async () => {
       const payload = {
         status: eventForm.status,
         occurred_at: eventForm.occurred_at ? new Date(eventForm.occurred_at).toISOString() : null,
@@ -372,10 +379,10 @@ export function useFiscalDocuments(orderFilter: string) {
   }
 
   async function refreshDocuments() {
-    await run(async () => {
+    await run('refresh', async () => {
       setDocuments(await apiFetch<FiscalDocument[]>('/api/fiscal-documents'))
 
-      setOrders(await apiFetch<FiscalOrder[]>('/api/orders'))
+      setOrders(await apiFetchItems<FiscalOrder>('/api/orders'))
 
       setNotice('Lista atualizada.')
     })
@@ -386,7 +393,7 @@ export function useFiscalDocuments(orderFilter: string) {
       return
     }
 
-    await run(async () => {
+    await run('receive', async () => {
       const document = await apiFetch<FiscalDocument>(
         `/api/fiscal-documents/${selected.id}/receive`,
         {
@@ -406,6 +413,8 @@ export function useFiscalDocuments(orderFilter: string) {
     suppliers,
     loading,
     busy,
+    pendingAction,
+    clearFeedback,
     error,
     notice,
     type,

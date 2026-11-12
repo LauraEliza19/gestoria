@@ -1,7 +1,10 @@
-import { ArrowLeft, FileText, Save } from 'lucide-react'
+import { FileText, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import {
   createEmployeeRecord,
@@ -50,7 +53,9 @@ export function EmployeeRecordFormPage() {
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [values, setValues] = useState<EmployeeRecordFormValues>(createInitialValues)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const { busy: saving, run: save } = useSaveAction()
+  const { dirty, resetBaseline } = useFormChanges(values)
+  const announceSuccess = useFormSuccess()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -75,13 +80,15 @@ export function EmployeeRecordFormPage() {
         setEmployee(employeeData)
 
         if (employeeRecord) {
-          setValues({
+          const loadedValues = {
             recordType: employeeRecord.record_type,
             severity: employeeRecord.severity,
             title: employeeRecord.title,
             description: employeeRecord.description,
             occurredAt: toLocalDateTimeInput(employeeRecord.occurred_at),
-          })
+          }
+          setValues(loadedValues)
+          resetBaseline(loadedValues)
         }
 
         setLoading(false)
@@ -100,7 +107,7 @@ export function EmployeeRecordFormPage() {
     return () => {
       cancelled = true
     }
-  }, [employeeId, recordId])
+  }, [employeeId, recordId, resetBaseline])
 
   function updateField(field: keyof EmployeeRecordFormValues, value: string) {
     setValues((current) => ({
@@ -111,42 +118,40 @@ export function EmployeeRecordFormPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     if (!employeeId || !values.occurredAt) return
+    await save(async () => {
+      setError('')
 
-    setSaving(true)
-    setError('')
-
-    const payload: EmployeeRecordCreatePayload = {
-      record_type: values.recordType,
-      severity: values.severity,
-      title: values.title.trim(),
-      description: values.description.trim(),
-      occurred_at: new Date(values.occurredAt).toISOString(),
-    }
-
-    try {
-      if (recordId) {
-        await updateEmployeeRecord(recordId, payload)
-      } else {
-        await createEmployeeRecord(employeeId, payload)
+      const payload: EmployeeRecordCreatePayload = {
+        record_type: values.recordType,
+        severity: values.severity,
+        title: values.title.trim(),
+        description: values.description.trim(),
+        occurred_at: new Date(values.occurredAt).toISOString(),
       }
 
-      navigate(`/gestao/funcionarios/${employeeId}`, {
-        replace: true,
-      })
-    } catch (requestError) {
-      setError(
-        getErrorMessage(
-          requestError,
-          editing
-            ? 'Não foi possível atualizar o registro.'
-            : 'Não foi possível cadastrar o registro.',
-        ),
-      )
-    } finally {
-      setSaving(false)
-    }
+      try {
+        if (recordId) {
+          await updateEmployeeRecord(recordId, payload)
+        } else {
+          await createEmployeeRecord(employeeId, payload)
+        }
+
+        announceSuccess(editing ? 'Registro atualizado.' : 'Registro cadastrado.')
+        navigate(`/gestao/funcionarios/${employeeId}`, {
+          replace: true,
+        })
+      } catch (requestError) {
+        setError(
+          getErrorMessage(
+            requestError,
+            editing
+              ? 'Não foi possível atualizar o registro.'
+              : 'Não foi possível cadastrar o registro.',
+          ),
+        )
+      }
+    })
   }
 
   if (loading) {
@@ -167,26 +172,25 @@ export function EmployeeRecordFormPage() {
 
   return (
     <main className="page-wrap">
-      <header className="page-header">
-        <div>
-          <Link
-            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
-            to={`/gestao/funcionarios/${employee.id}`}
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-            Voltar para o perfil
-          </Link>
+      <FormHeader
+        module="Gestão interna"
+        title={editing ? 'Editar registro' : 'Novo registro'}
+        description={`Registre advertências, ocorrências, reconhecimentos e observações de ${employee.full_name}.`}
+        mode={editing ? 'edit' : 'create'}
+        back={{
+          to: `/gestao/funcionarios/${employee.id}`,
+          label: 'Voltar para o perfil do funcionário',
+        }}
+        dirty={dirty}
+        blocked={saving}
+      />
 
-          <p className="eyebrow">Gestão de pessoas</p>
-          <h1>{editing ? 'Editar registro' : 'Novo registro'}</h1>
-          <p>
-            Registre advertências, ocorrências, reconhecimentos e observações de{' '}
-            {employee.full_name}.
-          </p>
-        </div>
-      </header>
-
-      <form className="w-full pb-10" onSubmit={handleSubmit}>
+      <SavingForm
+        className="w-full pb-10"
+        onSubmit={handleSubmit}
+        saving={saving}
+        onInvalidCapture={() => setError('')}
+      >
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#eef2ff] text-signal">
             <FileText size={20} aria-hidden="true" />
@@ -202,9 +206,13 @@ export function EmployeeRecordFormPage() {
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <label className="form-label">
-            Tipo de registro
+            <span>
+              Tipo de registro
+              <RequiredMark />
+            </span>
             <select
               className="form-input"
+              required
               value={values.recordType}
               onChange={(event) => updateField('recordType', event.target.value)}
             >
@@ -230,7 +238,10 @@ export function EmployeeRecordFormPage() {
           </label>
 
           <label className="form-label md:col-span-2">
-            Título
+            <span>
+              Título
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               type="text"
@@ -243,7 +254,10 @@ export function EmployeeRecordFormPage() {
           </label>
 
           <label className="form-label md:col-span-2">
-            Data e horário da ocorrência
+            <span>
+              Data e horário da ocorrência
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               type="datetime-local"
@@ -255,7 +269,10 @@ export function EmployeeRecordFormPage() {
           </label>
 
           <label className="form-label md:col-span-2">
-            Descrição
+            <span>
+              Descrição
+              <RequiredMark />
+            </span>
             <textarea
               className="form-input min-h-44 resize-y"
               value={values.description}
@@ -277,16 +294,15 @@ export function EmployeeRecordFormPage() {
         )}
 
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Link className="secondary-button" to={`/gestao/funcionarios/${employee.id}`}>
+          <FormExit to={`/gestao/funcionarios/${employee.id}`} blocked={saving}>
             Cancelar
-          </Link>
+          </FormExit>
 
-          <button className="primary-button gap-2" type="submit" disabled={saving}>
-            <Save size={17} aria-hidden="true" />
-            {saving ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar registro'}
-          </button>
+          <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>
+            {editing ? 'Salvar alterações' : 'Cadastrar registro'}
+          </SaveButton>
         </div>
-      </form>
+      </SavingForm>
     </main>
   )
 }

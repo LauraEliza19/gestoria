@@ -1,6 +1,9 @@
-import { ArrowLeft, Save } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import { createEmployee, getEmployee, updateEmployee } from '../../services/management.service'
 import { getErrorMessage } from '../../utils/errors'
@@ -29,7 +32,9 @@ export function EmployeeFormPage() {
 
   const [values, setValues] = useState<EmployeeFormValues>(initialValues)
   const [loading, setLoading] = useState(editing)
-  const [saving, setSaving] = useState(false)
+  const { busy: saving, run: save } = useSaveAction()
+  const { dirty, resetBaseline } = useFormChanges(values)
+  const announceSuccess = useFormSuccess()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -41,13 +46,15 @@ export function EmployeeFormPage() {
       .then((employee) => {
         if (cancelled) return
 
-        setValues({
+        const loadedValues = {
           fullName: employee.full_name,
           document: employee.document || '',
           email: employee.email || '',
           phone: employee.phone || '',
           birthDate: employee.birth_date || '',
-        })
+        }
+        setValues(loadedValues)
+        resetBaseline(loadedValues)
         setLoading(false)
       })
       .catch((requestError) => {
@@ -60,7 +67,7 @@ export function EmployeeFormPage() {
     return () => {
       cancelled = true
     }
-  }, [employeeId])
+  }, [employeeId, resetBaseline])
 
   function updateField(field: keyof EmployeeFormValues, value: string) {
     setValues((current) => ({
@@ -71,39 +78,39 @@ export function EmployeeFormPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSaving(true)
-    setError('')
+    await save(async () => {
+      setError('')
 
-    const payload: EmployeeCreatePayload = {
-      full_name: values.fullName.trim(),
-      document: values.document.trim() || null,
-      email: values.email.trim() || null,
-      phone: values.phone.trim() || null,
-      birth_date: values.birthDate || null,
-    }
-
-    try {
-      if (employeeId) {
-        await updateEmployee(employeeId, payload)
-      } else {
-        await createEmployee(payload)
+      const payload: EmployeeCreatePayload = {
+        full_name: values.fullName.trim(),
+        document: values.document.trim() || null,
+        email: values.email.trim() || null,
+        phone: values.phone.trim() || null,
+        birth_date: values.birthDate || null,
       }
 
-      navigate('/gestao/funcionarios', {
-        replace: true,
-      })
-    } catch (requestError) {
-      setError(
-        getErrorMessage(
-          requestError,
-          editing
-            ? 'Não foi possível atualizar o funcionário.'
-            : 'Não foi possível cadastrar o funcionário.',
-        ),
-      )
-    } finally {
-      setSaving(false)
-    }
+      try {
+        if (employeeId) {
+          await updateEmployee(employeeId, payload)
+        } else {
+          await createEmployee(payload)
+        }
+
+        announceSuccess(editing ? 'Funcionário atualizado.' : 'Funcionário cadastrado.')
+        navigate('/gestao/funcionarios', {
+          replace: true,
+        })
+      } catch (requestError) {
+        setError(
+          getErrorMessage(
+            requestError,
+            editing
+              ? 'Não foi possível atualizar o funcionário.'
+              : 'Não foi possível cadastrar o funcionário.',
+          ),
+        )
+      }
+    })
   }
 
   if (loading) {
@@ -124,29 +131,28 @@ export function EmployeeFormPage() {
 
   return (
     <main className="page-wrap">
-      <header className="page-header">
-        <div>
-          <Link
-            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-signal"
-            to="/gestao/funcionarios"
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-            Voltar para funcionários
-          </Link>
+      <FormHeader
+        module="Gestão interna"
+        title={editing ? 'Editar funcionário' : 'Novo funcionário'}
+        description="Registre os dados essenciais. Os vínculos são configurados no perfil."
+        mode={editing ? 'edit' : 'create'}
+        back={{ to: '/gestao/funcionarios', label: 'Voltar para funcionários' }}
+        dirty={dirty}
+        blocked={saving}
+      />
 
-          <p className="eyebrow">Gestão interna</p>
-          <h1>{editing ? 'Editar funcionário' : 'Cadastrar funcionário'}</h1>
-          <p>
-            Registre os dados essenciais da pessoa. O vínculo profissional será configurado no
-            perfil.
-          </p>
-        </div>
-      </header>
-
-      <form className="page-card mx-auto max-w-[900px]" onSubmit={handleSubmit}>
+      <SavingForm
+        className="page-card mx-auto max-w-[900px]"
+        onSubmit={handleSubmit}
+        saving={saving}
+        onInvalidCapture={() => setError('')}
+      >
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <label className="form-label md:col-span-2">
-            Nome completo
+            <span>
+              Nome completo
+              <RequiredMark />
+            </span>
             <input
               className="form-input"
               type="text"
@@ -216,16 +222,15 @@ export function EmployeeFormPage() {
         )}
 
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Link className="secondary-button" to="/gestao/funcionarios">
+          <FormExit to="/gestao/funcionarios" blocked={saving}>
             Cancelar
-          </Link>
+          </FormExit>
 
-          <button className="primary-button gap-2" type="submit" disabled={saving}>
-            <Save size={17} aria-hidden="true" />
-            {saving ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar funcionário'}
-          </button>
+          <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>
+            {editing ? 'Salvar alterações' : 'Cadastrar funcionário'}
+          </SaveButton>
         </div>
-      </form>
+      </SavingForm>
     </main>
   )
 }

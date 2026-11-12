@@ -12,6 +12,7 @@ type FiscalModalProps = {
   showContext?: boolean
   footer?: ReactNode
   children: ReactNode
+  closeDisabled?: boolean
   onClose: () => void
 }
 
@@ -23,6 +24,7 @@ export function FiscalModal({
   showContext = true,
   footer,
   children,
+  closeDisabled = false,
   onClose,
 }: FiscalModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
@@ -30,8 +32,10 @@ export function FiscalModal({
   const { emitter, recipient } = fiscalParties(document, organization)
 
   useEffect(() => {
-    closeRef.current = onClose
-  }, [onClose])
+    closeRef.current = () => {
+      if (!closeDisabled) onClose()
+    }
+  }, [closeDisabled, onClose])
 
   useEffect(() => {
     const previousFocus = window.document.activeElement as HTMLElement | null
@@ -59,7 +63,7 @@ export function FiscalModal({
       className="fiscal-modal-backdrop"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
+        if (!closeDisabled && event.target === event.currentTarget) {
           onClose()
         }
       }}
@@ -79,6 +83,7 @@ export function FiscalModal({
             type="button"
             aria-label="Fechar janela"
             title="Fechar (Esc)"
+            disabled={closeDisabled}
             onClick={onClose}
           >
             <X size={20} aria-hidden="true" />
