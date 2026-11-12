@@ -2,6 +2,9 @@ import { ArrowLeft, Ban, CheckCircle2, Edit3, FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
+import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
+import { useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { ErrorState, LoadingState } from '../../components/AsyncState'
 import {
   cancelEmployeeRecord,
@@ -69,7 +72,9 @@ export function EmployeeRecordDetailPage() {
   const [actionMode, setActionMode] = useState<ActionMode>(null)
   const [actionText, setActionText] = useState('')
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const { busy: saving, run: save } = useSaveAction()
+  const announceSuccess = useFormSuccess()
+  const resolving = actionMode === 'resolve'
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [requestVersion, setRequestVersion] = useState(0)
@@ -129,12 +134,10 @@ export function EmployeeRecordDetailPage() {
 
     if (!employeeRecord || !actionMode) return
 
-    setSaving(true)
-    setActionError('')
-
-    try {
-      const updated =
-        actionMode === 'resolve'
+    await save(async () => {
+      setActionError('')
+      try {
+        const updated = resolving
           ? await resolveEmployeeRecord(employeeRecord.id, {
               resolution_notes: actionText.trim(),
             })
@@ -142,20 +145,20 @@ export function EmployeeRecordDetailPage() {
               cancellation_reason: actionText.trim(),
             })
 
-      setEmployeeRecord(updated)
-      closeAction()
-    } catch (requestError) {
-      setActionError(
-        getErrorMessage(
-          requestError,
-          actionMode === 'resolve'
-            ? 'Não foi possível resolver o registro.'
-            : 'Não foi possível cancelar o registro.',
-        ),
-      )
-    } finally {
-      setSaving(false)
-    }
+        announceSuccess(resolving ? 'Registro resolvido.' : 'Registro cancelado.')
+        setEmployeeRecord(updated)
+        closeAction()
+      } catch (requestError) {
+        setActionError(
+          getErrorMessage(
+            requestError,
+            resolving
+              ? 'Não foi possível resolver o registro.'
+              : 'Não foi possível cancelar o registro.',
+          ),
+        )
+      }
+    })
   }
 
   if (loading) {
@@ -204,6 +207,7 @@ export function EmployeeRecordDetailPage() {
             <button
               className="secondary-button gap-2"
               type="button"
+              disabled={saving}
               onClick={() => openAction('cancel')}
             >
               <Ban size={17} aria-hidden="true" />
@@ -213,6 +217,7 @@ export function EmployeeRecordDetailPage() {
             <button
               className="primary-button gap-2"
               type="button"
+              disabled={saving}
               onClick={() => openAction('resolve')}
             >
               <CheckCircle2 size={17} aria-hidden="true" />
@@ -310,26 +315,33 @@ export function EmployeeRecordDetailPage() {
 
       {actionMode && employeeRecord.status === 'open' && (
         <section className="mt-5 border-t border-line pt-7">
-          <form className="w-full" onSubmit={handleAction}>
+          <SavingForm
+            className="w-full"
+            onSubmit={handleAction}
+            saving={saving}
+            onInvalidCapture={() => setActionError('')}
+          >
             <div className="max-w-[900px]">
-              <p className="eyebrow">
-                {actionMode === 'resolve' ? 'Encerrar ocorrência' : 'Cancelar registro'}
-              </p>
-
-              <h2 className="mt-2 font-display text-2xl font-semibold">
-                {actionMode === 'resolve'
-                  ? 'Informar resolução'
-                  : 'Informar motivo do cancelamento'}
-              </h2>
-
-              <p className="mt-2 text-sm text-muted">
-                {actionMode === 'resolve'
-                  ? 'Explique como a situação foi tratada e concluída.'
-                  : 'O conteúdo continuará disponível no histórico para auditoria.'}
-              </p>
+              <FormHeader
+                module="Gestão interna"
+                title={resolving ? 'Informar resolução' : 'Informar motivo do cancelamento'}
+                description={
+                  resolving
+                    ? 'Explique como a situação foi tratada e concluída.'
+                    : 'O conteúdo continuará disponível no histórico para auditoria.'
+                }
+                mode="edit"
+                heading="h2"
+                back={{ onClick: closeAction, label: 'Voltar aos detalhes do registro' }}
+                dirty={actionText !== ''}
+                blocked={saving}
+              />
 
               <label className="form-label mt-6">
-                {actionMode === 'resolve' ? 'Descrição da resolução' : 'Motivo do cancelamento'}
+                <span>
+                  {resolving ? 'Descrição da resolução' : 'Motivo do cancelamento'}
+                  <RequiredMark />
+                </span>
 
                 <textarea
                   className="form-input min-h-36 resize-y"
@@ -354,31 +366,24 @@ export function EmployeeRecordDetailPage() {
               )}
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  disabled={saving}
-                  onClick={closeAction}
+                <FormExit onClick={closeAction} blocked={saving}>
+                  Cancelar
+                </FormExit>
+                <SaveButton
+                  saving={saving}
+                  icon={
+                    resolving ? (
+                      <CheckCircle2 size={17} aria-hidden="true" />
+                    ) : (
+                      <Ban size={17} aria-hidden="true" />
+                    )
+                  }
                 >
-                  Voltar
-                </button>
-
-                <button className="primary-button gap-2" type="submit" disabled={saving}>
-                  {actionMode === 'resolve' ? (
-                    <CheckCircle2 size={17} aria-hidden="true" />
-                  ) : (
-                    <Ban size={17} aria-hidden="true" />
-                  )}
-
-                  {saving
-                    ? 'Salvando...'
-                    : actionMode === 'resolve'
-                      ? 'Confirmar resolução'
-                      : 'Confirmar cancelamento'}
-                </button>
+                  {resolving ? 'Confirmar resolução' : 'Confirmar cancelamento'}
+                </SaveButton>
               </div>
             </div>
-          </form>
+          </SavingForm>
         </section>
       )}
     </main>

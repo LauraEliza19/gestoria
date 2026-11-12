@@ -10,7 +10,7 @@ const Module = require('node:module')
 const ts = require('typescript')
 
 const root = path.resolve(__dirname, '..')
-const fiscalDir = path.join(root, 'src/pages/Fiscal')
+const fiscalDir = 'pages/Fiscal'
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
 
 // ---------------------------------------------------------------------------
@@ -55,28 +55,33 @@ const stubs = {
 }
 
 const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gestoria-fiscal-'))
-for (const file of fs.readdirSync(fiscalDir)) {
-  if (!/\.tsx?$/.test(file)) continue
-  const source = fs.readFileSync(path.join(fiscalDir, file), 'utf8')
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-      jsx: ts.JsxEmit.ReactJSX,
-      esModuleInterop: true,
-    },
-    fileName: file,
-  })
-  fs.writeFileSync(path.join(outDir, file.replace(/\.tsx?$/, '.js')), outputText)
+for (const directory of [fiscalDir, 'components/forms']) {
+  const sourceDir = path.join(root, 'src', directory)
+  const targetDir = path.join(outDir, directory)
+  fs.mkdirSync(targetDir, { recursive: true })
+  for (const file of fs.readdirSync(sourceDir)) {
+    if (!/\.tsx?$/.test(file)) continue
+    const source = fs.readFileSync(path.join(sourceDir, file), 'utf8')
+    const { outputText } = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+        jsx: ts.JsxEmit.ReactJSX,
+        esModuleInterop: true,
+      },
+      fileName: file,
+    })
+    fs.writeFileSync(path.join(targetDir, file.replace(/\.tsx?$/, '.js')), outputText)
+  }
 }
 
 const originalLoad = Module._load
 Module._load = function load(request, parent, isMain) {
   if (Object.prototype.hasOwnProperty.call(stubs, request)) return stubs[request]
-  if (request.startsWith('../../')) return {}
+  if (request.startsWith('../../') && !request.startsWith('../../components/forms/')) return {}
   return originalLoad.call(this, request, parent, isMain)
 }
-const load = (name) => require(path.join(outDir, `${name}.js`))
+const load = (name) => require(path.join(outDir, fiscalDir, `${name}.js`))
 
 function render(node) {
   if (node === null || node === undefined || node === false || node === true) return []
@@ -547,6 +552,10 @@ const statusForm = (form, extra = {}) =>
     allowedStatuses: ['Cancelada'],
     form,
     busy: false,
+    saving: false,
+    closeDisabled: false,
+    onAttempt: () => {},
+    onClose: () => {},
     documentLabel: 'a NF 123',
     onChange: () => {},
     onSubmit: () => {},
@@ -574,7 +583,7 @@ test('aviso explica por que o botão está desabilitado', () =>
   assert.match(textOf(statusForm(emptyEvent())), /Preencha todos os campos obrigatórios/))
 test('campos obrigatórios do evento têm asterisco e legenda', () => {
   const tree = statusForm(validCancel)
-  assert.ok(findAll(tree, (node) => node.props.className === 'fiscal-required').length >= 4)
+  assert.ok(findAll(tree, (node) => node.props.className === 'form-required-mark').length >= 4)
   assert.match(textOf(tree), /Campos marcados com \* são obrigatórios/)
 })
 test('cancelamento pede confirmação e envia quando confirmado', () => {
@@ -653,6 +662,9 @@ const documentForm = (form = emptyForm(), extra = {}) =>
     setSupplierForm: () => {},
     busy: false,
     loading: false,
+    saving: false,
+    supplierSaving: false,
+    onAttempt: () => {},
     isOccupied: () => false,
     onSubmit: () => {},
     onCreateSupplier: () => {},
@@ -670,7 +682,7 @@ test('formulário informa claramente que foi aberto', () => {
   assert.match(textOf(status), /Formulário de nova nota aberto/)
 })
 test('formulário avisa quando há alterações não salvas', () =>
-  assert.match(textOf(documentForm(emptyForm(), { dirty: true })), /alterações ainda não salvas/))
+  assert.match(textOf(documentForm(emptyForm(), { dirty: true })), /Alterações não salvas/))
 test('título do formulário recebe foco (tabIndex -1) e tem âncora', () => {
   const tree = documentForm()
   const heading = byType(tree, 'h2')[0]
@@ -678,7 +690,7 @@ test('título do formulário recebe foco (tabIndex -1) e tem âncora', () => {
   assert.equal(tree[0].props.id, 'fiscal-new-document')
 })
 test('campos obrigatórios da nota são marcados com asterisco', () => {
-  const marks = findAll(documentForm(), (node) => node.props.className === 'fiscal-required')
+  const marks = findAll(documentForm(), (node) => node.props.className === 'form-required-mark')
   // Tipo, Pedido, Modelo, Número, Série, Data + legenda.
   assert.ok(marks.length >= 7, `encontrados ${marks.length}`)
 })
@@ -708,6 +720,26 @@ test('"Fechar formulário" chama o fechamento com confirmação do hook', () => 
   const tree = documentForm(emptyForm(), { onClose: () => (closed = true) })
   buttonByText(tree, 'Fechar formulário').props.onClick()
   assert.equal(closed, true)
+})
+test('envio fiscal bloqueia o submit e o retorno enquanto salva', () => {
+  let attempts = 0
+  const tree = documentForm(validForm(), {
+    busy: true,
+    saving: true,
+    onSubmit: () => attempts++,
+  })
+  const submit = buttonByText(tree, 'Salvando...')
+  assert.equal(submit.props.disabled, true)
+  assert.equal(submit.props['aria-busy'], true)
+  assert.equal(buttonByText(tree, 'Voltar à lista de notas fiscais').props.disabled, true)
+  assert.equal(buttonByText(tree, 'Fechar formulário').props.disabled, true)
+  byType(tree, 'form')[0].props.onSubmit(fakeEvent())
+  assert.equal(attempts, 0)
+})
+test('uma consulta em andamento não bloqueia fechar o formulário fiscal', () => {
+  const tree = documentForm(emptyForm(), { busy: true })
+  assert.equal(buttonByText(tree, 'Registrar documento').props.disabled, true)
+  assert.ok(!buttonByText(tree, 'Fechar formulário').props.disabled)
 })
 test('envio com campos obrigatórios vazios é bloqueado', () => {
   let submitted = false
@@ -739,7 +771,14 @@ test('itens de entrada mostram a unidade padronizada', () => {
 // ===========================================================================
 const { FiscalSupplierForm } = load('FiscalSupplierForm')
 const supplierForm = (form) =>
-  mount(FiscalSupplierForm, { form, busy: false, onChange: () => {}, onSubmit: () => {} })
+  mount(FiscalSupplierForm, {
+    form,
+    busy: false,
+    saving: false,
+    onAttempt: () => {},
+    onChange: () => {},
+    onSubmit: () => {},
+  })
 test('CPF/CNPJ do fornecedor aparece com máscara', () => {
   const input = byType(supplierForm({ name: 'A', document: '11222333000181' }), 'input')[1]
   assert.equal(input.props.value, '11.222.333/0001-81')
@@ -922,7 +961,7 @@ test('formulário rola e foca automaticamente ao abrir', () => {
 })
 test('estilos para obrigatório, erros, resumo e legenda existem', () => {
   for (const selector of [
-    '.fiscal-required',
+    '.form-required-mark',
     '.fiscal-field-error',
     '.fiscal-field-wide',
     '.fiscal-summary-compact',
@@ -945,7 +984,10 @@ test('e-mail não é exibido em maiúsculas nem quebrado no meio', () => {
   assert.doesNotMatch(styles, /\.fiscal-actor a \{[^}]*break-all/s)
 })
 test('campos do formulário fiscal alinham pelo topo', () =>
-  assert.match(styles, /\.fiscal-form-grid > label\s*\{[^}]*content-start/s))
+  assert.match(
+    styles,
+    /\.fiscal-form-grid > label,\s*\.fiscal-form-grid > fieldset > label\s*\{[^}]*content-start/s,
+  ))
 
 test.after(() => {
   Module._load = originalLoad
