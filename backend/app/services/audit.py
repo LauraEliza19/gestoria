@@ -3,7 +3,7 @@
 import csv
 import io
 import json
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import JSON, String, case, cast, func, literal, or_, select, union_all
 
@@ -117,14 +117,12 @@ def audit_query(organization_id, filters):
     if filters.get("start_date"):
         statement = statement.where(
             events.c.created_at
-            >= datetime.combine(filters["start_date"], time.min, timezone.utc)
+            >= datetime.combine(filters["start_date"], time.min, UTC)
         )
     if filters.get("end_date") and filters["end_date"] < date.max:
         statement = statement.where(
             events.c.created_at
-            < datetime.combine(
-                filters["end_date"] + timedelta(days=1), time.min, timezone.utc
-            )
+            < datetime.combine(filters["end_date"] + timedelta(days=1), time.min, UTC)
         )
     return statement, events
 
@@ -132,7 +130,7 @@ def audit_query(organization_id, filters):
 def serialize_event(row):
     item = dict(row)
     if item["created_at"].tzinfo is None:
-        item["created_at"] = item["created_at"].replace(tzinfo=timezone.utc)
+        item["created_at"] = item["created_at"].replace(tzinfo=UTC)
     return item
 
 

@@ -63,7 +63,9 @@ def test_preparation_does_not_write_order_or_change_stock(client, prepared):
     assert page_items(client.get("/api/orders", headers=headers)) == []
     assert (
         Decimal(
-            page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
+            page_items(client.get("/api/products", headers=headers))[0][
+                "stock_quantity"
+            ]
         )
         == 10
     )
@@ -79,7 +81,9 @@ def test_confirmation_receipt_and_retry_are_consistent(client, prepared):
     assert retry.headers["X-Idempotent-Replay"] == "true"
     assert (
         Decimal(
-            page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
+            page_items(client.get("/api/products", headers=headers))[0][
+                "stock_quantity"
+            ]
         )
         == 8
     )
@@ -132,7 +136,9 @@ def test_tampering_is_rejected_even_if_attacker_recalculates_hash(
     assert page_items(client.get("/api/orders", headers=headers)) == []
     assert (
         Decimal(
-            page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
+            page_items(client.get("/api/products", headers=headers))[0][
+                "stock_quantity"
+            ]
         )
         == 10
     )

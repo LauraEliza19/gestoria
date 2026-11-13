@@ -72,10 +72,10 @@ class FinanceEntryRepository:
         if filters.get("search"):
             term = f"%{filters['search']}%"
             query = query.where(
-            or_(
-                FinanceEntry.description.ilike(term),
-                FinanceEntry.notes.ilike(term),
-            )
+                or_(
+                    FinanceEntry.description.ilike(term),
+                    FinanceEntry.notes.ilike(term),
+                )
             )
         if filters.get("sort") == "due_date":
             ordering = (FinanceEntry.due_date.asc(), FinanceEntry.created_at.asc())

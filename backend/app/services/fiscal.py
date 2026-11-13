@@ -1,6 +1,6 @@
 """Internal document registration, not a SEFAZ issuer or authorization provider."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select, update
@@ -44,11 +44,11 @@ class FiscalError(Exception):
 
 
 def now():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def aware(value):
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def authorize(db, current):

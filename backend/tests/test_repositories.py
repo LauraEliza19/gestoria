@@ -51,7 +51,9 @@ def test_product_repository_is_scoped_to_organization(db: Session) -> None:
         },
     )
 
-    listed = ProductRepository.list_for_organization(db, org_a.id, page=1, page_size=100)
+    listed = ProductRepository.list_for_organization(
+        db, org_a.id, page=1, page_size=100
+    )
     assert [item.name for item in listed["items"]] == ["Croissant"]
     assert ProductRepository.get_for_organization(db, created.id, org_b.id) is None
     assert ProductRepository.get_for_organization(db, created.id, org_a.id) is not None

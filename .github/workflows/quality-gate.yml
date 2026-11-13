@@ -54,6 +54,7 @@ jobs:
       - name: Verificar lint
         run: |
           python -m ruff check \
+            --ignore EXE002 \
             app \
             tests \
             scripts \

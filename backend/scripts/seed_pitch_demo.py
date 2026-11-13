@@ -1,7 +1,7 @@
 """Carga idempotente de dados para demonstrações do GestorIA."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -489,7 +489,7 @@ def seed_orders(
     customers: dict[str, Customer],
     products: dict[str, Product],
 ) -> dict[str, Order]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     orders = {
         "venda_hoje": seed_order(
@@ -595,8 +595,8 @@ def seed_quotes(
     customers: dict[str, Customer],
     products: dict[str, Product],
 ) -> dict[str, Quote]:
-    today = datetime.now(timezone.utc).date()
-    now = datetime.now(timezone.utc)
+    today = datetime.now(UTC).date()
+    now = datetime.now(UTC)
 
     quotes = {
         "vence_em_breve": seed_quote(

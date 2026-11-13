@@ -19,10 +19,7 @@ export type PaginatedResponse<T> = {
   has_next: boolean
 }
 
-export async function apiFetchItems<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T[]> {
+export async function apiFetchItems<T>(path: string, options: RequestInit = {}): Promise<T[]> {
   const response = await apiFetch<PaginatedResponse<T>>(path, options)
   return response.items
 }

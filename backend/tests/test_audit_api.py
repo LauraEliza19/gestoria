@@ -1,7 +1,7 @@
 import csv
 import io
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -24,7 +24,7 @@ def events(db):
     org = db.scalar(select(Organization).where(Organization.slug == "empresa-a"))
     other = db.scalar(select(Organization).where(Organization.slug == "empresa-b"))
     actor = db.scalar(select(User).where(User.email == "lucas@gestoria.dev"))
-    moment = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+    moment = datetime(2026, 11, 10, 12, tzinfo=UTC)
     document = FiscalDocument(
         organization_id=org.id,
         document_type="entrada",

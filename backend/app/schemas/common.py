@@ -14,6 +14,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     total: int = Field(ge=0)
     has_next: bool
 
+
 Money = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2)]
 
 StockQuantity = Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=3)]

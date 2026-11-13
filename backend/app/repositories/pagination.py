@@ -14,9 +14,7 @@ def paginate(
     scalars: bool = True,
 ) -> dict[str, Any]:
     total = (
-        db.scalar(
-            select(func.count()).select_from(query.order_by(None).subquery())
-        )
+        db.scalar(select(func.count()).select_from(query.order_by(None).subquery()))
         or 0
     )
     result = db.execute(query.offset((page - 1) * page_size).limit(page_size))

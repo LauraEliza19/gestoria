@@ -1,7 +1,7 @@
 """Fiscal business invariants; HTTP + persisted data, not mocked repository calls."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -62,7 +62,7 @@ def outgoing(order, number="100"):
         "document_type": "saida",
         "order_id": order["id"],
         "number": number,
-        "issue_date": datetime.now(timezone.utc).date().isoformat(),
+        "issue_date": datetime.now(UTC).date().isoformat(),
     }
 
 
@@ -77,7 +77,7 @@ def incoming(client, headers, product, number="200"):
         "document_type": "entrada",
         "supplier_id": supplier.json()["id"],
         "number": number,
-        "issue_date": datetime.now(timezone.utc).date().isoformat(),
+        "issue_date": datetime.now(UTC).date().isoformat(),
         "items": [
             {"product_id": product["id"], "quantity": "3.125", "unit_price": "4.50"}
         ],
@@ -93,7 +93,7 @@ def create(client, headers, payload):
 def authorization():
     return {
         "status": "Autorizada",
-        "occurred_at": datetime.now(timezone.utc).isoformat(),
+        "occurred_at": datetime.now(UTC).isoformat(),
         "protocol": "PROTO-AUT-1",
     }
 
@@ -101,7 +101,7 @@ def authorization():
 def cancellation():
     return {
         "status": "Cancelada",
-        "occurred_at": datetime.now(timezone.utc).isoformat(),
+        "occurred_at": datetime.now(UTC).isoformat(),
         "protocol": "PROTO-CANCEL-1",
         "reason": "Cancelamento confirmado externamente",
     }
@@ -252,9 +252,7 @@ def test_external_evidence_and_event_replay(client):
             doc,
             {
                 **auth,
-                "occurred_at": (
-                    datetime.now(timezone.utc) + timedelta(days=1)
-                ).isoformat(),
+                "occurred_at": (datetime.now(UTC) + timedelta(days=1)).isoformat(),
             },
         ).status_code
         == 422

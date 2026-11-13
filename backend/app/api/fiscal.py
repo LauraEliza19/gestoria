@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.models import Supplier
 from app.repositories import FiscalDocumentRepository, SupplierRepository
+from app.schemas import PaginatedResponse
 from app.schemas.fiscal import (
     FiscalDocumentCreate,
     FiscalDocumentRead,
@@ -19,7 +20,6 @@ from app.schemas.fiscal import (
     SupplierRead,
     SupplierUpdate,
 )
-from app.schemas import PaginatedResponse
 from app.services import fiscal as service
 
 router = APIRouter(prefix="/api/fiscal-documents", tags=["fiscal documents"])

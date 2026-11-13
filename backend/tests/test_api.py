@@ -33,7 +33,7 @@ def login(
 
 def page_items(response):
     payload = response.json()
-    assert set(("items", "page", "page_size", "total", "has_next")) <= payload.keys()
+    assert {"items", "page", "page_size", "total", "has_next"} <= payload.keys()
     return payload["items"]
 
 
@@ -346,10 +346,12 @@ def test_order_flow_updates_stock_status_and_customer_total(
         page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"]
     ) == Decimal(5)
 
-    customers_after_cancellation = page_items(client.get(
-        "/api/customers",
-        headers=headers,
-    ))
+    customers_after_cancellation = page_items(
+        client.get(
+            "/api/customers",
+            headers=headers,
+        )
+    )
 
     assert Decimal(customers_after_cancellation[0]["total_spent"]) == Decimal(0)
     assert customers_after_cancellation[0]["last_purchase_at"] is None
@@ -426,10 +428,12 @@ def test_customer_and_product_are_isolated_between_organizations(
     company_a_headers = login(client)
     company_b_headers = login(client, "empresa-b@gestoria.dev")
 
-    company_b_customer = page_items(client.get("/api/customers", headers=company_b_headers))[
-        0
-    ]
-    company_b_product = page_items(client.get("/api/products", headers=company_b_headers))[0]
+    company_b_customer = page_items(
+        client.get("/api/customers", headers=company_b_headers)
+    )[0]
+    company_b_product = page_items(
+        client.get("/api/products", headers=company_b_headers)
+    )[0]
 
     assert page_items(client.get("/api/customers", headers=company_a_headers)) == []
     assert (
@@ -649,15 +653,19 @@ def test_quote_api_is_isolated_between_organizations(
     company_a_headers = login(client)
     company_b_headers = login(client, "empresa-b@gestoria.dev")
 
-    company_b_customer = page_items(client.get(
-        "/api/customers",
-        headers=company_b_headers,
-    ))[0]
+    company_b_customer = page_items(
+        client.get(
+            "/api/customers",
+            headers=company_b_headers,
+        )
+    )[0]
 
-    company_b_product = page_items(client.get(
-        "/api/products",
-        headers=company_b_headers,
-    ))[0]
+    company_b_product = page_items(
+        client.get(
+            "/api/products",
+            headers=company_b_headers,
+        )
+    )[0]
 
     created_response = client.post(
         "/api/quotes",
@@ -684,10 +692,12 @@ def test_quote_api_is_isolated_between_organizations(
     assert approved_response.status_code == 200
 
     assert (
-        page_items(client.get(
-            "/api/quotes",
-            headers=company_a_headers,
-        ))
+        page_items(
+            client.get(
+                "/api/quotes",
+                headers=company_a_headers,
+            )
+        )
         == []
     )
 
@@ -710,19 +720,23 @@ def test_quote_api_is_isolated_between_organizations(
     )
     assert unauthorized_deletion.status_code == 404
 
-    company_b_quotes = page_items(client.get(
-        "/api/quotes",
-        headers=company_b_headers,
-    ))
+    company_b_quotes = page_items(
+        client.get(
+            "/api/quotes",
+            headers=company_b_headers,
+        )
+    )
     assert len(company_b_quotes) == 1
     assert company_b_quotes[0]["id"] == company_b_quote["id"]
     assert company_b_quotes[0]["status"] == "approved"
 
     assert (
-        page_items(client.get(
-            "/api/orders",
-            headers=company_b_headers,
-        ))
+        page_items(
+            client.get(
+                "/api/orders",
+                headers=company_b_headers,
+            )
+        )
         == []
     )
 
@@ -775,10 +789,12 @@ def test_only_owner_or_admin_can_delete_quote(
     )
     assert forbidden.status_code == 403
 
-    quotes_after_forbidden_attempt = page_items(client.get(
-        "/api/quotes",
-        headers=owner_headers,
-    ))
+    quotes_after_forbidden_attempt = page_items(
+        client.get(
+            "/api/quotes",
+            headers=owner_headers,
+        )
+    )
     assert len(quotes_after_forbidden_attempt) == 1
     assert quotes_after_forbidden_attempt[0]["id"] == quote["id"]
 
@@ -789,10 +805,12 @@ def test_only_owner_or_admin_can_delete_quote(
     assert deleted.status_code == 204
 
     assert (
-        page_items(client.get(
-            "/api/quotes",
-            headers=owner_headers,
-        ))
+        page_items(
+            client.get(
+                "/api/quotes",
+                headers=owner_headers,
+            )
+        )
         == []
     )
 
@@ -1191,9 +1209,7 @@ def test_customer_codes_are_sequential_and_listed(client: TestClient) -> None:
     listed = client.get("/api/customers", headers=headers)
 
     assert listed.status_code == 200
-    codes_by_id = {
-        customer["id"]: customer["code"] for customer in page_items(listed)
-    }
+    codes_by_id = {customer["id"]: customer["code"] for customer in page_items(listed)}
     assert codes_by_id[first["id"]] == "CLI-000001"
     assert codes_by_id[second["id"]] == "CLI-000002"
 
@@ -1270,9 +1286,7 @@ def test_product_codes_are_sequential_and_listed(client: TestClient) -> None:
     listed = client.get("/api/products", headers=headers)
 
     assert listed.status_code == 200
-    codes_by_id = {
-        product["id"]: product["code"] for product in page_items(listed)
-    }
+    codes_by_id = {product["id"]: product["code"] for product in page_items(listed)}
     assert codes_by_id[first["id"]] == "PRO-000001"
     assert codes_by_id[second["id"]] == "PRO-000002"
 

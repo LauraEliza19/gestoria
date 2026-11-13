@@ -189,7 +189,6 @@ def test_online_gateway_upgrade_from_previous_head_and_persistence(monkeypatch):
         command.upgrade(Config("alembic.ini"), PREVIOUS)
         org_id, other_org_id = uuid.uuid4(), uuid.uuid4()
         user_id, other_user_id = uuid.uuid4(), uuid.uuid4()
-        member_id = uuid.uuid4()
         with engine.begin() as connection:
             connection.execute(
                 sa.text(

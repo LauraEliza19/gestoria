@@ -110,7 +110,11 @@ def test_simultaneous_confirmations_create_only_one_order(concurrent_client):
     assert len({r.json()["id"] for r in results}) == 1
     assert len(page_items(client.get("/api/orders", headers=headers))) == 1
     assert (
-        float(page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"])
+        float(
+            page_items(client.get("/api/products", headers=headers))[0][
+                "stock_quantity"
+            ]
+        )
         == 9
     )
     events = client.get("/api/orders/security/events", headers=headers).json()
@@ -164,6 +168,10 @@ def test_different_orders_cannot_oversell_last_item(concurrent_client):
     ]
     assert len(page_items(client.get("/api/orders", headers=headers))) == 1
     assert (
-        float(page_items(client.get("/api/products", headers=headers))[0]["stock_quantity"])
+        float(
+            page_items(client.get("/api/products", headers=headers))[0][
+                "stock_quantity"
+            ]
+        )
         == 0
     )

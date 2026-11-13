@@ -86,7 +86,10 @@ export function OrderFormPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    Promise.all([apiFetchItems<Customer>('/api/customers'), apiFetchItems<Product>('/api/products')])
+    Promise.all([
+      apiFetchItems<Customer>('/api/customers'),
+      apiFetchItems<Product>('/api/products'),
+    ])
       .then(([customerList, productList]) => {
         const activeCustomers = customerList.filter((customer) => customer.is_active !== false)
 

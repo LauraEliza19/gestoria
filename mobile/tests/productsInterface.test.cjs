@@ -76,7 +76,7 @@ test('products mobile matches the backend contract', () => {
 test('products service uses the authenticated API', () => {
   assert.match(
     service,
-    /apiFetch<Product\[\]>\('\/api\/products'\)/
+    /apiFetchItems<Product>\('\/api\/products'\)/
   )
   assert.match(service, /listProducts/)
   assert.match(service, /createProduct/)

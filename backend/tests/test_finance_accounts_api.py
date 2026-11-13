@@ -201,12 +201,16 @@ def test_payables_and_receivables_are_separated(client, owner):
     new_entry(client, headers, category_id, entry_type="expense")
     new_entry(client, headers, category_id, entry_type="income")
     new_entry(client, headers, category_id, entry_type="income")
-    payables = page_items(client.get(
-        "/api/finance/entries?entry_type=expense&sort=due_date", headers=headers
-    ))
-    receivables = page_items(client.get(
-        "/api/finance/entries?entry_type=income&sort=due_date", headers=headers
-    ))
+    payables = page_items(
+        client.get(
+            "/api/finance/entries?entry_type=expense&sort=due_date", headers=headers
+        )
+    )
+    receivables = page_items(
+        client.get(
+            "/api/finance/entries?entry_type=income&sort=due_date", headers=headers
+        )
+    )
     assert {item["entry_type"] for item in payables} == {"expense"}
     assert {item["entry_type"] for item in receivables} == {"income"}
     assert (len(payables), len(receivables)) == (1, 2)

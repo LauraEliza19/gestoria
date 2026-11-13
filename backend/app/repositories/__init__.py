@@ -33,7 +33,6 @@ __all__ = [
     "FinanceCategoryRepository",
     "FinanceEntryRepository",
     "FiscalDocumentRepository",
-    "SupplierRepository",
     "ManagementOverviewRepository",
     "OrderItemRepository",
     "OrderRepository",
@@ -41,5 +40,6 @@ __all__ = [
     "ProductRepository",
     "QuoteItemRepository",
     "QuoteRepository",
+    "SupplierRepository",
     "UserRepository",
 ]

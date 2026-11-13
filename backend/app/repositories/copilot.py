@@ -1,5 +1,5 @@
 import uuid
-from datetime import timezone
+from datetime import UTC
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -55,9 +55,9 @@ class CopilotRepository:
             values = dict(row)
             created_at = values["created_at"]
             values["created_at"] = (
-                created_at.replace(tzinfo=timezone.utc)
+                created_at.replace(tzinfo=UTC)
                 if created_at.tzinfo is None
-                else created_at.astimezone(timezone.utc)
+                else created_at.astimezone(UTC)
             )
             orders.append(values)
         return CopilotOrdersResult(total=int(total or 0), orders=tuple(orders))

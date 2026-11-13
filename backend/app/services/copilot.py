@@ -2,7 +2,7 @@ import time
 import unicodedata
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import MappingProxyType
 
@@ -149,7 +149,7 @@ def build_response(
         items=items or [],
         actions=actions or [],
         confirmation=confirmation,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
