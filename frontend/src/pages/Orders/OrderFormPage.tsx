@@ -463,7 +463,7 @@ export function OrderFormPage() {
           >
             Revisar pedido
           </SaveButton>
-          <FormExit to="/pedidos" blocked={busy}>
+          <FormExit to="/pedidos" blocked={busy} dirty={dirty}>
             Cancelar
           </FormExit>
         </div>

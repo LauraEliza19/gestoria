@@ -276,6 +276,7 @@ export function FiscalDocumentsPage() {
         fromProduction={fromProduction}
         returnBlocked={formWriting}
         busy={busy}
+        dirty={formDirty}
         canCreate={canEdit && (!orderFilter || !isOccupied(orderFilter))}
         formOpen={showForm && canEdit}
         onStart={() => (showForm ? focusForm() : start())}

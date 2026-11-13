@@ -366,7 +366,7 @@ export function EmployeeRecordDetailPage() {
               )}
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
-                <FormExit onClick={closeAction} blocked={saving}>
+                <FormExit onClick={closeAction} blocked={saving} dirty={actionText !== ''}>
                   Cancelar
                 </FormExit>
                 <SaveButton

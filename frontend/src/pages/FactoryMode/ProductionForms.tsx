@@ -155,7 +155,7 @@ export function StockForm({
         <SaveButton saving={saving} disabled={busy}>
           Salvar item
         </SaveButton>
-        <FormExit onClick={onCancel} blocked={saving}>
+        <FormExit onClick={onCancel} blocked={saving} dirty={dirty}>
           Cancelar
         </FormExit>
       </div>
@@ -401,7 +401,7 @@ export function RecipeForm({
         <SaveButton saving={saving} disabled={busy}>
           Salvar receita
         </SaveButton>
-        <FormExit onClick={onCancel} blocked={saving}>
+        <FormExit onClick={onCancel} blocked={saving} dirty={dirty}>
           Cancelar
         </FormExit>
       </div>

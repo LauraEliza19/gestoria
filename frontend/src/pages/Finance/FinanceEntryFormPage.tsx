@@ -480,7 +480,7 @@ function FinanceEntryForm({ entryId }: { entryId: string | undefined }) {
             </div>
           )}
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-            <FormExit to="/financeiro" blocked={busy}>
+            <FormExit to="/financeiro" blocked={busy} dirty={dirty || queuedFiles.length > 0}>
               Cancelar
             </FormExit>
             <SaveButton

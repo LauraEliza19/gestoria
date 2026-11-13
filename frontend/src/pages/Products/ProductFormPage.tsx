@@ -469,7 +469,7 @@ function ProductForm({ id }: { id: string | null }) {
 
         <div className="flex flex-wrap gap-3">
           <SaveButton saving={saving}>Salvar produto</SaveButton>
-          <FormExit to="/produtos" blocked={saving}>
+          <FormExit to="/produtos" blocked={saving} dirty={dirty}>
             Cancelar
           </FormExit>
         </div>

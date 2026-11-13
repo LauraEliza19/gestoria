@@ -362,7 +362,7 @@ export function EmploymentFormPage() {
         )}
 
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <FormExit to={`/gestao/funcionarios/${employee.id}`} blocked={saving}>
+          <FormExit to={`/gestao/funcionarios/${employee.id}`} blocked={saving} dirty={dirty}>
             Cancelar
           </FormExit>
 

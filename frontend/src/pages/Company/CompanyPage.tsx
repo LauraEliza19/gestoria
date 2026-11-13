@@ -139,7 +139,7 @@ export function CompanyPage() {
 
         <div className="col-span-full flex flex-wrap gap-3">
           <SaveButton saving={saving}>Salvar alterações</SaveButton>
-          <FormExit to="/dashboard" blocked={saving}>
+          <FormExit to="/dashboard" blocked={saving} dirty={dirty}>
             Cancelar
           </FormExit>
         </div>

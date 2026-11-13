@@ -1,6 +1,7 @@
 import type { Ref } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { FormExit, type FormDestination } from './FormActions'
+import { useUnsavedChangesWarning } from './useFormState'
 
 type FormHeaderProps = {
   module: string
@@ -43,6 +44,8 @@ export function FormHeader({
 }: FormHeaderProps) {
   const { label, ...destination } = back
 
+  useUnsavedChangesWarning(dirty && !blocked)
+
   return (
     <header className={`form-heading ${Heading === 'h1' ? 'page-header' : 'mb-4'}`}>
       <div className="min-w-0">
@@ -84,7 +87,7 @@ export function FormHeader({
           </span>
         </div>
       </div>
-      <FormExit {...destination} blocked={blocked}>
+      <FormExit {...destination} blocked={blocked} dirty={dirty}>
         <ArrowLeft size={16} aria-hidden="true" />
         {label}
       </FormExit>

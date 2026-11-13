@@ -1,9 +1,29 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 export const FormSuccessContext = createContext<(message: string) => void>(() => {})
 
 export function useFormSuccess() {
   return useContext(FormSuccessContext)
+}
+
+export const UNSAVED_FORM_MESSAGE =
+  'Existem alterações não salvas. Deseja sair e descartar essas alterações?'
+
+export function useUnsavedChangesWarning(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return
+
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', warnBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', warnBeforeUnload)
+    }
+  }, [enabled])
 }
 
 export function useSaveAction<Action extends string = never>() {
