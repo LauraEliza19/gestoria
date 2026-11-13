@@ -7,6 +7,7 @@ type FiscalHeaderProps = {
   returnBlocked: boolean
   canCreate: boolean
   formOpen?: boolean
+  dirty?: boolean
   onStart: () => void
 }
 
@@ -15,6 +16,7 @@ export function FiscalHeader({
   fromProduction,
   busy,
   returnBlocked,
+  dirty = false,
   canCreate,
   formOpen = false,
   onStart,
@@ -31,6 +33,7 @@ export function FiscalHeader({
         {orderFilter && (
           <FormExit
             blocked={returnBlocked}
+            dirty={dirty}
             to={`/pedidos?order_id=${orderFilter}${fromProduction ? '&from=production' : ''}`}
           >
             Voltar ao pedido

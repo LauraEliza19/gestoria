@@ -363,7 +363,11 @@ function SettleModal({
             </p>
           )}
           <div className="flex justify-end gap-3">
-            <FormExit onClick={close} blocked={saving}>
+            <FormExit
+              onClick={close}
+              blocked={saving}
+              dirty={(!settled && paidDate !== initialPaidDate) || files.length > 0}
+            >
               {settled ? 'Fechar' : 'Cancelar'}
             </FormExit>
             <SaveButton saving={saving} icon={<CheckCircle2 size={17} aria-hidden="true" />}>

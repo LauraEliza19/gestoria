@@ -289,7 +289,7 @@ function CustomerForm({ id }: { id: string | null }) {
 
         <div className="flex flex-wrap gap-3">
           <SaveButton saving={saving}>Salvar cliente</SaveButton>
-          <FormExit to="/clientes" blocked={saving}>
+          <FormExit to="/clientes" blocked={saving} dirty={dirty}>
             Cancelar
           </FormExit>
         </div>

@@ -249,7 +249,7 @@ export function CostCenterFormPage() {
           )}
 
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-            <FormExit to="/gestao/centros-de-custo" blocked={saving}>
+            <FormExit to="/gestao/centros-de-custo" blocked={saving} dirty={dirty}>
               Cancelar
             </FormExit>
 

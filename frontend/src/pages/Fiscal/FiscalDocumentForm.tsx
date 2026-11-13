@@ -452,7 +452,7 @@ export function FiscalDocumentForm({
           <SaveButton saving={saving} disabled={busy || loading}>
             Registrar documento
           </SaveButton>
-          <FormExit onClick={onClose} blocked={saving || supplierSaving}>
+          <FormExit onClick={onClose} blocked={saving || supplierSaving} dirty={dirty}>
             Fechar formulário
           </FormExit>
         </div>

@@ -167,7 +167,7 @@ export function StockUsageForm({
         >
           {valid ? `Usei ${amount}` : 'Registrar uso'}
         </SaveButton>
-        <FormExit onClick={onCancel} blocked={saving}>
+        <FormExit onClick={onCancel} blocked={saving} dirty={text !== ''}>
           Cancelar
         </FormExit>
       </div>

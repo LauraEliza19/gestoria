@@ -1,6 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { UNSAVED_FORM_MESSAGE } from './useFormState'
 
 type SavingFormProps = ComponentPropsWithoutRef<'form'> & { saving: boolean }
 
@@ -53,10 +54,15 @@ export type FormDestination = { to: string } | { href: string } | { onClick: () 
 type FormExitProps = FormDestination & {
   blocked?: boolean
   children: ReactNode
+  dirty?: boolean
 }
 
-export function FormExit({ blocked, children, ...destination }: FormExitProps) {
+export function FormExit({ blocked, dirty, children, ...destination }: FormExitProps) {
   const className = 'secondary-button gap-2 disabled:cursor-not-allowed disabled:opacity-60'
+
+  function canExit() {
+    return !dirty || window.confirm(UNSAVED_FORM_MESSAGE)
+  }
 
   if (blocked) {
     return (
@@ -68,7 +74,13 @@ export function FormExit({ blocked, children, ...destination }: FormExitProps) {
 
   if ('to' in destination) {
     return (
-      <Link className={className} to={destination.to}>
+      <Link
+        className={className}
+        to={destination.to}
+        onClick={(event) => {
+          if (!canExit()) event.preventDefault()
+        }}
+      >
         {children}
       </Link>
     )
@@ -76,14 +88,26 @@ export function FormExit({ blocked, children, ...destination }: FormExitProps) {
 
   if ('href' in destination) {
     return (
-      <a className={className} href={destination.href}>
+      <a
+        className={className}
+        href={destination.href}
+        onClick={(event) => {
+          if (!canExit()) event.preventDefault()
+        }}
+      >
         {children}
       </a>
     )
   }
 
   return (
-    <button className={className} type="button" onClick={destination.onClick}>
+    <button
+      className={className}
+      type="button"
+      onClick={() => {
+        if (canExit()) destination.onClick()
+      }}
+    >
       {children}
     </button>
   )

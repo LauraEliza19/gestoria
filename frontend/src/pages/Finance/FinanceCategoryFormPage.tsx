@@ -160,7 +160,7 @@ function FinanceCategoryForm({ categoryId }: { categoryId: string | undefined })
           </p>
         )}
         <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-          <FormExit to="/financeiro" blocked={saving}>
+          <FormExit to="/financeiro" blocked={saving} dirty={dirty}>
             Cancelar
           </FormExit>
           <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>
