@@ -1,6 +1,7 @@
 import { AuditPage } from '../pages/Audit/AuditPage'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { Component, Suspense, lazy, useEffect, useState } from 'react'
+import type { ErrorInfo, ReactNode } from 'react'
 import { DashboardPage } from '../pages/Dashboard/DashboardPage'
 import { CustomerFormPage } from '../pages/Customers/CustomerFormPage'
 import { CustomerProfilePage } from '../pages/Customers/CustomerProfilePage'
@@ -8,31 +9,205 @@ import { CustomersPage } from '../pages/Customers/CustomersPage'
 import { ProductFormPage } from '../pages/Products/ProductFormPage'
 import { ProductsPage } from '../pages/Products/ProductsPage'
 import { CompanyPage } from '../pages/Company/CompanyPage'
-import { OrdersPage } from '../pages/Orders/OrdersPage'
-import { OrderFormPage } from '../pages/Orders/OrderFormPage'
-import { QuotesPage } from '../pages/Quotes/QuotesPage'
 import { CopilotPage } from '../pages/Copilot/CopilotPage'
-import { FactoryModePage } from '../pages/FactoryMode/FactoryModePage'
-import { FiscalDocumentsPage } from '../pages/Fiscal/FiscalDocumentsPage'
 import { LoginPage } from '../pages/Login/LoginPage'
-import { ManagementPage } from '../pages/Management/ManagementPage'
-import { EmployeesPage } from '../pages/Management/EmployeesPage'
-import { EmployeeRecordDetailPage } from '../pages/Management/EmployeeRecordDetailPage'
-import { EmployeeProfilePage } from '../pages/Management/EmployeeProfilePage'
-import { EmployeeRecordFormPage } from '../pages/Management/EmployeeRecordFormPage'
-import { EmploymentFormPage } from '../pages/Management/EmploymentFormPage'
-import { CostCentersPage } from '../pages/Management/CostCentersPage'
-import { EmployeeFormPage } from '../pages/Management/EmployeeFormPage'
-import { CostCenterFormPage } from '../pages/Management/CostCenterFormPage'
-import { FinancePage } from '../pages/Finance/FinancePage'
-import { FinanceCategoryFormPage } from '../pages/Finance/FinanceCategoryFormPage'
-import { FinanceEntryFormPage } from '../pages/Finance/FinanceEntryFormPage'
-import { FinanceAuditPage } from '../pages/Finance/FinanceAuditPage'
-import { FinanceAccountsPage } from '../pages/Finance/FinanceAccountsPage'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { clearSession, logoutSession } from '../services/session'
 import { SessionProvider } from '../contexts/SessionContext'
 import { PermissionGate } from '../components/PermissionGate'
+
+// Módulos carregados sob demanda: cada página vira um chunk separado e só é baixada
+// quando a rota é acessada. Dashboard, Login, Clientes e Produtos seguem no pacote inicial.
+
+// Financeiro
+const FinancePage = lazy(() =>
+  import('../pages/Finance/FinancePage').then((module) => ({ default: module.FinancePage })),
+)
+const FinanceCategoryFormPage = lazy(() =>
+  import('../pages/Finance/FinanceCategoryFormPage').then((module) => ({
+    default: module.FinanceCategoryFormPage,
+  })),
+)
+const FinanceEntryFormPage = lazy(() =>
+  import('../pages/Finance/FinanceEntryFormPage').then((module) => ({
+    default: module.FinanceEntryFormPage,
+  })),
+)
+const FinanceAuditPage = lazy(() =>
+  import('../pages/Finance/FinanceAuditPage').then((module) => ({
+    default: module.FinanceAuditPage,
+  })),
+)
+const FinanceAccountsPage = lazy(() =>
+  import('../pages/Finance/FinanceAccountsPage').then((module) => ({
+    default: module.FinanceAccountsPage,
+  })),
+)
+
+// Fiscal
+const FiscalDocumentsPage = lazy(() =>
+  import('../pages/Fiscal/FiscalDocumentsPage').then((module) => ({
+    default: module.FiscalDocumentsPage,
+  })),
+)
+
+// Produção
+const FactoryModePage = lazy(() =>
+  import('../pages/FactoryMode/FactoryModePage').then((module) => ({
+    default: module.FactoryModePage,
+  })),
+)
+
+// Gestão
+const ManagementPage = lazy(() =>
+  import('../pages/Management/ManagementPage').then((module) => ({
+    default: module.ManagementPage,
+  })),
+)
+const EmployeesPage = lazy(() =>
+  import('../pages/Management/EmployeesPage').then((module) => ({ default: module.EmployeesPage })),
+)
+const EmployeeRecordDetailPage = lazy(() =>
+  import('../pages/Management/EmployeeRecordDetailPage').then((module) => ({
+    default: module.EmployeeRecordDetailPage,
+  })),
+)
+const EmployeeProfilePage = lazy(() =>
+  import('../pages/Management/EmployeeProfilePage').then((module) => ({
+    default: module.EmployeeProfilePage,
+  })),
+)
+const EmployeeRecordFormPage = lazy(() =>
+  import('../pages/Management/EmployeeRecordFormPage').then((module) => ({
+    default: module.EmployeeRecordFormPage,
+  })),
+)
+const EmploymentFormPage = lazy(() =>
+  import('../pages/Management/EmploymentFormPage').then((module) => ({
+    default: module.EmploymentFormPage,
+  })),
+)
+const CostCentersPage = lazy(() =>
+  import('../pages/Management/CostCentersPage').then((module) => ({
+    default: module.CostCentersPage,
+  })),
+)
+const EmployeeFormPage = lazy(() =>
+  import('../pages/Management/EmployeeFormPage').then((module) => ({
+    default: module.EmployeeFormPage,
+  })),
+)
+const CostCenterFormPage = lazy(() =>
+  import('../pages/Management/CostCenterFormPage').then((module) => ({
+    default: module.CostCenterFormPage,
+  })),
+)
+
+// Comercial (pedidos e orçamentos)
+const OrdersPage = lazy(() =>
+  import('../pages/Orders/OrdersPage').then((module) => ({ default: module.OrdersPage })),
+)
+const OrderFormPage = lazy(() =>
+  import('../pages/Orders/OrderFormPage').then((module) => ({ default: module.OrderFormPage })),
+)
+const QuotesPage = lazy(() =>
+  import('../pages/Quotes/QuotesPage').then((module) => ({ default: module.QuotesPage })),
+)
+
+function RouteLoadingFallback() {
+  return (
+    <div
+      className="mx-auto grid min-h-[50vh] w-full max-w-[1180px] place-items-center p-7"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <p className="text-sm text-muted">Carregando módulo, aguarde...</p>
+    </div>
+  )
+}
+
+// Mensagens dos navegadores quando o download de um chunk falha
+// (Chrome/Edge, Firefox, Safari) e o erro de preload emitido pelo Vite.
+const CHUNK_LOAD_ERROR =
+  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload/i
+
+function isChunkLoadError(error: Error) {
+  return CHUNK_LOAD_ERROR.test(error.message)
+}
+
+type RouteErrorBoundaryProps = {
+  children: ReactNode
+  resetKey: string
+}
+
+type RouteErrorBoundaryState = {
+  error: Error | null
+}
+
+class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
+  state: RouteErrorBoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: Error): RouteErrorBoundaryState {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Falha ao carregar o módulo da rota.', error, info.componentStack)
+  }
+
+  componentDidUpdate(previousProps: RouteErrorBoundaryProps) {
+    if (this.state.error && previousProps.resetKey !== this.props.resetKey) {
+      this.setState({ error: null })
+    }
+  }
+
+  render() {
+    if (!this.state.error) {
+      return this.props.children
+    }
+
+    const chunkFailed = isChunkLoadError(this.state.error)
+
+    return (
+      <section
+        className="mx-auto grid min-h-[50vh] w-full max-w-lg place-items-center p-7"
+        role="alert"
+        aria-labelledby="route-load-error-title"
+      >
+        <div className="w-full rounded-xl border border-line bg-white p-7 text-center">
+          <h1 className="font-display text-2xl font-semibold" id="route-load-error-title">
+            {chunkFailed
+              ? 'Não foi possível carregar esta página'
+              : 'Ocorreu um erro ao exibir esta página'}
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            {chunkFailed
+              ? 'Verifique sua conexão com a internet e tente novamente. Se o sistema foi atualizado recentemente, recarregar a página resolve o problema.'
+              : 'Recarregue a página para tentar novamente. Se o erro continuar, avise o suporte.'}
+          </p>
+          <button
+            className="primary-button mt-6"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </section>
+    )
+  }
+}
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  const location = useLocation()
+
+  return (
+    <RouteErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={<RouteLoadingFallback />}>{children}</Suspense>
+    </RouteErrorBoundary>
+  )
+}
 
 function ProtectedLayout() {
   return (
@@ -180,7 +355,9 @@ export function AppRouter() {
             path="/financeiro"
             element={
               <PermissionGate permission="finance:read">
-                <FinancePage />
+                <LazyRoute>
+                  <FinancePage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -188,7 +365,9 @@ export function AppRouter() {
             path="/financeiro/contas"
             element={
               <PermissionGate permission="finance:read">
-                <FinanceAccountsPage />
+                <LazyRoute>
+                  <FinanceAccountsPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -196,7 +375,9 @@ export function AppRouter() {
             path="/financeiro/auditoria"
             element={
               <PermissionGate permission="finance:audit">
-                <FinanceAuditPage />
+                <LazyRoute>
+                  <FinanceAuditPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -204,7 +385,9 @@ export function AppRouter() {
             path="/financeiro/categorias/nova"
             element={
               <PermissionGate permission="finance:manage">
-                <FinanceCategoryFormPage />
+                <LazyRoute>
+                  <FinanceCategoryFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -212,7 +395,9 @@ export function AppRouter() {
             path="/financeiro/categorias/:categoryId/editar"
             element={
               <PermissionGate permission="finance:manage">
-                <FinanceCategoryFormPage />
+                <LazyRoute>
+                  <FinanceCategoryFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -220,7 +405,9 @@ export function AppRouter() {
             path="/financeiro/lancamentos/novo"
             element={
               <PermissionGate permission="finance:manage">
-                <FinanceEntryFormPage />
+                <LazyRoute>
+                  <FinanceEntryFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -228,7 +415,9 @@ export function AppRouter() {
             path="/financeiro/lancamentos/:entryId/editar"
             element={
               <PermissionGate permission="finance:manage">
-                <FinanceEntryFormPage />
+                <LazyRoute>
+                  <FinanceEntryFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -236,7 +425,9 @@ export function AppRouter() {
             path="/gestao"
             element={
               <PermissionGate permission="management:read">
-                <ManagementPage />
+                <LazyRoute>
+                  <ManagementPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -244,7 +435,9 @@ export function AppRouter() {
             path="/gestao/funcionarios"
             element={
               <PermissionGate permission="management:read">
-                <EmployeesPage />
+                <LazyRoute>
+                  <EmployeesPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -252,7 +445,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/novo"
             element={
               <PermissionGate permission="employees:manage">
-                <EmployeeFormPage />
+                <LazyRoute>
+                  <EmployeeFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -261,7 +456,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId/editar"
             element={
               <PermissionGate permission="employees:manage">
-                <EmployeeFormPage />
+                <LazyRoute>
+                  <EmployeeFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -269,7 +466,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId/registros/:recordId"
             element={
               <PermissionGate permission="employees:manage">
-                <EmployeeRecordDetailPage />
+                <LazyRoute>
+                  <EmployeeRecordDetailPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -277,7 +476,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId/registros/novo"
             element={
               <PermissionGate permission="employees:manage">
-                <EmployeeRecordFormPage />
+                <LazyRoute>
+                  <EmployeeRecordFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -286,7 +487,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId/registros/:recordId/editar"
             element={
               <PermissionGate permission="employees:manage">
-                <EmployeeRecordFormPage />
+                <LazyRoute>
+                  <EmployeeRecordFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -294,7 +497,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId/vinculos/novo"
             element={
               <PermissionGate permission="employees:manage">
-                <EmploymentFormPage />
+                <LazyRoute>
+                  <EmploymentFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -303,7 +508,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId/vinculos/:employmentId/editar"
             element={
               <PermissionGate permission="employees:manage">
-                <EmploymentFormPage />
+                <LazyRoute>
+                  <EmploymentFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -311,7 +518,9 @@ export function AppRouter() {
             path="/gestao/funcionarios/:employeeId"
             element={
               <PermissionGate permission="management:read">
-                <EmployeeProfilePage />
+                <LazyRoute>
+                  <EmployeeProfilePage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -319,7 +528,9 @@ export function AppRouter() {
             path="/gestao/centros-de-custo"
             element={
               <PermissionGate permission="cost_centers:manage">
-                <CostCentersPage />
+                <LazyRoute>
+                  <CostCentersPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -327,7 +538,9 @@ export function AppRouter() {
             path="/gestao/centros-de-custo/novo"
             element={
               <PermissionGate permission="cost_centers:manage">
-                <CostCenterFormPage />
+                <LazyRoute>
+                  <CostCenterFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -336,7 +549,9 @@ export function AppRouter() {
             path="/gestao/centros-de-custo/:costCenterId/editar"
             element={
               <PermissionGate permission="cost_centers:manage">
-                <CostCenterFormPage />
+                <LazyRoute>
+                  <CostCenterFormPage />
+                </LazyRoute>
               </PermissionGate>
             }
           />
@@ -353,12 +568,47 @@ export function AppRouter() {
               </PermissionGate>
             }
           />
-          <Route path="/pedidos" element={<OrdersPage />} />
-          <Route path="/pedidos/novo" element={<OrderFormPage />} />
-          <Route path="/orcamentos" element={<QuotesPage />} />
+          <Route
+            path="/pedidos"
+            element={
+              <LazyRoute>
+                <OrdersPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="/pedidos/novo"
+            element={
+              <LazyRoute>
+                <OrderFormPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="/orcamentos"
+            element={
+              <LazyRoute>
+                <QuotesPage />
+              </LazyRoute>
+            }
+          />
           <Route path="/copiloto" element={<CopilotPage />} />
-          <Route path="/modo-fabrica" element={<FactoryModePage />} />
-          <Route path="/notas-fiscais" element={<FiscalDocumentsPage />} />
+          <Route
+            path="/modo-fabrica"
+            element={
+              <LazyRoute>
+                <FactoryModePage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="/notas-fiscais"
+            element={
+              <LazyRoute>
+                <FiscalDocumentsPage />
+              </LazyRoute>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to={'/dashboard'} replace />} />
       </Routes>
