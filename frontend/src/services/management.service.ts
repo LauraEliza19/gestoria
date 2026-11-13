@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch, apiFetchItems } from './api'
 import type {
   CostCenter,
   CostCenterCreatePayload,
@@ -57,7 +57,7 @@ export function updateCostCenter(
 export function listEmployees(activeOnly = false): Promise<EmployeeSummary[]> {
   const query = activeOnly ? '?active_only=true' : ''
 
-  return apiFetch<EmployeeSummary[]>(`${MANAGEMENT_URL}/employees${query}`)
+  return apiFetchItems<EmployeeSummary>(`${MANAGEMENT_URL}/employees${query}`)
 }
 
 export function getEmployee(employeeId: string): Promise<Employee> {
