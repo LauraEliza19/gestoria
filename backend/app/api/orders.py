@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
@@ -22,6 +23,35 @@ def order_not_found() -> HTTPException:
     return HTTPException(status_code=404, detail="Pedido não encontrado.")
 
 
+def normalize_promised_range(
+    promised_from: datetime | None,
+    promised_to: datetime | None,
+) -> tuple[datetime | None, datetime | None]:
+    for value in (promised_from, promised_to):
+        if value is not None and value.utcoffset() is None:
+            raise HTTPException(
+                status_code=422,
+                detail="O período da agenda deve informar o fuso horário.",
+            )
+
+    normalized_from = (
+        promised_from.astimezone(UTC) if promised_from is not None else None
+    )
+    normalized_to = promised_to.astimezone(UTC) if promised_to is not None else None
+
+    if (
+        normalized_from is not None
+        and normalized_to is not None
+        and normalized_from >= normalized_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="O início do período deve ser anterior ao final.",
+        )
+
+    return normalized_from, normalized_to
+
+
 @router.get("", response_model=PaginatedResponse[OrderRead])
 def list_orders(
     db: DatabaseSession,
@@ -35,10 +65,16 @@ def list_orders(
         pattern="^(in_preparation|in_production|ready|completed|cancelled)$",
     ),
     priority: str | None = Query(default=None, pattern="^(normal|high|urgent)$"),
+    promised_from: datetime | None = None,
+    promised_to: datetime | None = None,
     sort: str = Query(
         default="created_at", pattern="^(created_at|promised_at|total_amount)$"
     ),
 ) -> PaginatedResponse[OrderRead]:
+    promised_from, promised_to = normalize_promised_range(
+        promised_from,
+        promised_to,
+    )
     result = OrderRepository.list_for_organization(
         db,
         current.organization.id,
@@ -47,6 +83,8 @@ def list_orders(
         search=search,
         status=status_filter,
         priority=priority,
+        promised_from=promised_from,
+        promised_to=promised_to,
         sort=sort,
     )
     result["items"] = [_build_order_read(order) for order in result["items"]]

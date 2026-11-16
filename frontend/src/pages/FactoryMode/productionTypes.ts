@@ -43,3 +43,20 @@ export const compatible = (unit: Unit): Unit[] =>
   unit === 'g' || unit === 'kg' ? ['g', 'kg'] : unit === 'ml' || unit === 'L' ? ['ml', 'L'] : ['un']
 export const reference = (choice: IngredientChoice): IngredientReference =>
   choice.id ? { ingredient_id: choice.id } : { ingredient_name: choice.name.trim() }
+
+export type Order = {
+  id: string
+  customer_name: string
+  status: 'in_preparation' | 'in_production' | 'ready' | 'completed' | 'cancelled'
+  promised_at?: string | null
+  priority?: 'normal' | 'high' | 'urgent'
+  notes?: string | null
+  items: {
+    product_id: string
+    product_name: string
+    quantity: string
+    recipe_id?: string | null
+    unit_of_measure?: string | null
+  }[]
+  created_at: string
+}

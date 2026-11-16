@@ -20,6 +20,8 @@ class OrderRepository:
         search: str | None = None,
         status: str | None = None,
         priority: str | None = None,
+        promised_from: datetime | None = None,
+        promised_to: datetime | None = None,
         sort: str = "created_at",
     ):
         query = (
@@ -37,6 +39,10 @@ class OrderRepository:
             query = query.where(Order.status == status)
         if priority:
             query = query.where(Order.priority == priority)
+        if promised_from:
+            query = query.where(Order.promised_at >= promised_from)
+        if promised_to:
+            query = query.where(Order.promised_at < promised_to)
         ordering = {
             "created_at": (Order.created_at.desc(),),
             "promised_at": (Order.promised_at.asc().nulls_last(),),
