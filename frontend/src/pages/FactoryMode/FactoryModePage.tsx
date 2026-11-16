@@ -8,12 +8,16 @@ import { ProductionAgenda } from './ProductionAgenda'
 import { OrderSupplies, SupplyBadge } from './OrderSupplies'
 import { byQueueOrder, normalizeText as normalize, planQueueSupplies } from './availability'
 import { loadQueueAndSupplies } from './queueRefresh'
+import {
+  isOperationalOrderStatus,
+  nextOperationalStatus,
+  operationalActionLabel,
+} from './orderWorkflow'
 import type { Order, Snapshot } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 
 type Queue = 'active' | 'completed'
 
-const activeStatuses: Order['status'][] = ['in_preparation', 'in_production', 'ready']
 const statusLabels: Record<Order['status'], string> = {
   in_preparation: 'Confirmado',
   in_production: 'Em produção',
@@ -43,9 +47,17 @@ export function FactoryModePage() {
   const [notice, setNotice] = useState('')
   const busy = useRef(true)
 
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const highlightedOrderId = searchParams.get('order_id')
   const agendaDate = searchParams.get('date')
+
+  function changeAgendaDate(date: string) {
+    const nextParams = new URLSearchParams(searchParams)
+
+    nextParams.set('date', date)
+    nextParams.delete('order_id')
+    setSearchParams(nextParams, { replace: true })
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -78,7 +90,7 @@ export function FactoryModePage() {
     }
 
     const hasHighlightedOrder = orders.some(
-      (order) => order.id === highlightedOrderId && activeStatuses.includes(order.status),
+      (order) => order.id === highlightedOrderId && isOperationalOrderStatus(order.status),
     )
 
     if (!hasHighlightedOrder) {
@@ -97,6 +109,7 @@ export function FactoryModePage() {
 
   async function refresh() {
     if (busy.current) return
+
     busy.current = true
     setLoading(true)
     setError('')
@@ -124,7 +137,9 @@ export function FactoryModePage() {
   }
 
   async function updateStatus(order: Order) {
-    if (busy.current) return
+    const nextStatus = nextOperationalStatus(order.status)
+
+    if (busy.current || !nextStatus) return
 
     busy.current = true
     setCompleting(order.id)
@@ -133,12 +148,6 @@ export function FactoryModePage() {
     setCompletedOrder(null)
 
     try {
-      const nextStatus =
-        order.status === 'in_preparation'
-          ? 'in_production'
-          : order.status === 'in_production'
-            ? 'ready'
-            : 'completed'
       const updated = await apiFetch<Order>(`/api/orders/${order.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -162,7 +171,7 @@ export function FactoryModePage() {
     }
   }
 
-  const pending = orders.filter((order) => activeStatuses.includes(order.status))
+  const pending = orders.filter((order) => isOperationalOrderStatus(order.status))
   const completed = orders.filter((order) => order.status === 'completed')
   const pendingItems = pending.reduce(
     (total, order) => total + order.items.reduce((sum, item) => sum + Number(item.quantity), 0),
@@ -231,7 +240,11 @@ export function FactoryModePage() {
         </button>
       </div>
       {area === 'agenda' ? (
-        <ProductionAgenda key={agendaDate ?? 'today'} initialDate={agendaDate} />
+        <ProductionAgenda
+          key={agendaDate ?? 'today'}
+          initialDate={agendaDate}
+          onDateChange={changeAgendaDate}
+        />
       ) : area === 'production' ? (
         <ProductionPanel initialView={productionView} onSnapshot={setSnapshot} />
       ) : (
@@ -504,7 +517,7 @@ export function FactoryModePage() {
                           Ver pedido
                         </Link>
 
-                        {activeStatuses.includes(order.status) && (
+                        {isOperationalOrderStatus(order.status) && (
                           <button
                             type="button"
                             className="primary-button w-full gap-2 sm:w-auto"
@@ -515,11 +528,7 @@ export function FactoryModePage() {
                             <Check size={17} aria-hidden="true" />
                             {completing === order.id
                               ? 'Atualizando...'
-                              : order.status === 'in_preparation'
-                                ? 'Iniciar produção'
-                                : order.status === 'in_production'
-                                  ? 'Marcar como pronto'
-                                  : 'Marcar como entregue'}
+                              : operationalActionLabel(order.status)}
                           </button>
                         )}
                       </div>

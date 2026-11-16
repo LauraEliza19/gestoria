@@ -45,3 +45,21 @@ test('order navigation preserves the selected agenda date', () => {
   assert.match(orders, /params\.set\('date', selectedDate\)/)
   assert.match(orders, /productionPath\(order, agendaDate\)/)
 })
+
+test('production agenda advances orders with protected operator feedback', () => {
+  assert.ok(agenda.includes('apiFetch<Order>(`/api/orders/${order.id}`'))
+  assert.match(agenda, /method: 'PATCH'/)
+  assert.match(agenda, /status: nextStatus/)
+  assert.match(agenda, /disabled=\{updatingId !== null\}/)
+  assert.match(agenda, /Atualizando\.\.\./)
+  assert.match(agenda, /role="alert"/)
+  assert.match(agenda, /aria-live="polite"/)
+})
+
+test('selected agenda date is synchronized with the browser address', () => {
+  assert.match(agenda, /onDateChange\?\.\(value\)/)
+  assert.match(factory, /nextParams\.set\('date', date\)/)
+  assert.match(factory, /nextParams\.delete\('order_id'\)/)
+  assert.match(factory, /setSearchParams\(nextParams, \{ replace: true \}\)/)
+  assert.match(factory, /onDateChange=\{changeAgendaDate\}/)
+})

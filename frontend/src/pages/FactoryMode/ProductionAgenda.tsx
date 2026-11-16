@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { CalendarDays, Check, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import type { PaginatedResponse } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import {
+  isOperationalOrderStatus,
+  nextOperationalStatus,
+  operationalActionLabel,
+} from './orderWorkflow'
 import type { Order } from './productionTypes'
 
 const statusLabels: Record<Order['status'], string> = {
@@ -47,6 +52,7 @@ const agendaPageSize = 20
 
 type ProductionAgendaProps = {
   initialDate?: string | null
+  onDateChange?: (date: string) => void
 }
 
 function isDateInputValue(value: string | null | undefined): value is string {
@@ -89,7 +95,7 @@ function getDayRange(date: string) {
   }
 }
 
-export function ProductionAgenda({ initialDate }: ProductionAgendaProps) {
+export function ProductionAgenda({ initialDate, onDateChange }: ProductionAgendaProps) {
   const [selectedDate, setSelectedDate] = useState(() =>
     isDateInputValue(initialDate) ? initialDate : todayAsInputValue(),
   )
@@ -99,6 +105,9 @@ export function ProductionAgenda({ initialDate }: ProductionAgendaProps) {
   const [hasNext, setHasNext] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
+  const [notice, setNotice] = useState('')
 
   function changeSelectedDate(value: string) {
     if (value === selectedDate) {
@@ -107,7 +116,10 @@ export function ProductionAgenda({ initialDate }: ProductionAgendaProps) {
 
     setLoading(true)
     setError('')
+    setActionError('')
+    setNotice('')
     setPage(1)
+    onDateChange?.(value)
     setSelectedDate(value)
   }
 
@@ -118,7 +130,39 @@ export function ProductionAgenda({ initialDate }: ProductionAgendaProps) {
 
     setLoading(true)
     setError('')
+    setActionError('')
+    setNotice('')
     setPage(nextPage)
+  }
+
+  async function updateStatus(order: Order) {
+    const nextStatus = nextOperationalStatus(order.status)
+
+    if (!nextStatus || updatingId !== null) {
+      return
+    }
+
+    setUpdatingId(order.id)
+    setActionError('')
+    setNotice('')
+
+    try {
+      const updated = await apiFetch<Order>(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: nextStatus,
+        }),
+      })
+
+      setOrders((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setNotice(`Pedido atualizado para ${statusLabels[updated.status].toLowerCase()}.`)
+    } catch (reason) {
+      setActionError(
+        `${getErrorMessage(reason, 'Não foi possível atualizar o pedido.')} O pedido exibido foi mantido.`,
+      )
+    } finally {
+      setUpdatingId(null)
+    }
   }
 
   useEffect(() => {
@@ -237,6 +281,25 @@ export function ProductionAgenda({ initialDate }: ProductionAgendaProps) {
         </div>
       )}
 
+      {actionError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-[#f3cbd2] bg-[#fff4f6] p-4 text-sm text-[#a52c42]"
+        >
+          {actionError}
+        </div>
+      )}
+
+      {notice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-[#bfe8d8] bg-[#effbf6] p-4 text-sm text-[#28745b]"
+        >
+          {notice}
+        </div>
+      )}
+
       <div className="metric-grid md:!grid-cols-2 xl:!grid-cols-4" aria-busy={loading}>
         <article>
           <span>Entregas programadas</span>
@@ -344,12 +407,29 @@ export function ProductionAgenda({ initialDate }: ProductionAgendaProps) {
                       )}
                     </div>
 
-                    <Link
-                      className="secondary-button justify-center whitespace-nowrap"
-                      to={`/pedidos?order_id=${order.id}&from=production&agenda_date=${selectedDate}`}
-                    >
-                      Ver pedido
-                    </Link>
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        className="secondary-button justify-center whitespace-nowrap"
+                        to={`/pedidos?order_id=${order.id}&from=production&agenda_date=${selectedDate}`}
+                      >
+                        Ver pedido
+                      </Link>
+
+                      {isOperationalOrderStatus(order.status) && (
+                        <button
+                          type="button"
+                          className="primary-button justify-center gap-2 whitespace-nowrap"
+                          disabled={updatingId !== null}
+                          aria-label={`${operationalActionLabel(order.status)} para o pedido de ${order.customer_name}`}
+                          onClick={() => void updateStatus(order)}
+                        >
+                          <Check size={17} aria-hidden="true" />
+                          {updatingId === order.id
+                            ? 'Atualizando...'
+                            : operationalActionLabel(order.status)}
+                        </button>
+                      )}
+                    </div>
                   </li>
                 )
               })}
