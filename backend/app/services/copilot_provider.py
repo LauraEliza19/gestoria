@@ -107,11 +107,11 @@ class LocalCopilotProvider:
         request = CopilotProviderRequest.model_validate(request)
         if request.intent == "orders_in_preparation":
             if request.order_count == 0:
-                message = "Não há pedidos em preparo neste momento."
+                message = "Não há pedidos ativos neste momento."
             elif request.order_count == 1:
                 message = "Existe 1 pedido em preparo."
             else:
-                message = f"Existem {request.order_count} pedidos em preparo."
+                message = f"Existem {request.order_count} pedidos ativos."
         elif request.intent in GUIDED_RESPONSES:
             message = GUIDED_RESPONSES[request.intent][0]
         else:

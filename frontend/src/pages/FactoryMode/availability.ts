@@ -144,7 +144,9 @@ export function planQueueSupplies(
   }
   const reserved = new Map<string, number>()
   const plans = new Map<string, OrderSupplies>()
-  const queue = orders.filter((order) => order.status === 'in_preparation').sort(byQueueOrder)
+  const queue = orders
+    .filter((order) => ['in_preparation', 'in_production'].includes(order.status))
+    .sort(byQueueOrder)
 
   queue.forEach((order, index) => {
     const needs = new Map<string, { name: string; unit: Unit; milli: number }>()

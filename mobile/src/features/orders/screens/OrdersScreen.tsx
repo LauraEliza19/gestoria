@@ -52,6 +52,14 @@ const statusColors: Record<
     background: '#EAF0FF',
     text: sereneColors.primaryPressed,
   },
+  in_production: {
+    background: '#FFF3D6',
+    text: '#8A5A00',
+  },
+  ready: {
+    background: '#E6F7F4',
+    text: '#087A68',
+  },
   completed: {
     background: '#E5F6EE',
     text: '#16815B',
@@ -69,8 +77,10 @@ const filters: {
   value: OrderFilter;
 }[] = [
     { label: 'Todos', value: 'all' },
-    { label: 'Em preparo', value: 'in_preparation' },
-    { label: 'Concluídos', value: 'completed' },
+    { label: 'Confirmados', value: 'in_preparation' },
+    { label: 'Em produção', value: 'in_production' },
+    { label: 'Prontos', value: 'ready' },
+    { label: 'Entregues', value: 'completed' },
     { label: 'Cancelados', value: 'cancelled' },
   ];
 
@@ -425,6 +435,27 @@ export function OrdersScreen() {
               <Text style={styles.createdAt}>
                 Criado em {formatDate(order.created_at)}
               </Text>
+
+              <Text style={styles.createdAt}>
+                {order.promised_at
+                  ? `Entrega ${formatDate(order.promised_at)}`
+                  : 'Prazo de entrega não informado'}
+                {' · '}
+                {order.priority === 'urgent'
+                  ? 'Urgente'
+                  : order.priority === 'high'
+                    ? 'Prioridade alta'
+                    : 'Prioridade normal'}
+              </Text>
+
+              {order.notes ? (
+                <Text
+                  numberOfLines={2}
+                  style={styles.createdAt}
+                >
+                  {order.notes}
+                </Text>
+              ) : null}
 
               <View style={styles.divider} />
 

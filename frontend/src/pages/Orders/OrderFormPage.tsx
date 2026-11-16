@@ -10,8 +10,49 @@ import { getErrorMessage } from '../../utils/errors'
 
 type Customer = {
   id: string
+  code: string
   name: string
+  document: string | null
+  trade_name: string | null
+  person_type: 'individual' | 'company'
   is_active?: boolean
+}
+
+type CustomerSearchField = 'name' | 'code' | 'cpf' | 'cnpj'
+
+const customerSearchConfig: Record<
+  CustomerSearchField,
+  {
+    label: string
+    placeholder: string
+    hint: string
+    inputMode: 'search' | 'numeric'
+  }
+> = {
+  name: {
+    label: 'Nome',
+    placeholder: 'Digite o nome ou nome fantasia',
+    hint: 'Pesquise manualmente pelo nome ou nome fantasia do cliente.',
+    inputMode: 'search',
+  },
+  code: {
+    label: 'Código',
+    placeholder: 'Ex.: CLI-000001',
+    hint: 'Pesquise pelo código automático do cliente.',
+    inputMode: 'search',
+  },
+  cpf: {
+    label: 'CPF',
+    placeholder: 'Digite o CPF com ou sem pontuação',
+    hint: 'A pesquisa mostrará somente clientes pessoa física.',
+    inputMode: 'numeric',
+  },
+  cnpj: {
+    label: 'CNPJ',
+    placeholder: 'Digite o CNPJ com ou sem pontuação',
+    hint: 'A pesquisa mostrará somente clientes pessoa jurídica.',
+    inputMode: 'numeric',
+  },
 }
 
 type Product = {
@@ -40,6 +81,9 @@ type PlanItem = {
 type OrderPlan = {
   customer_id: string
   customer_name: string
+  promised_at: string | null
+  priority: 'normal' | 'high' | 'urgent'
+  notes: string | null
   items: PlanItem[]
   total_amount: string
 }
@@ -67,11 +111,33 @@ function newItem(): DraftItem {
   }
 }
 
+function defaultPromisedAt(): string {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  date.setHours(12, 0, 0, 0)
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+
+const priorityLabels = {
+  normal: 'Normal',
+  high: 'Alta',
+  urgent: 'Urgente',
+} as const
+
 function formatMoney(value: string | number): string {
   return Number(value).toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   })
+}
+
+function normalizeSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR')
+    .replace(/[\s./-]/g, '')
 }
 
 export function OrderFormPage() {
@@ -83,15 +149,57 @@ export function OrderFormPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [customerId, setCustomerId] = useState('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customerSearchField, setCustomerSearchField] = useState<CustomerSearchField>('name')
+  const [promisedAtBaseline] = useState(defaultPromisedAt)
+  const [promisedAt, setPromisedAt] = useState(promisedAtBaseline)
+  const [priority, setPriority] = useState<'normal' | 'high' | 'urgent'>('normal')
+  const [notes, setNotes] = useState('')
   const [items, setItems] = useState<DraftItem[]>([newItem()])
   const [proposal, setProposal] = useState<OrderProposal | null>(null)
   const [status, setStatus] = useState('Carregando clientes e produtos...')
   const { busy, pendingAction, run } = useSaveAction<'prepare' | 'confirm' | 'cancel'>()
+  const activeCustomerSearch = customerSearchConfig[customerSearchField]
+
+  const selectedCustomer = customers.find((customer) => customer.id === customerId) ?? null
+
+  const filteredCustomers = useMemo(() => {
+    const search = normalizeSearch(customerSearch)
+
+    return customers.filter((customer) => {
+      if (customerSearchField === 'cpf' && customer.person_type !== 'individual') {
+        return false
+      }
+
+      if (customerSearchField === 'cnpj' && customer.person_type !== 'company') {
+        return false
+      }
+
+      if (!search) {
+        return true
+      }
+
+      if (customerSearchField === 'name') {
+        return [customer.name, customer.trade_name ?? ''].some((value) =>
+          normalizeSearch(value).includes(search),
+        )
+      }
+
+      if (customerSearchField === 'code') {
+        return normalizeSearch(customer.code).includes(search)
+      }
+
+      return normalizeSearch(customer.document ?? '').includes(search)
+    })
+  }, [customers, customerSearch, customerSearchField])
   const contextualCustomerId = customers.some((customer) => customer.id === requestedCustomerId)
     ? requestedCustomerId
     : ''
   const dirty =
     customerId !== contextualCustomerId ||
+    promisedAt !== promisedAtBaseline ||
+    priority !== 'normal' ||
+    notes.trim() !== '' ||
     items.length !== 1 ||
     items.some((item) => item.productId !== '' || item.quantity !== '1')
 
@@ -152,6 +260,11 @@ export function OrderFormPage() {
         return
       }
 
+      if (!promisedAt || Number.isNaN(new Date(promisedAt).getTime())) {
+        setStatus('Informe uma data e um horário válidos para a entrega.')
+        return
+      }
+
       if (
         items.some(
           (item) =>
@@ -177,6 +290,9 @@ export function OrderFormPage() {
           },
           body: JSON.stringify({
             customer_id: customerId,
+            promised_at: new Date(promisedAt).toISOString(),
+            priority,
+            notes: notes.trim() || null,
             items: items.map((item) => ({
               product_id: item.productId,
               quantity: Number(item.quantity),
@@ -266,6 +382,27 @@ export function OrderFormPage() {
             <strong className="mt-1 block text-lg">{plan.customer_name}</strong>
           </div>
 
+          <div className="mb-6 grid gap-4 rounded-lg border border-line bg-[#fbfcff] p-4 sm:grid-cols-2">
+            <div>
+              <span className="text-xs text-muted">Entrega prometida</span>
+              <strong className="mt-1 block text-sm">
+                {plan.promised_at
+                  ? new Date(plan.promised_at).toLocaleString('pt-BR')
+                  : 'Não informada'}
+              </strong>
+            </div>
+            <div>
+              <span className="text-xs text-muted">Prioridade</span>
+              <strong className="mt-1 block text-sm">{priorityLabels[plan.priority]}</strong>
+            </div>
+            {plan.notes && (
+              <div className="sm:col-span-2">
+                <span className="text-xs text-muted">Observações</span>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{plan.notes}</p>
+              </div>
+            )}
+          </div>
+
           <div className="overflow-x-auto">
             <div className="min-w-[620px]">
               <div className="grid grid-cols-[1.5fr_.6fr_.8fr_.8fr] gap-4 border-b border-line pb-3 text-[11px] font-bold uppercase text-muted">
@@ -341,39 +478,176 @@ export function OrderFormPage() {
       />
 
       <SavingForm
-        className="page-card mx-auto grid max-w-[900px] gap-6"
+        className="page-card grid w-full gap-6"
         saving={busy}
         onInvalidCapture={() => setStatus('')}
         onSubmit={prepareOrder}
       >
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(240px,1fr)_minmax(180px,.65fr)]">
+          <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+              <label className="form-label">
+                <span>Pesquisar por</span>
+                <select
+                  className="form-input"
+                  value={customerSearchField}
+                  onChange={(event) => {
+                    setCustomerSearchField(event.target.value as CustomerSearchField)
+                    setCustomerSearch('')
+                    setCustomerId('')
+                  }}
+                >
+                  <option value="name">Nome / manual</option>
+                  <option value="code">Código</option>
+                  <option value="cpf">CPF</option>
+                  <option value="cnpj">CNPJ</option>
+                </select>
+              </label>
+
+              <label className="form-label">
+                <span>
+                  {activeCustomerSearch.label}
+                  <RequiredMark />
+                </span>
+                <input
+                  type="search"
+                  inputMode={activeCustomerSearch.inputMode}
+                  className="form-input"
+                  placeholder={activeCustomerSearch.placeholder}
+                  value={customerSearch}
+                  autoComplete="off"
+                  aria-describedby="order-customer-search-feedback"
+                  onChange={(event) => {
+                    setCustomerSearch(event.target.value)
+                    setCustomerId('')
+                  }}
+                />
+              </label>
+            </div>
+
+            {customerSearch.trim() && !selectedCustomer && filteredCustomers.length > 0 && (
+              <div
+                className="max-h-64 overflow-y-auto rounded-lg border border-line bg-white p-1 shadow-sm"
+                aria-label="Resultados da pesquisa de clientes"
+              >
+                {filteredCustomers.slice(0, 8).map((customer) => (
+                  <button
+                    className="flex w-full items-start justify-between gap-4 rounded-md px-3 py-3 text-left transition hover:bg-[#f4f7ff]"
+                    key={customer.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomerId(customer.id)
+
+                      if (customerSearchField === 'name') {
+                        setCustomerSearch(customer.name)
+                      } else if (customerSearchField === 'code') {
+                        setCustomerSearch(customer.code)
+                      } else {
+                        setCustomerSearch(customer.document ?? '')
+                      }
+                    }}
+                  >
+                    <span>
+                      <strong className="block text-sm">{customer.name}</strong>
+
+                      {customer.trade_name && (
+                        <small className="mt-1 block text-muted">{customer.trade_name}</small>
+                      )}
+                    </span>
+
+                    <span className="text-right text-xs text-muted">
+                      <strong className="block text-signal">{customer.code}</strong>
+                      {customer.document && <span>{customer.document}</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedCustomer ? (
+              <div
+                id="order-customer-search-feedback"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#cbd7ff] bg-[#f7f9ff] px-3 py-2 text-sm"
+                role="status"
+              >
+                <span>
+                  Cliente selecionado:{' '}
+                  <strong>
+                    {selectedCustomer.code} — {selectedCustomer.name}
+                  </strong>
+                </span>
+
+                <button
+                  className="font-semibold text-signal"
+                  type="button"
+                  onClick={() => {
+                    setCustomerId('')
+                    setCustomerSearch('')
+                  }}
+                >
+                  Alterar
+                </button>
+              </div>
+            ) : (
+              <p id="order-customer-search-feedback" className="text-sm text-muted" role="status">
+                {customerSearch.trim()
+                  ? filteredCustomers.length === 0
+                    ? `Nenhum cliente encontrado por ${activeCustomerSearch.label.toLowerCase()}.`
+                    : `${filteredCustomers.length} cliente(s) encontrado(s). Clique no cliente desejado.`
+                  : activeCustomerSearch.hint}
+              </p>
+            )}
+          </div>
+
+          <label className="form-label">
+            <span>
+              Entrega prometida
+              <RequiredMark />
+            </span>
+            <input
+              required
+              className="form-input"
+              type="datetime-local"
+              value={promisedAt}
+              onChange={(event) => setPromisedAt(event.target.value)}
+            />
+            <small>Prazo combinado para retirada ou entrega.</small>
+          </label>
+
+          <label className="form-label">
+            <span>Prioridade</span>
+            <select
+              className="form-input"
+              value={priority}
+              onChange={(event) => setPriority(event.target.value as 'normal' | 'high' | 'urgent')}
+            >
+              <option value="normal">Normal</option>
+              <option value="high">Alta</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </label>
+        </div>
+
         <label className="form-label">
-          <span>
-            Cliente
-            <RequiredMark />
-          </span>
-          <select
-            required
-            className="form-input"
-            value={customerId}
-            onChange={(event) => setCustomerId(event.target.value)}
-          >
-            <option value="">Selecione um cliente</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
-              </option>
-            ))}
-          </select>
+          <span>Observações da produção</span>
+          <textarea
+            className="form-input min-h-24 resize-y"
+            maxLength={1000}
+            placeholder="Ex.: decoração, embalagem, retirada ou cuidados especiais."
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+          <small>{notes.length}/1000 caracteres</small>
         </label>
 
         <div className="border-t border-line pt-5">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="eyebrow">Itens do pedido</p>
               <h2 className="font-display text-xl font-semibold">Produtos e quantidades</h2>
             </div>
 
-            <button className="secondary-button" onClick={addItem} type="button">
+            <button className="secondary-button w-full sm:w-auto" onClick={addItem} type="button">
               <Plus size={16} />
               Adicionar produto
             </button>
@@ -382,7 +656,7 @@ export function OrderFormPage() {
           <div className="grid gap-3">
             {items.map((item, index) => (
               <div
-                className="grid items-end gap-3 rounded-lg border border-line bg-[#fbfcff] p-4 md:grid-cols-[minmax(0,1fr)_180px_42px]"
+                className="grid gap-4 rounded-lg border border-line bg-[#fbfcff] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(140px,180px)_46px] sm:items-end"
                 key={item.key}
               >
                 <label className="form-label">
@@ -430,7 +704,7 @@ export function OrderFormPage() {
 
                 <button
                   aria-label={`Remover produto ${index + 1}`}
-                  className="grid h-[46px] w-[42px] place-items-center rounded-lg border border-[#f2cbd1] bg-white text-[#d84f62] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="grid h-[46px] w-[46px] place-items-center rounded-lg border border-[#f2cbd1] bg-white text-[#d84f62] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={items.length === 1}
                   onClick={() => removeItem(item.key)}
                   type="button"
@@ -456,7 +730,7 @@ export function OrderFormPage() {
 
         {status && <p className="form-status">{status}</p>}
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:justify-end">
           <SaveButton
             saving={pendingAction === 'prepare'}
             disabled={busy || customers.length === 0 || products.length === 0}

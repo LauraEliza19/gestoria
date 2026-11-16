@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -18,6 +19,7 @@ class OrderRepository:
         page_size: int,
         search: str | None = None,
         status: str | None = None,
+        priority: str | None = None,
         sort: str = "created_at",
     ):
         query = (
@@ -33,13 +35,14 @@ class OrderRepository:
             query = query.where(Order.customer.has(Customer.name.ilike(term)))
         if status:
             query = query.where(Order.status == status)
-        query = query.order_by(
-            {
-                "created_at": Order.created_at.desc(),
-                "total_amount": Order.total_amount.desc(),
-            }[sort],
-            Order.id,
-        )
+        if priority:
+            query = query.where(Order.priority == priority)
+        ordering = {
+            "created_at": (Order.created_at.desc(),),
+            "promised_at": (Order.promised_at.asc().nulls_last(),),
+            "total_amount": (Order.total_amount.desc(),),
+        }[sort]
+        query = query.order_by(*ordering, Order.id)
         return paginate(db, query, page, page_size, unique=True)
 
     @staticmethod
@@ -92,12 +95,21 @@ class OrderRepository:
 
     @staticmethod
     def create(
-        db: Session, organization_id: uuid.UUID, customer_id: uuid.UUID
+        db: Session,
+        organization_id: uuid.UUID,
+        customer_id: uuid.UUID,
+        *,
+        promised_at: datetime | None = None,
+        priority: str = "normal",
+        notes: str | None = None,
     ) -> Order:
         order = Order(
             organization_id=organization_id,
             customer_id=customer_id,
             status="in_preparation",
+            promised_at=promised_at,
+            priority=priority,
+            notes=notes,
             total_amount=0,
         )
         db.add(order)

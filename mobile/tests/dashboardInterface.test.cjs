@@ -58,7 +58,7 @@ test('executive home uses the GestorIA visual identity', () => {
     'Sua empresa está sob controle.',
     'Hoje',
     'Vendas',
-    'Em preparo',
+    'Pedidos ativos',
     'Estoque crítico',
     'Em foco agora',
     'Prioridades',

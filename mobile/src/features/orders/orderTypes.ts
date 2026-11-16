@@ -1,5 +1,7 @@
 export const ORDER_STATUSES = [
   'in_preparation',
+  'in_production',
+  'ready',
   'completed',
   'cancelled',
 ] as const;
@@ -20,6 +22,9 @@ export type Order = {
   customer_id: string;
   customer_name: string;
   status: OrderStatus;
+  promised_at: string | null;
+  priority: 'normal' | 'high' | 'urgent';
+  notes: string | null;
   total_amount: string;
   items: OrderItem[];
   created_at: string;
@@ -27,7 +32,9 @@ export type Order = {
 };
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
-  in_preparation: 'Em preparo',
-  completed: 'Concluído',
+  in_preparation: 'Confirmado',
+  in_production: 'Em produção',
+  ready: 'Pronto',
+  completed: 'Entregue',
   cancelled: 'Cancelado',
 };

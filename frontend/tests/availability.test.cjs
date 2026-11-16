@@ -115,6 +115,21 @@ test('orders created at the same time follow their id and finished orders reserv
   assert.equal(plans.get('z').lines[0].missing, 400)
 })
 
+test('production orders keep reserving supplies while ready orders release them', () => {
+  const plans = planQueueSupplies(
+    [
+      order('confirmed', '2026-10-19T08:00:00Z', [item('15')]),
+      order('producing', '2026-10-19T09:00:00Z', [item('15')], 'in_production'),
+      order('ready', '2026-10-19T10:00:00Z', [item('30')], 'ready'),
+    ],
+    snapshot([stock(flour, '500')]),
+  )
+
+  assert.equal(plans.has('confirmed'), true)
+  assert.equal(plans.has('producing'), true)
+  assert.equal(plans.has('ready'), false)
+})
+
 test('an older order without enough stock keeps priority over newer orders', () => {
   const plans = planQueueSupplies(
     [

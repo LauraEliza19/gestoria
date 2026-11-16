@@ -21,6 +21,8 @@ FISCAL_ATTENTION_STATUSES = (
     "Denegada",
 )
 
+ACTIVE_ORDER_STATUSES = ("in_preparation", "in_production", "ready")
+
 
 @dataclass(frozen=True)
 class DashboardSnapshot:
@@ -63,7 +65,7 @@ class DashboardRepository:
         orders_in_preparation, orders_latest_at = db.execute(
             select(func.count(), func.max(Order.created_at)).where(
                 Order.organization_id == organization_id,
-                Order.status == "in_preparation",
+                Order.status.in_(ACTIVE_ORDER_STATUSES),
             )
         ).one()
 

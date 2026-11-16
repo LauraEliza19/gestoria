@@ -14,7 +14,7 @@ export const COPILOT_SUGGESTIONS: CopilotSuggestion[] = [
   },
   {
     title: 'Pedidos em produção',
-    description: 'Consulte os pedidos que estão em preparo.',
+    description: 'Consulte os pedidos ativos da operação.',
     prompt: 'Quais pedidos estão em produção?',
   },
   {
@@ -63,5 +63,5 @@ export const WELCOME_MESSAGE: CopilotMessage = {
   id: 'welcome',
   role: 'assistant',
   text:
-    'Olá! Sou o Copiloto GestorIA. Posso consultar pedidos em preparo e orientar você pelos demais módulos sem inventar informações.',
+    'Olá! Sou o Copiloto GestorIA. Posso consultar pedidos ativos e orientar você pelos demais módulos sem inventar informações.',
 };

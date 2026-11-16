@@ -67,7 +67,7 @@ def test_copilot_returns_empty_order_result(client: TestClient) -> None:
 
     assert body["status"] == "answered"
     assert body["intent"] == "orders_in_preparation"
-    assert body["message"] == "Não há pedidos em preparo neste momento."
+    assert body["message"] == "Não há pedidos ativos neste momento."
     assert body["tool"] == {
         "name": "orders_in_preparation",
         "status": "empty",
@@ -98,11 +98,12 @@ def test_copilot_lists_only_current_organization_orders(
     )
     assert other_customer is not None
 
+    active_statuses = ("in_preparation", "in_production", "ready")
     current_orders = [
         Order(
             organization_id=organization.id,
             customer_id=customer.id,
-            status="in_preparation",
+            status=active_statuses[index % len(active_statuses)],
             total_amount=Decimal(index + 1) * Decimal("10.00"),
         )
         for index in range(6)
@@ -137,7 +138,7 @@ def test_copilot_lists_only_current_organization_orders(
     assert response.status_code == 200
     body = response.json()
 
-    assert body["message"] == "Existem 6 pedidos em preparo."
+    assert body["message"] == "Existem 6 pedidos ativos."
     assert body["tool"]["status"] == "success"
     assert len(body["items"]) == 5
     assert all(item["title"] == "Cliente do Copiloto" for item in body["items"])

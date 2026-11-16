@@ -17,6 +17,9 @@ type Order = {
   customer_id: string
   customer_name: string
   status: string
+  promised_at: string | null
+  priority: 'normal' | 'high' | 'urgent'
+  notes: string | null
   total_amount: string
   items: OrderItem[]
   created_at: string
@@ -27,15 +30,37 @@ type PageState = {
 }
 
 const statusLabels: Record<string, string> = {
-  in_preparation: 'Em preparo',
-  completed: 'Concluído',
+  in_preparation: 'Confirmado',
+  in_production: 'Em produção',
+  ready: 'Pronto',
+  completed: 'Entregue',
   cancelled: 'Cancelado',
 }
 
+const priorityLabels = {
+  normal: 'Prioridade normal',
+  high: 'Prioridade alta',
+  urgent: 'Urgente',
+} as const
+
 const statusTransitions: Record<string, string[]> = {
-  in_preparation: ['in_preparation', 'completed', 'cancelled'],
+  in_preparation: ['in_preparation', 'in_production', 'completed', 'cancelled'],
+  in_production: ['in_production', 'ready', 'completed', 'cancelled'],
+  ready: ['ready', 'in_production', 'completed', 'cancelled'],
   completed: ['completed', 'cancelled'],
   cancelled: ['cancelled', 'in_preparation'],
+}
+
+function formatPromisedAt(value: string | null): string {
+  return value ? new Date(value).toLocaleString('pt-BR') : 'Prazo não informado'
+}
+
+function isLate(order: Order): boolean {
+  return (
+    Boolean(order.promised_at) &&
+    !['completed', 'cancelled'].includes(order.status) &&
+    new Date(order.promised_at!).getTime() < Date.now()
+  )
 }
 
 export function OrdersPage() {
@@ -160,8 +185,10 @@ export function OrdersPage() {
             onChange={(event) => setFilter(event.target.value)}
           >
             <option value="all">Todos os status</option>
-            <option value="in_preparation">Em preparo</option>
-            <option value="completed">Concluídos</option>
+            <option value="in_preparation">Confirmados</option>
+            <option value="in_production">Em produção</option>
+            <option value="ready">Prontos</option>
+            <option value="completed">Entregues</option>
             <option value="cancelled">Cancelados</option>
           </select>
 
@@ -242,7 +269,10 @@ export function OrdersPage() {
               >
                 <span>
                   <strong>{order.customer_name}</strong>
-                  <small>{new Date(order.created_at).toLocaleDateString('pt-BR')}</small>
+                  <small className={isLate(order) ? 'font-semibold text-[#b42318]' : undefined}>
+                    {isLate(order) ? 'Atrasado · ' : 'Entrega · '}
+                    {formatPromisedAt(order.promised_at)}
+                  </small>
                 </span>
 
                 <span>
@@ -270,10 +300,11 @@ export function OrdersPage() {
                       </option>
                     ))}
                   </select>
+                  <small>{priorityLabels[order.priority]}</small>
                 </span>
 
                 <span className="row-actions">
-                  {order.status === 'in_preparation' && (
+                  {!['completed', 'cancelled'].includes(order.status) && (
                     <Link to={`/modo-fabrica?order_id=${order.id}`}>Ver na produção</Link>
                   )}
 
