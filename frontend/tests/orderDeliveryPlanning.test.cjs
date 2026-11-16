@@ -9,6 +9,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
 const form = read('src/pages/Orders/OrderFormPage.tsx')
 const list = read('src/pages/Orders/OrdersPage.tsx')
 const factory = read('src/pages/FactoryMode/FactoryModePage.tsx')
+const workflow = read('src/pages/FactoryMode/orderWorkflow.ts')
 
 test('order form collects delivery planning before creating the protected proposal', () => {
   assert.match(form, /type="datetime-local"/)
@@ -26,8 +27,10 @@ test('order list exposes the complete operational workflow', () => {
 })
 
 test('production queue advances orders one operational step at a time', () => {
-  assert.match(factory, /'in_preparation'\s*\?\s*'in_production'/)
-  assert.match(factory, /'in_production'\s*\?\s*'ready'/)
-  assert.match(factory, /'Marcar como entregue'/)
+  assert.match(factory, /nextOperationalStatus\(order.status\)/)
+  assert.match(workflow, /case 'in_preparation':\s*return 'in_production'/)
+  assert.match(workflow, /case 'in_production':\s*return 'ready'/)
+  assert.match(workflow, /case 'ready':\s*return 'completed'/)
+  assert.match(workflow, /Marcar como entregue/)
   assert.match(factory, /Entrega combinada/)
 })
