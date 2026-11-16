@@ -1,4 +1,14 @@
+from datetime import UTC, datetime
+
 from app.schemas.order import OrderItemRead, OrderRead
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def order_to_read(order) -> OrderRead:
@@ -8,6 +18,9 @@ def order_to_read(order) -> OrderRead:
         customer_id=order.customer_id,
         customer_name=order.customer.name if order.customer else "Cliente removido",
         status=order.status,
+        promised_at=_as_utc(order.promised_at),
+        priority=order.priority,
+        notes=order.notes,
         total_amount=order.total_amount,
         items=[
             OrderItemRead(

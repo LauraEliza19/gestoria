@@ -71,7 +71,10 @@ def test_order_payload_requires_items_and_positive_quantity() -> None:
     assert created.items[0].quantity == 2
 
 
-@pytest.mark.parametrize("status", ["in_preparation", "completed", "cancelled"])
+@pytest.mark.parametrize(
+    "status",
+    ["in_preparation", "in_production", "ready", "completed", "cancelled"],
+)
 def test_order_status_update_accepts_valid_values(status: str) -> None:
     assert OrderStatusUpdate(status=status).status == status
 
@@ -79,6 +82,32 @@ def test_order_status_update_accepts_valid_values(status: str) -> None:
 def test_order_status_update_rejects_unknown_status() -> None:
     with pytest.raises(ValidationError):
         OrderStatusUpdate(status="pending")
+
+
+def test_order_planning_normalizes_timezone_priority_and_notes() -> None:
+    created = OrderCreate(
+        customer_id=uuid.uuid4(),
+        promised_at="2026-12-20T15:30:00-03:00",
+        priority="urgent",
+        notes="  Bolo com embalagem reforçada.  ",
+        items=[OrderItemCreate(product_id=uuid.uuid4(), quantity=1)],
+    )
+
+    assert created.promised_at.isoformat() == "2026-12-20T18:30:00+00:00"
+    assert created.priority == "urgent"
+    assert created.notes == "Bolo com embalagem reforçada."
+
+
+def test_order_planning_rejects_naive_deadline_and_invalid_priority() -> None:
+    payload = {
+        "customer_id": uuid.uuid4(),
+        "items": [{"product_id": uuid.uuid4(), "quantity": 1}],
+    }
+
+    with pytest.raises(ValidationError, match="fuso horário"):
+        OrderCreate(**payload, promised_at="2026-12-20T15:30:00")
+    with pytest.raises(ValidationError):
+        OrderCreate(**payload, priority="critical")
 
 
 def test_login_request_requires_email_and_minimum_password() -> None:

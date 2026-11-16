@@ -93,6 +93,18 @@ def test_dashboard_returns_real_company_indicators(
             Order(
                 organization_id=organization.id,
                 customer_id=customer.id,
+                status="in_production",
+                total_amount=Decimal("80.00"),
+            ),
+            Order(
+                organization_id=organization.id,
+                customer_id=customer.id,
+                status="ready",
+                total_amount=Decimal("85.00"),
+            ),
+            Order(
+                organization_id=organization.id,
+                customer_id=customer.id,
                 status="completed",
                 total_amount=Decimal("150.00"),
             ),
@@ -124,7 +136,7 @@ def test_dashboard_returns_real_company_indicators(
 
     assert body["health"] == "critical"
     assert Decimal(summary["sales_today"]) == Decimal("150.00")
-    assert summary["orders_in_preparation"] == 1
+    assert summary["orders_in_preparation"] == 3
     assert summary["critical_stock_items"] == 1
     assert summary["blocked_recipes"] == 0
     assert summary["fiscal_attention"] == 0

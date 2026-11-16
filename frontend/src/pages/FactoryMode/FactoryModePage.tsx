@@ -13,7 +13,10 @@ import { getErrorMessage } from '../../utils/errors'
 type Order = {
   id: string
   customer_name: string
-  status: string
+  status: 'in_preparation' | 'in_production' | 'ready' | 'completed' | 'cancelled'
+  promised_at?: string | null
+  priority?: 'normal' | 'high' | 'urgent'
+  notes?: string | null
   items: {
     product_id: string
     product_name: string
@@ -23,7 +26,17 @@ type Order = {
   }[]
   created_at: string
 }
-type Queue = 'in_preparation' | 'completed'
+type Queue = 'active' | 'completed'
+
+const activeStatuses: Order['status'][] = ['in_preparation', 'in_production', 'ready']
+const statusLabels: Record<Order['status'], string> = {
+  in_preparation: 'Confirmado',
+  in_production: 'Em produção',
+  ready: 'Pronto',
+  completed: 'Entregue',
+  cancelled: 'Cancelado',
+}
+const priorityLabels = { normal: 'Normal', high: 'Alta', urgent: 'Urgente' } as const
 
 const quantities = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 6 })
 const dates = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -34,7 +47,7 @@ export function FactoryModePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [openSupplies, setOpenSupplies] = useState<string | null>(null)
-  const [tab, setTab] = useState<Queue>('in_preparation')
+  const [tab, setTab] = useState<Queue>('active')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('oldest')
   const [loading, setLoading] = useState(true)
@@ -79,7 +92,7 @@ export function FactoryModePage() {
     }
 
     const hasHighlightedOrder = orders.some(
-      (order) => order.id === highlightedOrderId && order.status === 'in_preparation',
+      (order) => order.id === highlightedOrderId && activeStatuses.includes(order.status),
     )
 
     if (!hasHighlightedOrder) {
@@ -124,7 +137,7 @@ export function FactoryModePage() {
     setLoading(false)
   }
 
-  async function complete(order: Order) {
+  async function updateStatus(order: Order) {
     if (busy.current) return
 
     busy.current = true
@@ -134,18 +147,28 @@ export function FactoryModePage() {
     setCompletedOrder(null)
 
     try {
+      const nextStatus =
+        order.status === 'in_preparation'
+          ? 'in_production'
+          : order.status === 'in_production'
+            ? 'ready'
+            : 'completed'
       const updated = await apiFetch<Order>(`/api/orders/${order.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          status: 'completed',
+          status: nextStatus,
         }),
       })
 
       setOrders((current) => current.map((item) => (item.id === order.id ? updated : item)))
-      setCompletedOrder(updated)
+      if (updated.status === 'completed') {
+        setCompletedOrder(updated)
+      } else {
+        setNotice(`Pedido atualizado para ${statusLabels[updated.status].toLowerCase()}.`)
+      }
     } catch (reason) {
       setError(
-        `${getErrorMessage(reason, 'Não foi possível concluir o pedido. Tente novamente.')} Os pedidos exibidos foram mantidos; atualize a fila para conferir.`,
+        `${getErrorMessage(reason, 'Não foi possível atualizar o pedido. Tente novamente.')} Os pedidos exibidos foram mantidos; atualize a fila para conferir.`,
       )
     } finally {
       busy.current = false
@@ -153,7 +176,7 @@ export function FactoryModePage() {
     }
   }
 
-  const pending = orders.filter((order) => order.status === 'in_preparation')
+  const pending = orders.filter((order) => activeStatuses.includes(order.status))
   const completed = orders.filter((order) => order.status === 'completed')
   const pendingItems = pending.reduce(
     (total, order) => total + order.items.reduce((sum, item) => sum + Number(item.quantity), 0),
@@ -165,7 +188,7 @@ export function FactoryModePage() {
     [orders, snapshot],
   )
   const query = normalize(search)
-  const visible = (tab === 'in_preparation' ? pending : completed)
+  const visible = (tab === 'active' ? pending : completed)
     .filter(
       (order) =>
         normalize(order.customer_name).includes(query) ||
@@ -218,14 +241,14 @@ export function FactoryModePage() {
         <>
           <div className="metric-grid">
             <article>
-              <span>Em preparo</span>
+              <span>Pedidos ativos</span>
               <strong>{loaded ? pending.length : '—'}</strong>
-              <small>Pedidos aguardando conclusão</small>
+              <small>Confirmados, em produção ou prontos</small>
             </article>
             <article>
               <span>Itens pendentes</span>
               <strong>{loaded ? quantities.format(pendingItems) : '—'}</strong>
-              <small>Soma das quantidades em preparo</small>
+              <small>Soma das quantidades ainda em operação</small>
             </article>
             <article>
               <span>Concluídos</span>
@@ -237,7 +260,7 @@ export function FactoryModePage() {
           <section className="page-card" aria-label="Fila de produção">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
               <div className="flex flex-wrap gap-2" role="group" aria-label="Status dos pedidos">
-                {(['in_preparation', 'completed'] as const).map((value) => (
+                {(['active', 'completed'] as const).map((value) => (
                   <button
                     key={value}
                     type="button"
@@ -245,9 +268,8 @@ export function FactoryModePage() {
                     className={`rounded-lg px-4 py-3 text-[13px] font-bold transition-colors ${tab === value ? 'bg-signal text-white' : 'bg-paper text-muted hover:text-ink'}`}
                     onClick={() => setTab(value)}
                   >
-                    {value === 'in_preparation' ? 'Em preparo' : 'Concluídos'}
-                    {loaded &&
-                      ` (${value === 'in_preparation' ? pending.length : completed.length})`}
+                    {value === 'active' ? 'Pedidos ativos' : 'Entregues'}
+                    {loaded && ` (${value === 'active' ? pending.length : completed.length})`}
                   </button>
                 ))}
               </div>
@@ -377,8 +399,10 @@ export function FactoryModePage() {
                   {visible.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
                 </p>
                 {visible.map((order) => {
-                  const plan =
-                    order.status === 'in_preparation' ? supplies?.get(order.id) : undefined
+                  const reservesSupplies = ['in_preparation', 'in_production'].includes(
+                    order.status,
+                  )
+                  const plan = reservesSupplies ? supplies?.get(order.id) : undefined
                   return (
                     <article
                       aria-labelledby={`order-${order.id}`}
@@ -403,7 +427,7 @@ export function FactoryModePage() {
                           </h2>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {order.status === 'in_preparation' &&
+                          {reservesSupplies &&
                             (plan ? (
                               <SupplyBadge status={plan.status} />
                             ) : (
@@ -412,10 +436,15 @@ export function FactoryModePage() {
                               </span>
                             ))}
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${order.status === 'completed' ? 'bg-[#effbf6] text-[#28745b]' : 'bg-[#eef2ff] text-signal-dark'}`}
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${order.status === 'completed' ? 'bg-[#effbf6] text-[#28745b]' : order.status === 'ready' ? 'bg-[#fff8df] text-[#8a6500]' : 'bg-[#eef2ff] text-signal-dark'}`}
                           >
-                            {order.status === 'completed' ? 'Concluído' : 'Em preparo'}
+                            {statusLabels[order.status]}
                           </span>
+                          {order.priority && order.priority !== 'normal' && (
+                            <span className="rounded-full bg-[#fff0f3] px-3 py-1 text-xs font-semibold text-[#a52c42]">
+                              Prioridade {priorityLabels[order.priority].toLowerCase()}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <p className="mt-3 flex items-center gap-2 text-xs text-muted">
@@ -427,6 +456,15 @@ export function FactoryModePage() {
                           </time>
                         </span>
                       </p>
+                      {order.promised_at && (
+                        <p className="mt-2 text-sm font-semibold text-ink">
+                          Entrega combinada:{' '}
+                          <time dateTime={order.promised_at}>
+                            {dates.format(new Date(order.promised_at))}
+                          </time>
+                        </p>
+                      )}
+                      {order.notes && <p className="mt-2 text-sm text-muted">{order.notes}</p>}
                       <ul
                         className="my-4 divide-y divide-line rounded-lg bg-paper px-3"
                         aria-label="Itens do pedido"
@@ -447,7 +485,7 @@ export function FactoryModePage() {
                         <OrderSupplies id={`supplies-${order.id}`} plan={plan} />
                       )}
                       <div className="flex flex-wrap justify-end gap-3">
-                        {order.status === 'in_preparation' && (
+                        {reservesSupplies && (
                           <button
                             type="button"
                             className="secondary-button w-full sm:w-auto"
@@ -469,16 +507,22 @@ export function FactoryModePage() {
                           Ver pedido
                         </Link>
 
-                        {order.status === 'in_preparation' && (
+                        {activeStatuses.includes(order.status) && (
                           <button
                             type="button"
                             className="primary-button w-full gap-2 sm:w-auto"
                             disabled={disabled}
-                            onClick={() => void complete(order)}
-                            aria-label={`Marcar pedido ${order.id.slice(0, 8)} de ${order.customer_name} como concluído`}
+                            onClick={() => void updateStatus(order)}
+                            aria-label={`Avançar pedido ${order.id.slice(0, 8)} de ${order.customer_name} para a próxima etapa`}
                           >
                             <Check size={17} aria-hidden="true" />
-                            {completing === order.id ? 'Concluindo...' : 'Marcar concluído'}
+                            {completing === order.id
+                              ? 'Atualizando...'
+                              : order.status === 'in_preparation'
+                                ? 'Iniciar produção'
+                                : order.status === 'in_production'
+                                  ? 'Marcar como pronto'
+                                  : 'Marcar como entregue'}
                           </button>
                         )}
                       </div>
@@ -491,9 +535,9 @@ export function FactoryModePage() {
                     <p className="font-semibold">
                       {query
                         ? 'Nenhum pedido corresponde à busca.'
-                        : tab === 'in_preparation'
-                          ? 'Nenhum pedido em preparo.'
-                          : 'Nenhum pedido concluído.'}
+                        : tab === 'active'
+                          ? 'Nenhum pedido ativo.'
+                          : 'Nenhum pedido entregue.'}
                     </p>
                     <p className="mt-2 text-sm text-muted">
                       {query

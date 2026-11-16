@@ -107,6 +107,11 @@ def normalized_request(payload: OrderCreate) -> dict:
         )
     return {
         "customer_id": str(payload.customer_id),
+        "promised_at": (
+            payload.promised_at.isoformat() if payload.promised_at is not None else None
+        ),
+        "priority": payload.priority,
+        "notes": payload.notes,
         "items": [
             {"product_id": str(pid), "quantity": format(quantities[pid], ".3f")}
             for pid in sorted(quantities, key=str)
@@ -115,7 +120,12 @@ def normalized_request(payload: OrderCreate) -> dict:
 
 
 def build_plan(
-    db: Session, organization_id: uuid.UUID, request: dict, *, lock: bool = False
+    db: Session,
+    organization_id: uuid.UUID,
+    request: dict,
+    *,
+    lock: bool = False,
+    schema_version: int = 2,
 ) -> dict:
     query = select(Customer).where(
         Customer.id == uuid.UUID(request["customer_id"]),
@@ -154,12 +164,19 @@ def build_plan(
         raise OperationError(
             "total_limit", "Valor do pedido acima do limite suportado.", 422
         )
-    return {
+    plan = {
         "customer_id": request["customer_id"],
         "customer_name": customer.name,
         "items": items,
         "total_amount": format(total, ".2f"),
     }
+    if schema_version >= 2:
+        plan.update(
+            promised_at=request.get("promised_at"),
+            priority=request.get("priority", "normal"),
+            notes=request.get("notes"),
+        )
+    return plan
 
 
 def get_operation(
@@ -207,7 +224,7 @@ def check_envelope(operation: OrderOperation, envelope: dict) -> None:
         or envelope.get("actor_id") != str(operation.actor_id)
         or envelope.get("idempotency_key") != str(operation.idempotency_key)
         or envelope.get("action") != "create_order"
-        or envelope.get("schema_version") != 1
+        or envelope.get("schema_version") not in {1, 2}
         or envelope.get("input_hash") != content_hash(envelope.get("payload"))
     ):
         raise OperationError(
@@ -286,11 +303,11 @@ def prepare_order(
     operation = existing()
     if operation:
         return reuse(operation)
-    plan = build_plan(db, current.organization.id, request)
+    plan = build_plan(db, current.organization.id, request, schema_version=2)
     operation_id, now = uuid.uuid4(), utc_now()
     envelope = signed(
         {
-            "schema_version": 1,
+            "schema_version": 2,
             "action": "create_order",
             "operation_id": str(operation_id),
             "organization_id": str(current.organization.id),
@@ -416,6 +433,7 @@ def confirm_order(
             "proposal_expired", "A proposta expirou. Revise uma nova proposta.", 410
         )
     plan = envelope["payload"]
+    schema_version = envelope["schema_version"]
     request = {
         "customer_id": plan["customer_id"],
         "items": [
@@ -423,7 +441,19 @@ def confirm_order(
             for item in plan["items"]
         ],
     }
-    current_plan = build_plan(db, current.organization.id, request, lock=True)
+    if schema_version >= 2:
+        request.update(
+            promised_at=plan.get("promised_at"),
+            priority=plan.get("priority", "normal"),
+            notes=plan.get("notes"),
+        )
+    current_plan = build_plan(
+        db,
+        current.organization.id,
+        request,
+        lock=True,
+        schema_version=schema_version,
+    )
     if content_hash(current_plan) != envelope["input_hash"]:
         raise OperationError(
             "proposal_stale",
@@ -434,6 +464,13 @@ def confirm_order(
         current.organization.id,
         uuid.UUID(plan["customer_id"]),
         [OrderItemCreate.model_validate(item) for item in request["items"]],
+        promised_at=(
+            datetime.fromisoformat(plan["promised_at"])
+            if schema_version >= 2 and plan.get("promised_at")
+            else None
+        ),
+        priority=plan.get("priority", "normal") if schema_version >= 2 else "normal",
+        notes=plan.get("notes") if schema_version >= 2 else None,
         commit=False,
     )
     result = order_to_read(order)
@@ -446,7 +483,7 @@ def confirm_order(
     operation.status = "executed"
     operation.receipt = signed(
         {
-            "schema_version": 1,
+            "schema_version": schema_version,
             "action": "create_order",
             "operation_id": str(operation.id),
             "organization_id": str(operation.organization_id),

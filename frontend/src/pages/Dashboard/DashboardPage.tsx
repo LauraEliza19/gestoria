@@ -114,7 +114,9 @@ export function DashboardPage() {
       )
     })
 
-    const inProduction = orders.filter((order) => order.status === 'in_preparation')
+    const inProduction = orders.filter((order) =>
+      ['in_preparation', 'in_production', 'ready'].includes(order.status),
+    )
 
     const completedOrders = orders.filter((order) => order.status === 'completed')
 
@@ -216,11 +218,11 @@ export function DashboardPage() {
     },
     {
       active: radar.inProduction.length > 0,
-      label: 'Pedidos em produção',
+      label: 'Pedidos ativos',
       detail: formatCountMessage(
         radar.inProduction.length,
-        'pedido aguardando preparo.',
-        'pedidos aguardando preparo.',
+        'pedido em andamento.',
+        'pedidos em andamento.',
       ),
       href: '/pedidos',
       icon: ClipboardCheck,
@@ -302,9 +304,9 @@ export function DashboardPage() {
 
         <RadarCard
           icon={ClipboardCheck}
-          label="Em produção"
+          label="Pedidos ativos"
           value={radar.inProduction.length}
-          detail="pedidos aguardando preparo"
+          detail="confirmados, em produção ou prontos"
           href="/pedidos"
         />
 

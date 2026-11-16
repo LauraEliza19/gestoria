@@ -1,7 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.common import ItemQuantity, Money
 
@@ -16,10 +17,29 @@ class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     customer_id: uuid.UUID
     items: list[OrderItemCreate] = Field(min_length=1, max_length=100)
+    promised_at: datetime | None = None
+    priority: Literal["normal", "high", "urgent"] = "normal"
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("promised_at")
+    @classmethod
+    def promised_at_must_include_timezone(cls, value: datetime | None):
+        if value is not None and value.utcoffset() is None:
+            raise ValueError("Informe o fuso horário da data prometida.")
+        return value.astimezone(UTC) if value is not None else None
+
+    @field_validator("notes")
+    @classmethod
+    def normalize_notes(cls, value: str | None):
+        normalized = value.strip() if value else ""
+        return normalized or None
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str = Field(pattern="^(in_preparation|completed|cancelled)$")
+    model_config = ConfigDict(extra="forbid")
+    status: Literal[
+        "in_preparation", "in_production", "ready", "completed", "cancelled"
+    ]
 
 
 class OrderItemRead(BaseModel):
@@ -40,7 +60,12 @@ class OrderRead(BaseModel):
     organization_id: uuid.UUID
     customer_id: uuid.UUID
     customer_name: str
-    status: str
+    status: Literal[
+        "in_preparation", "in_production", "ready", "completed", "cancelled"
+    ]
+    promised_at: datetime | None = None
+    priority: Literal["normal", "high", "urgent"] = "normal"
+    notes: str | None = None
     total_amount: Money
     items: list[OrderItemRead]
     created_at: datetime

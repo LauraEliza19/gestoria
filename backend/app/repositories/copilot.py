@@ -16,6 +16,8 @@ from app.schemas.copilot import (
     CopilotRateLimitArguments,
 )
 
+ACTIVE_ORDER_STATUSES = ("in_preparation", "in_production", "ready")
+
 
 class CopilotRepository:
     @staticmethod
@@ -29,7 +31,7 @@ class CopilotRepository:
         filters = (
             Order.organization_id == organization_id,
             Customer.organization_id == organization_id,
-            Order.status == "in_preparation",
+            Order.status.in_(ACTIVE_ORDER_STATUSES),
         )
         # Project scalars instead of loading ORM relationships. A corrupted
         # cross-tenant customer link must not leak the other company's name.

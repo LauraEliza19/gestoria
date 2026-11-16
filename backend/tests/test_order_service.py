@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -175,6 +176,30 @@ def test_update_order_status_restores_and_revalidates_stock(db: Session) -> None
     db.refresh(product)
     assert completed.status == "completed"
     assert product.stock_quantity == 1
+
+
+def test_order_persists_delivery_planning_and_operational_flow(db: Session) -> None:
+    organization = _organization_a(db)
+    customer = _customer(db, organization.id, phone="35922223333")
+    product = _product(db, organization.id, name="Bolo", stock=4)
+    promised_at = datetime(2026, 12, 20, 18, 30, tzinfo=UTC)
+
+    order = create_order(
+        db,
+        organization.id,
+        customer.id,
+        [OrderItemCreate(product_id=product.id, quantity=1)],
+        promised_at=promised_at,
+        priority="urgent",
+        notes="  Embalagem reforçada.  ",
+    )
+
+    assert order.promised_at.replace(tzinfo=UTC) == promised_at
+    assert order.priority == "urgent"
+    assert order.notes == "Embalagem reforçada."
+    assert update_order_status(db, order, "in_production").status == "in_production"
+    assert update_order_status(db, order, "ready").status == "ready"
+    assert update_order_status(db, order, "completed").status == "completed"
 
 
 def test_update_order_status_blocks_reactivation_without_stock(db: Session) -> None:

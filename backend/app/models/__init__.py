@@ -337,8 +337,12 @@ class Order(Base, TimestampMixin):
             name="uq_orders_org_id",
         ),
         CheckConstraint(
-            "status IN ('in_preparation', 'completed', 'cancelled')",
+            "status IN ('in_preparation', 'in_production', 'ready', 'completed', 'cancelled')",
             name="ck_order_status",
+        ),
+        CheckConstraint(
+            "priority IN ('normal', 'high', 'urgent')",
+            name="ck_order_priority",
         ),
         CheckConstraint(
             "total_amount >= 0",
@@ -360,6 +364,11 @@ class Order(Base, TimestampMixin):
             "organization_id",
             "customer_id",
         ),
+        Index(
+            "ix_orders_org_promised_at",
+            "organization_id",
+            "promised_at",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -376,6 +385,11 @@ class Order(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(20), default="in_preparation", nullable=False
     )
+    promised_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    priority: Mapped[str] = mapped_column(
+        String(20), default="normal", server_default="normal", nullable=False
+    )
+    notes: Mapped[str | None] = mapped_column(String(1000))
     total_amount: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), default=0, nullable=False
     )

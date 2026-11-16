@@ -535,7 +535,7 @@ export function HomeScreen() {
 
                 <Metric
                   bordered
-                  label="Em preparo"
+                  label="Pedidos ativos"
                   value={String(
                     overview.summary
                       .orders_in_preparation

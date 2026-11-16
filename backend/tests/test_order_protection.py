@@ -70,6 +70,40 @@ def test_preparation_does_not_write_order_or_change_stock(client, prepared):
         == 10
     )
     assert proposal["envelope"]["payload"]["total_amount"] == "25.00"
+    assert proposal["envelope"]["schema_version"] == 2
+    assert proposal["envelope"]["payload"]["priority"] == "normal"
+
+
+def test_protected_order_preserves_delivery_planning(client, prepared):
+    headers, body, _, _ = prepared
+    planned = {
+        **body,
+        "promised_at": "2026-12-20T15:30:00-03:00",
+        "priority": "high",
+        "notes": "Retirada pela entrada lateral.",
+    }
+    response = client.post(
+        "/api/orders/proposals",
+        headers={**headers, "Idempotency-Key": str(uuid.uuid4())},
+        json=planned,
+    )
+
+    assert response.status_code == 201, response.text
+    proposal = response.json()
+    payload = proposal["envelope"]["payload"]
+    assert payload["promised_at"] == "2026-12-20T18:30:00+00:00"
+    assert payload["priority"] == "high"
+    assert payload["notes"] == "Retirada pela entrada lateral."
+
+    created = client.post(
+        f"/api/orders/proposals/{proposal['operation_id']}/confirm",
+        headers=headers,
+        json={"envelope": proposal["envelope"]},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["promised_at"] == "2026-12-20T18:30:00Z"
+    assert created.json()["priority"] == "high"
+    assert created.json()["notes"] == "Retirada pela entrada lateral."
 
 
 def test_confirmation_receipt_and_retry_are_consistent(client, prepared):

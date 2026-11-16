@@ -200,8 +200,8 @@ def build_dashboard_overview(
                 title="Pedidos em andamento",
                 description=count_message(
                     snapshot.orders_in_preparation,
-                    "pedido está em preparação.",
-                    "pedidos estão em preparação.",
+                    "pedido está ativo na operação.",
+                    "pedidos estão ativos na operação.",
                 ),
                 impact=("Acompanhe o andamento para evitar atrasos na entrega."),
                 occurred_at=snapshot.orders_latest_at,

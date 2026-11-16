@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
@@ -50,7 +51,9 @@ class OrderStatusTransitionError(OrderServiceError):
 
 
 _ALLOWED_ORDER_STATUS_TRANSITIONS = {
-    "in_preparation": {"completed", "cancelled"},
+    "in_preparation": {"in_production", "completed", "cancelled"},
+    "in_production": {"ready", "completed", "cancelled"},
+    "ready": {"in_production", "completed", "cancelled"},
     "completed": {"cancelled"},
     "cancelled": {"in_preparation"},
 }
@@ -62,6 +65,9 @@ def create_order(
     customer_id,
     items: list,
     *,
+    promised_at: datetime | None = None,
+    priority: str = "normal",
+    notes: str | None = None,
     unit_prices: dict[uuid.UUID, Decimal] | None = None,
     commit: bool = True,
 ) -> Order:
@@ -115,6 +121,9 @@ def create_order(
             db,
             organization_id,
             customer_id,
+            promised_at=promised_at,
+            priority=priority,
+            notes=notes.strip() if notes and notes.strip() else None,
         )
         total = Decimal(0)
 

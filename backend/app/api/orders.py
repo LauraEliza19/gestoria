@@ -30,9 +30,14 @@ def list_orders(
     page_size: int = Query(default=50, ge=1, le=100),
     search: str | None = Query(default=None, max_length=120),
     status_filter: str | None = Query(
-        default=None, alias="status", pattern="^(in_preparation|completed|cancelled)$"
+        default=None,
+        alias="status",
+        pattern="^(in_preparation|in_production|ready|completed|cancelled)$",
     ),
-    sort: str = Query(default="created_at", pattern="^(created_at|total_amount)$"),
+    priority: str | None = Query(default=None, pattern="^(normal|high|urgent)$"),
+    sort: str = Query(
+        default="created_at", pattern="^(created_at|promised_at|total_amount)$"
+    ),
 ) -> PaginatedResponse[OrderRead]:
     result = OrderRepository.list_for_organization(
         db,
@@ -41,6 +46,7 @@ def list_orders(
         page_size=page_size,
         search=search,
         status=status_filter,
+        priority=priority,
         sort=sort,
     )
     result["items"] = [_build_order_read(order) for order in result["items"]]

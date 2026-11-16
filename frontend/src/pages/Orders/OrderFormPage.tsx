@@ -40,6 +40,9 @@ type PlanItem = {
 type OrderPlan = {
   customer_id: string
   customer_name: string
+  promised_at: string | null
+  priority: 'normal' | 'high' | 'urgent'
+  notes: string | null
   items: PlanItem[]
   total_amount: string
 }
@@ -67,6 +70,20 @@ function newItem(): DraftItem {
   }
 }
 
+function defaultPromisedAt(): string {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  date.setHours(12, 0, 0, 0)
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+
+const priorityLabels = {
+  normal: 'Normal',
+  high: 'Alta',
+  urgent: 'Urgente',
+} as const
+
 function formatMoney(value: string | number): string {
   return Number(value).toLocaleString('pt-BR', {
     style: 'currency',
@@ -83,6 +100,10 @@ export function OrderFormPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [customerId, setCustomerId] = useState('')
+  const [promisedAtBaseline] = useState(defaultPromisedAt)
+  const [promisedAt, setPromisedAt] = useState(promisedAtBaseline)
+  const [priority, setPriority] = useState<'normal' | 'high' | 'urgent'>('normal')
+  const [notes, setNotes] = useState('')
   const [items, setItems] = useState<DraftItem[]>([newItem()])
   const [proposal, setProposal] = useState<OrderProposal | null>(null)
   const [status, setStatus] = useState('Carregando clientes e produtos...')
@@ -92,6 +113,9 @@ export function OrderFormPage() {
     : ''
   const dirty =
     customerId !== contextualCustomerId ||
+    promisedAt !== promisedAtBaseline ||
+    priority !== 'normal' ||
+    notes.trim() !== '' ||
     items.length !== 1 ||
     items.some((item) => item.productId !== '' || item.quantity !== '1')
 
@@ -152,6 +176,11 @@ export function OrderFormPage() {
         return
       }
 
+      if (!promisedAt || Number.isNaN(new Date(promisedAt).getTime())) {
+        setStatus('Informe uma data e um horário válidos para a entrega.')
+        return
+      }
+
       if (
         items.some(
           (item) =>
@@ -177,6 +206,9 @@ export function OrderFormPage() {
           },
           body: JSON.stringify({
             customer_id: customerId,
+            promised_at: new Date(promisedAt).toISOString(),
+            priority,
+            notes: notes.trim() || null,
             items: items.map((item) => ({
               product_id: item.productId,
               quantity: Number(item.quantity),
@@ -264,6 +296,27 @@ export function OrderFormPage() {
           <div className="mb-6">
             <span className="text-xs text-muted">Cliente</span>
             <strong className="mt-1 block text-lg">{plan.customer_name}</strong>
+          </div>
+
+          <div className="mb-6 grid gap-4 rounded-lg border border-line bg-[#fbfcff] p-4 sm:grid-cols-2">
+            <div>
+              <span className="text-xs text-muted">Entrega prometida</span>
+              <strong className="mt-1 block text-sm">
+                {plan.promised_at
+                  ? new Date(plan.promised_at).toLocaleString('pt-BR')
+                  : 'Não informada'}
+              </strong>
+            </div>
+            <div>
+              <span className="text-xs text-muted">Prioridade</span>
+              <strong className="mt-1 block text-sm">{priorityLabels[plan.priority]}</strong>
+            </div>
+            {plan.notes && (
+              <div className="sm:col-span-2">
+                <span className="text-xs text-muted">Observações</span>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{plan.notes}</p>
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -364,6 +417,48 @@ export function OrderFormPage() {
               </option>
             ))}
           </select>
+        </label>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="form-label">
+            <span>
+              Entrega prometida
+              <RequiredMark />
+            </span>
+            <input
+              required
+              className="form-input"
+              type="datetime-local"
+              value={promisedAt}
+              onChange={(event) => setPromisedAt(event.target.value)}
+            />
+            <small>Prazo combinado com o cliente para retirada ou entrega.</small>
+          </label>
+
+          <label className="form-label">
+            <span>Prioridade</span>
+            <select
+              className="form-input"
+              value={priority}
+              onChange={(event) => setPriority(event.target.value as 'normal' | 'high' | 'urgent')}
+            >
+              <option value="normal">Normal</option>
+              <option value="high">Alta</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </label>
+        </div>
+
+        <label className="form-label">
+          <span>Observações da produção</span>
+          <textarea
+            className="form-input min-h-24 resize-y"
+            maxLength={1000}
+            placeholder="Ex.: decoração, embalagem, retirada ou cuidados especiais."
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+          <small>{notes.length}/1000 caracteres</small>
         </label>
 
         <div className="border-t border-line pt-5">
