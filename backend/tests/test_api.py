@@ -392,6 +392,128 @@ def test_order_flow_updates_stock_status_and_customer_total(
     )
 
 
+def test_order_list_filters_promised_range_before_pagination(
+    client: TestClient,
+) -> None:
+    headers = login(client)
+
+    customer = client.post(
+        "/api/customers",
+        headers=headers,
+        json={
+            "name": "Cliente Agenda",
+            "phone": "35977770001",
+        },
+    ).json()
+
+    product = client.post(
+        "/api/products",
+        headers=headers,
+        json={
+            "name": "Produto Agenda",
+            "price": "25.00",
+            "stock_quantity": 10,
+        },
+    ).json()
+
+    promised_dates = [
+        "2026-11-15T23:59:00-03:00",
+        "2026-11-16T09:00:00-03:00",
+        "2026-11-16T18:00:00-03:00",
+        "2026-11-17T00:00:00-03:00",
+    ]
+
+    created_orders = []
+
+    for promised_at in promised_dates:
+        response = secure_order(
+            client,
+            headers=headers,
+            json={
+                "customer_id": customer["id"],
+                "promised_at": promised_at,
+                "items": [
+                    {
+                        "product_id": product["id"],
+                        "quantity": 1,
+                    }
+                ],
+            },
+        )
+
+        assert response.status_code == 201
+        created_orders.append(response.json())
+
+    first_page = client.get(
+        "/api/orders",
+        headers=headers,
+        params={
+            "promised_from": "2026-11-16T00:00:00-03:00",
+            "promised_to": "2026-11-17T00:00:00-03:00",
+            "sort": "promised_at",
+            "page": 1,
+            "page_size": 1,
+        },
+    )
+
+    assert first_page.status_code == 200
+
+    first_payload = first_page.json()
+
+    assert first_payload["total"] == 2
+    assert first_payload["has_next"] is True
+    assert len(first_payload["items"]) == 1
+    assert first_payload["items"][0]["id"] == created_orders[1]["id"]
+
+    second_page = client.get(
+        "/api/orders",
+        headers=headers,
+        params={
+            "promised_from": "2026-11-16T00:00:00-03:00",
+            "promised_to": "2026-11-17T00:00:00-03:00",
+            "sort": "promised_at",
+            "page": 2,
+            "page_size": 1,
+        },
+    )
+
+    assert second_page.status_code == 200
+
+    second_payload = second_page.json()
+
+    assert second_payload["total"] == 2
+    assert second_payload["has_next"] is False
+    assert second_payload["items"][0]["id"] == created_orders[2]["id"]
+
+    naive_period = client.get(
+        "/api/orders",
+        headers=headers,
+        params={
+            "promised_from": "2026-11-16T00:00:00",
+            "promised_to": "2026-11-17T00:00:00-03:00",
+        },
+    )
+
+    assert naive_period.status_code == 422
+    assert naive_period.json()["detail"] == (
+        "O período da agenda deve informar o fuso horário."
+    )
+
+    inverted_period = client.get(
+        "/api/orders",
+        headers=headers,
+        params={
+            "promised_from": "2026-11-17T00:00:00-03:00",
+            "promised_to": "2026-11-16T00:00:00-03:00",
+        },
+    )
+
+    assert inverted_period.status_code == 422
+    assert inverted_period.json()["detail"] == (
+        "O início do período deve ser anterior ao final."
+    )
+
+
 def test_order_with_insufficient_stock_rolls_back_everything(
     client: TestClient,
 ) -> None:

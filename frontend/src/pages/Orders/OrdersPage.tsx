@@ -55,6 +55,37 @@ function formatPromisedAt(value: string | null): string {
   return value ? new Date(value).toLocaleString('pt-BR') : 'Prazo não informado'
 }
 
+function promisedDateAsInputValue(value: string | null): string | null {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function productionPath(order: Order, agendaDate: string | null): string {
+  const params = new URLSearchParams({
+    order_id: order.id,
+  })
+  const selectedDate = agendaDate ?? promisedDateAsInputValue(order.promised_at)
+
+  if (selectedDate) {
+    params.set('date', selectedDate)
+  }
+
+  return `/modo-fabrica?${params.toString()}`
+}
+
 function isLate(order: Order): boolean {
   return (
     Boolean(order.promised_at) &&
@@ -70,6 +101,7 @@ export function OrdersPage() {
   const [searchParams] = useSearchParams()
   const highlightedOrderId = searchParams.get('order_id')
   const fromProduction = searchParams.get('from') === 'production'
+  const agendaDate = searchParams.get('agenda_date')
 
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -175,7 +207,10 @@ export function OrdersPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {fromProduction && (
-            <Link className="secondary-button" to="/modo-fabrica">
+            <Link
+              className="secondary-button"
+              to={agendaDate ? `/modo-fabrica?date=${agendaDate}` : '/modo-fabrica'}
+            >
               Voltar à produção
             </Link>
           )}
@@ -305,7 +340,7 @@ export function OrdersPage() {
 
                 <span className="row-actions">
                   {!['completed', 'cancelled'].includes(order.status) && (
-                    <Link to={`/modo-fabrica?order_id=${order.id}`}>Ver na produção</Link>
+                    <Link to={productionPath(order, agendaDate)}>Ver na produção</Link>
                   )}
 
                   <Link

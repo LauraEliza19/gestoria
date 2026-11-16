@@ -4,28 +4,13 @@ import { ChefHat, Check, Clock3, RefreshCw, Search } from 'lucide-react'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { ProductionPanel } from './ProductionPanel'
 import type { ProductionView } from './ProductionPanel'
+import { ProductionAgenda } from './ProductionAgenda'
 import { OrderSupplies, SupplyBadge } from './OrderSupplies'
 import { byQueueOrder, normalizeText as normalize, planQueueSupplies } from './availability'
 import { loadQueueAndSupplies } from './queueRefresh'
-import type { Snapshot } from './productionTypes'
+import type { Order, Snapshot } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 
-type Order = {
-  id: string
-  customer_name: string
-  status: 'in_preparation' | 'in_production' | 'ready' | 'completed' | 'cancelled'
-  promised_at?: string | null
-  priority?: 'normal' | 'high' | 'urgent'
-  notes?: string | null
-  items: {
-    product_id: string
-    product_name: string
-    quantity: string
-    recipe_id?: string | null
-    unit_of_measure?: string | null
-  }[]
-  created_at: string
-}
 type Queue = 'active' | 'completed'
 
 const activeStatuses: Order['status'][] = ['in_preparation', 'in_production', 'ready']
@@ -42,7 +27,7 @@ const quantities = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 6 })
 const dates = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 export function FactoryModePage() {
-  const [area, setArea] = useState<'orders' | 'production'>('orders')
+  const [area, setArea] = useState<'agenda' | 'orders' | 'production'>('agenda')
   const [productionView, setProductionView] = useState<ProductionView>('available')
   const [orders, setOrders] = useState<Order[]>([])
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
@@ -60,6 +45,7 @@ export function FactoryModePage() {
 
   const [searchParams] = useSearchParams()
   const highlightedOrderId = searchParams.get('order_id')
+  const agendaDate = searchParams.get('date')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -217,6 +203,15 @@ export function FactoryModePage() {
       <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Áreas de produção">
         <button
           type="button"
+          aria-pressed={area === 'agenda'}
+          className={area === 'agenda' ? 'primary-button' : 'secondary-button'}
+          onClick={() => setArea('agenda')}
+        >
+          Agenda
+        </button>
+
+        <button
+          type="button"
           aria-pressed={area === 'orders'}
           className={area === 'orders' ? 'primary-button' : 'secondary-button'}
           onClick={() => setArea('orders')}
@@ -235,7 +230,9 @@ export function FactoryModePage() {
           Produção e receitas
         </button>
       </div>
-      {area === 'production' ? (
+      {area === 'agenda' ? (
+        <ProductionAgenda key={agendaDate ?? 'today'} initialDate={agendaDate} />
+      ) : area === 'production' ? (
         <ProductionPanel initialView={productionView} onSnapshot={setSnapshot} />
       ) : (
         <>
