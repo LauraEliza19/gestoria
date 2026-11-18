@@ -22,6 +22,7 @@ const lazyModules = {
     ],
   },
   Fiscal: { folder: 'Fiscal', pages: ['FiscalDocumentsPage'] },
+  Fornecedores: { folder: 'Suppliers', pages: ['SuppliersPage', 'SupplierFormPage'] },
   Produção: { folder: 'FactoryMode', pages: ['FactoryModePage'] },
   Gestão: {
     folder: 'Management',
@@ -104,6 +105,9 @@ const expectedRoutes = [
   ['/clientes/:customerId', null, 'CustomerProfilePage'],
   ['/produtos', null, 'ProductsPage'],
   ['/produtos/novo', null, 'ProductFormPage'],
+  ['/fornecedores', null, 'SuppliersPage'],
+  ['/fornecedores/novo', 'fiscal:manage', 'SupplierFormPage'],
+  ['/fornecedores/:supplierId/editar', 'fiscal:manage', 'SupplierFormPage'],
   ['/empresa/editar', 'organization:update', 'CompanyPage'],
   ['/pedidos', null, 'OrdersPage'],
   ['/pedidos/novo', null, 'OrderFormPage'],
@@ -121,6 +125,8 @@ const expectedTitles = {
   '/clientes/novo': 'GestorIA — Cadastro de cliente',
   '/produtos': 'GestorIA — Produtos',
   '/produtos/novo': 'GestorIA — Cadastro de produto',
+  '/fornecedores': 'GestorIA — Fornecedores',
+  '/fornecedores/novo': 'GestorIA — Cadastro de fornecedor',
   '/pedidos': 'GestorIA — Pedidos',
   '/pedidos/novo': 'GestorIA — Novo pedido',
   '/orcamentos': 'GestorIA — Orçamentos',
@@ -148,6 +154,7 @@ const dynamicTitles = [
   'GestorIA — Novo vínculo',
   'GestorIA — Editar vínculo',
   'GestorIA — Editar centro de custo',
+  'GestorIA — Editar fornecedor',
   'GestorIA — Editar funcionário',
   'GestorIA — Perfil do funcionário',
 ]
@@ -163,7 +170,7 @@ function parseRoutes(source) {
   })
 }
 
-test('os cinco módulos usam React.lazy com adaptação de named export', () => {
+test('os módulos sob demanda usam React.lazy com adaptação de named export', () => {
   assert.match(router, /import \{[^}]*\blazy\b[^}]*\} from 'react'/)
 
   for (const [label, module] of Object.entries(lazyModules)) {
@@ -184,7 +191,7 @@ test('router não importa estaticamente nenhum dos módulos sob demanda', () => 
   for (const line of staticImportLines) {
     assert.doesNotMatch(
       line,
-      /\.\.\/pages\/(Finance|Fiscal|FactoryMode|Management|Orders|Quotes)\//,
+      /\.\.\/pages\/(Finance|Fiscal|Suppliers|FactoryMode|Management|Orders|Quotes)\//,
       `import estático indevido: ${line}`,
     )
   }

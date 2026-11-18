@@ -43,6 +43,8 @@ class Supplier(Base, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     document: Mapped[str] = mapped_column(String(18), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(30))
+    email: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 

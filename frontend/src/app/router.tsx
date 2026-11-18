@@ -51,6 +51,18 @@ const FiscalDocumentsPage = lazy(() =>
   })),
 )
 
+// Cadastros (fornecedores)
+const SuppliersPage = lazy(() =>
+  import('../pages/Suppliers/SuppliersPage').then((module) => ({
+    default: module.SuppliersPage,
+  })),
+)
+const SupplierFormPage = lazy(() =>
+  import('../pages/Suppliers/SupplierFormPage').then((module) => ({
+    default: module.SupplierFormPage,
+  })),
+)
+
 // Produção
 const FactoryModePage = lazy(() =>
   import('../pages/FactoryMode/FactoryModePage').then((module) => ({
@@ -255,6 +267,8 @@ function PageTitle() {
       '/clientes/novo': 'GestorIA — Cadastro de cliente',
       '/produtos': 'GestorIA — Produtos',
       '/produtos/novo': 'GestorIA — Cadastro de produto',
+      '/fornecedores': 'GestorIA — Fornecedores',
+      '/fornecedores/novo': 'GestorIA — Cadastro de fornecedor',
       '/pedidos': 'GestorIA — Pedidos',
       '/pedidos/novo': 'GestorIA — Novo pedido',
       '/orcamentos': 'GestorIA — Orçamentos',
@@ -303,6 +317,8 @@ function PageTitle() {
 
     const isCostCenterEdit = /^\/gestao\/centros-de-custo\/[^/]+\/editar$/.test(location.pathname)
 
+    const isSupplierEdit = /^\/fornecedores\/[^/]+\/editar$/.test(location.pathname)
+
     let title = titles[location.pathname] || 'GestorIA'
 
     if (isCustomerProfile) {
@@ -319,6 +335,8 @@ function PageTitle() {
       title = 'GestorIA — Editar vínculo'
     } else if (isCostCenterEdit) {
       title = 'GestorIA — Editar centro de custo'
+    } else if (isSupplierEdit) {
+      title = 'GestorIA — Editar fornecedor'
     } else if (isEmployeeEdit) {
       title = 'GestorIA — Editar funcionário'
     } else if (isEmployeeProfile) {
@@ -560,6 +578,34 @@ export function AppRouter() {
           <Route path="/clientes/:customerId" element={<CustomerProfilePage />} />
           <Route path="/produtos" element={<ProductsPage />} />
           <Route path="/produtos/novo" element={<ProductFormPage />} />
+          <Route
+            path="/fornecedores"
+            element={
+              <LazyRoute>
+                <SuppliersPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="/fornecedores/novo"
+            element={
+              <PermissionGate permission="fiscal:manage">
+                <LazyRoute>
+                  <SupplierFormPage />
+                </LazyRoute>
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/fornecedores/:supplierId/editar"
+            element={
+              <PermissionGate permission="fiscal:manage">
+                <LazyRoute>
+                  <SupplierFormPage />
+                </LazyRoute>
+              </PermissionGate>
+            }
+          />
           <Route
             path="/empresa/editar"
             element={

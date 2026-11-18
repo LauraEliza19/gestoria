@@ -78,6 +78,8 @@ export type FiscalSupplier = {
   id: string
   name: string
   document: string
+  phone?: string | null
+  email?: string | null
   is_active: boolean
 }
 
@@ -103,6 +105,9 @@ export type FiscalDraftItem = {
 export type SupplierFormState = {
   name: string
   document: string
+  // Contato opcional do fornecedor.
+  phone?: string
+  email?: string
 }
 
 export type FiscalEventFormState = {

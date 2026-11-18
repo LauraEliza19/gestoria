@@ -15,6 +15,7 @@ import {
   Package,
   ReceiptText,
   Sparkles,
+  Truck,
   UserRound,
   Users,
   X,
@@ -30,6 +31,7 @@ const navigationGroups = [
     links: [
       { to: '/clientes', label: 'Clientes', icon: Users },
       { to: '/produtos', label: 'Produtos', icon: Package },
+      { to: '/fornecedores', label: 'Fornecedores', icon: Truck },
     ],
   },
   {

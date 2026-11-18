@@ -27,7 +27,8 @@ MERGE_REVISION = "b48621729e7d"
 PRODUCT_CODES_REVISION = "0015_product_codes"
 QUOTE_TERMS_REVISION = "0016_quote_commercial_terms"
 FINANCE_ACCOUNTS_REVISION = "0017_finance_accounts"
-CURRENT_HEAD = "0018_order_delivery_planning"
+ORDER_DELIVERY_REVISION = "0018_order_delivery_planning"
+CURRENT_HEAD = "0019_supplier_contact_fields"
 PREVIOUS = "0013_finance_entry_versions"
 
 
@@ -43,7 +44,11 @@ def test_gateway_and_customer_codes_are_joined_in_a_single_head():
     scripts = ScriptDirectory.from_config(Config("alembic.ini"))
 
     assert scripts.get_heads() == [CURRENT_HEAD]
-    assert scripts.get_revision(CURRENT_HEAD).down_revision == FINANCE_ACCOUNTS_REVISION
+    assert scripts.get_revision(CURRENT_HEAD).down_revision == ORDER_DELIVERY_REVISION
+    assert (
+        scripts.get_revision(ORDER_DELIVERY_REVISION).down_revision
+        == FINANCE_ACCOUNTS_REVISION
+    )
     assert (
         scripts.get_revision(FINANCE_ACCOUNTS_REVISION).down_revision
         == QUOTE_TERMS_REVISION

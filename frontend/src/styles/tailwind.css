@@ -1355,6 +1355,47 @@ body {
   @apply scroll-mt-6;
 }
 
+/* Campo de fornecedor da nota de entrada, com atalho para o cadastro rápido */
+.fiscal-supplier-field {
+  @apply grid min-w-0 content-start gap-2;
+}
+
+.fiscal-supplier-hint {
+  @apply text-[12px] font-normal text-muted;
+}
+
+.fiscal-supplier-hint button {
+  @apply cursor-pointer rounded border-0 bg-transparent p-0 font-bold text-signal underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.fiscal-modal.fiscal-supplier-dialog {
+  @apply max-w-[640px];
+}
+
+/* Cadastros → Fornecedores */
+/* Reserva duas linhas para dica ou erro: a mensagem aparece sem deslocar os botões. */
+.supplier-field-message {
+  @apply md:min-h-9;
+}
+
+.suppliers-table .data-table-row {
+  @apply min-w-[860px] grid-cols-[1.6fr_1fr_1.5fr_.7fr_1.1fr];
+}
+
+.suppliers-table .data-table-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.suppliers-actions {
+  @apply flex flex-wrap items-center gap-3;
+}
+
+.suppliers-actions a,
+.suppliers-actions button {
+  @apply inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[12px] font-bold text-signal no-underline hover:underline disabled:cursor-wait disabled:opacity-60;
+}
+
 .fiscal-new-document h2:focus {
   @apply outline-none;
 }

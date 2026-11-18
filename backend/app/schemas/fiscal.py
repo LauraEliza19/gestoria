@@ -3,7 +3,17 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
+
+from app.schemas.common import normalize_phone
 
 FiscalStatus = Literal[
     "Autorizada",
@@ -147,13 +157,43 @@ class FiscalOrderLink(StrictModel):
     reason: str = Field(min_length=10, max_length=500)
 
 
-class SupplierCreate(StrictModel):
+class SupplierContact(StrictModel):
+    """Contato opcional do fornecedor; texto vazio equivale a não informado."""
+
+    phone: str | None = Field(default=None, max_length=30)
+    email: EmailStr | None = None
+
+    @field_validator("phone", "email", mode="before")
+    @classmethod
+    def blank_contact_as_missing(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return normalize_phone(value) if value is not None else None
+
+
+class SupplierCreate(SupplierContact):
     name: str = Field(min_length=1, max_length=160)
     document: str = Field(pattern=r"^(\d{11}|\d{14})$")
 
 
-class SupplierUpdate(StrictModel):
-    is_active: bool
+class SupplierUpdate(SupplierContact):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    document: str | None = Field(default=None, pattern=r"^(\d{11}|\d{14})$")
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_changes(self):
+        if not self.model_fields_set:
+            raise ValueError("Informe ao menos um campo para atualizar.")
+        for field in ("name", "document", "is_active"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError("Nome, CPF/CNPJ e situação não podem ficar vazios.")
+        return self
 
 
 class SupplierRead(BaseModel):
@@ -162,4 +202,6 @@ class SupplierRead(BaseModel):
     organization_id: uuid.UUID
     name: str
     document: str
+    phone: str | None = None
+    email: str | None = None
     is_active: bool
