@@ -1,17 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import { useSaveAction } from '../../components/forms/useFormState'
 import { apiFetch, apiFetchItems } from '../../services/api'
+import {
+  createSupplier as createSupplierRequest,
+  listAllSuppliers,
+} from '../../services/suppliers.service'
 import { getErrorMessage } from '../../utils/errors'
-import type { FiscalDocument, FiscalOrder, FiscalProduct, FiscalSupplier } from './fiscalTypes'
+import type {
+  FiscalDocument,
+  FiscalOrder,
+  FiscalProduct,
+  FiscalSupplier,
+  SupplierFormState,
+} from './fiscalTypes'
 import {
   UNSAVED_FORM_MESSAGE,
   createEmptyFiscalForm,
   createEmptyFiscalItem,
+  createEmptySupplierForm,
   fiscalDocumentFormErrors,
   isActiveFiscalStatus,
   isFiscalFormDirty,
-  onlyDigits,
+  supplierFormErrors,
+  supplierPayload,
   taxIdError,
 } from './fiscalUtils'
 
@@ -38,10 +50,16 @@ export function useFiscalDocuments(orderFilter: string) {
   const [formBaseline, setFormBaseline] = useState(createEmptyFiscalForm)
   const [itemsBaseline, setItemsBaseline] = useState([createEmptyFiscalItem()])
   const [formOpenedAt, setFormOpenedAt] = useState(0)
-  const [supplierForm, setSupplierForm] = useState({
-    name: '',
-    document: '',
-  })
+  const [supplierForm, setSupplierFormState] = useState(createEmptySupplierForm)
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
+  // Erro do cadastro rápido, exibido dentro da própria janela.
+  const [supplierError, setSupplierError] = useState('')
+
+  // Ao corrigir o rascunho, o erro da tentativa anterior deixa de valer.
+  const setSupplierForm: Dispatch<SetStateAction<SupplierFormState>> = (next) => {
+    setSupplierError('')
+    setSupplierFormState(next)
+  }
   const [selected, setSelected] = useState<FiscalDocument | null>(null)
   const [eventForm, setEventForm] = useState({
     status: '',
@@ -61,7 +79,7 @@ export function useFiscalDocuments(orderFilter: string) {
       apiFetch<FiscalDocument[]>('/api/fiscal-documents'),
       apiFetchItems<FiscalOrder>('/api/orders'),
       apiFetchItems<FiscalProduct>('/api/products'),
-      apiFetchItems<FiscalSupplier>('/api/fiscal-suppliers'),
+      listAllSuppliers(),
     ])
       .then(([docs, orderList, productList, supplierList]) => {
         if (cancelled) {
@@ -206,8 +224,28 @@ export function useFiscalDocuments(orderFilter: string) {
     }
 
     setShowForm(false)
-    setSupplierForm({ name: '', document: '' })
+    resetSupplierDraft()
     return true
+  }
+
+  function resetSupplierDraft() {
+    setSupplierFormState(createEmptySupplierForm())
+    setSupplierDialogOpen(false)
+    setSupplierError('')
+  }
+
+  function openSupplierDialog() {
+    if (pendingAction === 'document') return
+
+    setSupplierError('')
+    setSupplierDialogOpen(true)
+  }
+
+  // A confirmação de descarte do rascunho é feita pela própria janela.
+  function closeSupplierDialog() {
+    if (pendingAction === 'supplier') return
+
+    resetSupplierDraft()
   }
 
   // Rola e foca o formulário que já está aberto, sem descartar o que foi digitado.
@@ -232,7 +270,7 @@ export function useFiscalDocuments(orderFilter: string) {
     setFormBaseline(initial)
     setDraftItems(initialItems)
     setItemsBaseline(initialItems)
-    setSupplierForm({ name: '', document: '' })
+    resetSupplierDraft()
     setShowForm(true)
     setFormOpenedAt(Date.now())
     void reloadFormOptions()
@@ -246,7 +284,7 @@ export function useFiscalDocuments(orderFilter: string) {
         const [orderList, productList, supplierList] = await Promise.all([
           apiFetchItems<FiscalOrder>('/api/orders'),
           apiFetchItems<FiscalProduct>('/api/products'),
-          apiFetchItems<FiscalSupplier>('/api/fiscal-suppliers'),
+          listAllSuppliers(),
         ])
 
         setOrders(orderList)
@@ -301,33 +339,35 @@ export function useFiscalDocuments(orderFilter: string) {
     event.preventDefault()
 
     await run('supplier', async () => {
+      setSupplierError('')
+
       const documentError = taxIdError(supplierForm.document)
-      if (documentError) {
-        setError(documentError)
+      const formError = documentError || Object.values(supplierFormErrors(supplierForm))[0]
+      if (formError) {
+        setSupplierError(formError)
         return
       }
 
-      const supplier = await apiFetch<FiscalSupplier>('/api/fiscal-suppliers', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: supplierForm.name.trim(),
-          document: onlyDigits(supplierForm.document),
-        }),
-      })
+      try {
+        const supplier: FiscalSupplier = await createSupplierRequest(supplierPayload(supplierForm))
 
-      setSuppliers((current) => [...current, supplier])
+        setSuppliers((current) =>
+          [...current, supplier].sort((first, second) =>
+            first.name.localeCompare(second.name, 'pt-BR'),
+          ),
+        )
 
-      setForm((current) => ({
-        ...current,
-        supplier_id: supplier.id,
-      }))
+        setForm((current) => ({
+          ...current,
+          supplier_id: supplier.id,
+        }))
 
-      setSupplierForm({
-        name: '',
-        document: '',
-      })
-
-      setNotice('Fornecedor cadastrado.')
+        resetSupplierDraft()
+        setNotice('Fornecedor cadastrado e selecionado na nota.')
+      } catch (requestError) {
+        // O erro fica na janela do cadastro: a página está coberta por ela.
+        setSupplierError(getErrorMessage(requestError, 'Não foi possível cadastrar o fornecedor.'))
+      }
     })
   }
 
@@ -441,6 +481,10 @@ export function useFiscalDocuments(orderFilter: string) {
     setDraftItems,
     supplierForm,
     setSupplierForm,
+    supplierDialogOpen,
+    supplierError,
+    openSupplierDialog,
+    closeSupplierDialog,
     selected,
     setSelected,
     eventForm,

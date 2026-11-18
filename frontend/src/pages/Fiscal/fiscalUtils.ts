@@ -5,6 +5,7 @@ import type {
   FiscalOrganization,
   FiscalParty,
   FiscalSort,
+  SupplierFormState,
 } from './fiscalTypes'
 
 export const FISCAL_STATUSES = [
@@ -112,6 +113,15 @@ export function createEmptyFiscalItem(): FiscalDraftItem {
     product_id: '',
     quantity: '1',
     unit_price: '0.00',
+  }
+}
+
+export function createEmptySupplierForm(): SupplierFormState {
+  return {
+    name: '',
+    document: '',
+    phone: '',
+    email: '',
   }
 }
 
@@ -521,6 +531,80 @@ export function formatPhone(value: string | null | undefined): string {
   return value || ''
 }
 
+// Máscara progressiva de telefone com DDD: fixo (10 dígitos) ou celular (11 dígitos).
+export function maskPhoneInput(value: string | null | undefined): string {
+  const digits = onlyDigits(value).slice(0, 11)
+
+  if (digits.length <= 2) {
+    return digits
+  }
+
+  const area = digits.slice(0, 2)
+  const number = digits.slice(2)
+
+  if (number.length <= 4) {
+    return `(${area}) ${number}`
+  }
+
+  const prefixLength = digits.length === 11 ? 5 : 4
+
+  return `(${area}) ${number.slice(0, prefixLength)}-${number.slice(prefixLength)}`
+}
+
+// Telefone é opcional; quando informado, precisa ter DDD e número.
+export function phoneError(value: string | null | undefined): string {
+  const digits = onlyDigits(value)
+
+  if (!digits) {
+    return ''
+  }
+
+  return digits.length === 10 || digits.length === 11
+    ? ''
+    : 'Informe DDD e número (10 ou 11 dígitos).'
+}
+
+// E-mail é opcional; quando informado, precisa ter o formato nome@dominio.
+export function emailError(value: string | null | undefined): string {
+  const email = (value || '').trim()
+
+  if (!email) {
+    return ''
+  }
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? '' : 'E-mail inválido. Confira o endereço.'
+}
+
+// Erros do cadastro de fornecedor, por campo. Objeto vazio significa cadastro válido.
+export function supplierFormErrors(
+  form: SupplierFormState,
+): Partial<Record<keyof SupplierFormState, string>> {
+  const errors: Partial<Record<keyof SupplierFormState, string>> = {}
+
+  if (!form.name.trim()) errors.name = 'Informe o nome ou a razão social.'
+
+  const document = taxIdError(form.document)
+  if (document) errors.document = document
+
+  const phone = phoneError(form.phone)
+  if (phone) errors.phone = phone
+
+  const email = emailError(form.email)
+  if (email) errors.email = email
+
+  return errors
+}
+
+// Converte o formulário no corpo aceito pela API (campos vazios viram nulos).
+export function supplierPayload(form: SupplierFormState) {
+  return {
+    name: form.name.trim(),
+    document: onlyDigits(form.document),
+    phone: onlyDigits(form.phone) || null,
+    email: (form.email || '').trim() || null,
+  }
+}
+
 export const FISCAL_UNITS = ['un', 'kg', 'g', 'l'] as const
 
 const UNIT_ALIASES: Record<string, string> = {
@@ -665,19 +749,26 @@ export function fiscalDocumentFormErrors(
   return errors
 }
 
+// Indica se o rascunho de fornecedor tem algo digitado.
+export function isSupplierDraftDirty(draft: SupplierFormState): boolean {
+  return [draft.name, draft.document, draft.phone, draft.email].some((value) =>
+    Boolean((value ?? '').trim()),
+  )
+}
+
 // Compara o formulário atual com o estado de quando foi aberto.
 export function isFiscalFormDirty(
   form: FiscalFormState,
   baseline: FiscalFormState,
   items: FiscalDraftItem[] = [],
   baselineItems: FiscalDraftItem[] = [],
-  supplierDraft: { name: string; document: string } = { name: '', document: '' },
+  supplierDraft: SupplierFormState = { name: '', document: '' },
 ): boolean {
   const changedForm = (Object.keys(baseline) as (keyof FiscalFormState)[]).some(
     (field) => (form[field] ?? '') !== (baseline[field] ?? ''),
   )
   const changedItems = JSON.stringify(items) !== JSON.stringify(baselineItems)
-  const changedSupplier = Boolean(supplierDraft.name.trim() || supplierDraft.document.trim())
+  const changedSupplier = isSupplierDraftDirty(supplierDraft)
 
   return changedForm || changedItems || changedSupplier
 }

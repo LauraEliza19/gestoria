@@ -22,7 +22,7 @@ import {
 } from './fiscalUtils'
 import { FiscalItems } from './FiscalItems'
 import { FiscalEntryItems } from './FiscalEntryItems'
-import { FiscalSupplierForm } from './FiscalSupplierForm'
+import { FiscalSupplierDialog } from './FiscalSupplierDialog'
 import { RequiredMark } from './FiscalRequired'
 
 type FiscalDocumentFormProps = {
@@ -38,6 +38,10 @@ type FiscalDocumentFormProps = {
   busy: boolean
   saving: boolean
   supplierSaving: boolean
+  supplierDialogOpen?: boolean
+  supplierError?: string
+  onOpenSupplierDialog?: () => void
+  onCloseSupplierDialog?: () => void
   onAttempt: () => void
   loading: boolean
   dirty?: boolean
@@ -92,6 +96,10 @@ export function FiscalDocumentForm({
   busy,
   saving,
   supplierSaving,
+  supplierDialogOpen = false,
+  supplierError = '',
+  onOpenSupplierDialog = () => {},
+  onCloseSupplierDialog = () => {},
   onAttempt,
   loading,
   dirty = false,
@@ -110,6 +118,7 @@ export function FiscalDocumentForm({
   const availableOrders = orders.filter(
     (order) => order.status !== 'cancelled' && !isOccupied(order.id),
   )
+  const activeSuppliers = suppliers.filter((supplier) => supplier.is_active)
   const errors = fiscalDocumentFormErrors(form, draftItems)
   const hasErrors = Object.keys(errors).length > 0
 
@@ -253,41 +262,58 @@ export function FiscalDocumentForm({
               )}
             </label>
           ) : (
-            <label>
-              <span>
-                Fornecedor
-                <RequiredMark />
-              </span>
-              <select
-                required
-                aria-required="true"
-                aria-invalid={Boolean(showError('supplier_id'))}
-                aria-describedby={showError('supplier_id') ? 'fiscal-error-supplier_id' : undefined}
-                value={form.supplier_id}
-                onBlur={() => markTouched('supplier_id')}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    supplier_id: event.target.value,
-                  })
-                }
-              >
-                <option value="">Selecione o fornecedor</option>
+            <div className="fiscal-supplier-field">
+              <label>
+                <span>
+                  Fornecedor
+                  <RequiredMark />
+                </span>
+                <select
+                  required
+                  aria-required="true"
+                  aria-invalid={Boolean(showError('supplier_id'))}
+                  aria-describedby={
+                    showError('supplier_id') ? 'fiscal-error-supplier_id' : undefined
+                  }
+                  value={form.supplier_id}
+                  onBlur={() => markTouched('supplier_id')}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      supplier_id: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">Selecione o fornecedor</option>
 
-                {suppliers
-                  .filter((supplier) => supplier.is_active)
-                  .map((supplier) => (
+                  {activeSuppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
                       {supplier.name} · {formatTaxId(supplier.document)}
                     </option>
                   ))}
-              </select>
-              {showError('supplier_id') && (
-                <small className="fiscal-field-error" id="fiscal-error-supplier_id">
-                  {errors.supplier_id}
-                </small>
-              )}
-            </label>
+                </select>
+                {showError('supplier_id') && (
+                  <small className="fiscal-field-error" id="fiscal-error-supplier_id">
+                    {errors.supplier_id}
+                  </small>
+                )}
+              </label>
+
+              <p className="fiscal-supplier-hint">
+                {activeSuppliers.length === 0
+                  ? 'Nenhum fornecedor ativo cadastrado.'
+                  : 'Não encontrou o fornecedor?'}{' '}
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={supplierDialogOpen}
+                  disabled={saving}
+                  onClick={onOpenSupplierDialog}
+                >
+                  + Novo fornecedor
+                </button>
+              </p>
+            </div>
           )}
 
           <label>
@@ -459,13 +485,16 @@ export function FiscalDocumentForm({
       </SavingForm>
 
       {form.document_type === 'entrada' && (
-        <FiscalSupplierForm
+        <FiscalSupplierDialog
+          open={supplierDialogOpen}
           form={supplierForm}
           busy={busy || loading}
           saving={supplierSaving}
+          error={supplierError}
           onAttempt={onAttempt}
           onChange={setSupplierForm}
           onSubmit={onCreateSupplier}
+          onClose={onCloseSupplierDialog}
         />
       )}
     </section>

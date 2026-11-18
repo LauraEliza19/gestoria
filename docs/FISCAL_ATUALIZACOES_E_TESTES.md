@@ -119,8 +119,9 @@ Todas as rotas são autenticadas e delimitadas pela empresa. Leitura é permitid
 | `POST /api/fiscal-documents/{id}/receive` | Confirma recebimento de entrada; corpo vazio |
 | `DELETE /api/fiscal-documents/{id}` | Retorna 409 para documento existente; exclusão desabilitada |
 | `GET /api/fiscal-suppliers` | Lista fornecedores da empresa, incluindo inativos |
-| `POST /api/fiscal-suppliers` | Cadastra `name` e `document` |
-| `PATCH /api/fiscal-suppliers/{id}` | Atualiza somente `is_active` |
+| `GET /api/fiscal-suppliers/{id}` | Detalhes de um fornecedor da empresa |
+| `POST /api/fiscal-suppliers` | Cadastra `name` e `document`; `phone` e `email` são opcionais |
+| `PATCH /api/fiscal-suppliers/{id}` | Atualiza `name`, `document`, `phone`, `email` e `is_active`; notas já registradas mantêm os dados capturados |
 
 Saída, exemplo de corpo (substitua o UUID e a data):
 

@@ -989,6 +989,322 @@ test('campos do formulário fiscal alinham pelo topo', () =>
     /\.fiscal-form-grid > label,\s*\.fiscal-form-grid > fieldset > label\s*\{[^}]*content-start/s,
   ))
 
+// ===========================================================================
+// 18. Fornecedor: contato opcional e cadastro rápido dentro da nota
+// ===========================================================================
+test('máscara progressiva de telefone com DDD', () => {
+  assert.equal(utils.maskPhoneInput(''), '')
+  assert.equal(utils.maskPhoneInput('35'), '35')
+  assert.equal(utils.maskPhoneInput('359'), '(35) 9')
+  assert.equal(utils.maskPhoneInput('353722'), '(35) 3722')
+  assert.equal(utils.maskPhoneInput('3537221234'), '(35) 3722-1234')
+  assert.equal(utils.maskPhoneInput('35999998888'), '(35) 99999-8888')
+})
+test('máscara de telefone ignora letras e limita a 11 dígitos', () => {
+  assert.equal(utils.maskPhoneInput('(35) 9a9999-8888 ramal 12'), '(35) 99999-8888')
+  assert.equal(utils.maskPhoneInput(null), '')
+})
+test('telefone é opcional, mas quando informado exige DDD e número', () => {
+  assert.equal(utils.phoneError(''), '')
+  assert.equal(utils.phoneError(undefined), '')
+  assert.equal(utils.phoneError('3537221234'), '')
+  assert.equal(utils.phoneError('(35) 99999-8888'), '')
+  assert.match(utils.phoneError('999998888'), /DDD/)
+  assert.match(utils.phoneError('359999988881'), /10 ou 11 dígitos/)
+})
+test('e-mail é opcional, mas quando informado precisa ser válido', () => {
+  assert.equal(utils.emailError(''), '')
+  assert.equal(utils.emailError('  '), '')
+  assert.equal(utils.emailError('compras@fornecedor.com.br'), '')
+  assert.equal(utils.emailError(' compras@fornecedor.com.br '), '')
+  for (const invalid of ['sem-arroba', 'a@b', 'a b@c.com', '@fornecedor.com', 'nome@']) {
+    assert.match(utils.emailError(invalid), /E-mail inválido/, invalid)
+  }
+})
+test('cadastro de fornecedor só exige nome e CPF/CNPJ', () => {
+  assert.deepEqual(utils.supplierFormErrors({ name: 'A', document: '11222333000181' }), {})
+  assert.deepEqual(
+    utils.supplierFormErrors({
+      name: 'A',
+      document: '111.444.777-35',
+      phone: '3537221234',
+      email: 'a@b.com',
+    }),
+    {},
+  )
+})
+test('cadastro de fornecedor aponta cada campo inválido', () => {
+  const errors = utils.supplierFormErrors({
+    name: '  ',
+    document: '11222333000182',
+    phone: '123',
+    email: 'x',
+  })
+  assert.deepEqual(Object.keys(errors).sort(), ['document', 'email', 'name', 'phone'])
+  assert.match(errors.document, /CNPJ inválido/)
+})
+test('corpo enviado à API usa somente dígitos e nulos para campos vazios', () => {
+  assert.deepEqual(
+    utils.supplierPayload({
+      name: '  Moinho Central  ',
+      document: '11.222.333/0001-81',
+      phone: '(35) 99999-8888',
+      email: ' compras@moinho.com.br ',
+    }),
+    {
+      name: 'Moinho Central',
+      document: '11222333000181',
+      phone: '35999998888',
+      email: 'compras@moinho.com.br',
+    },
+  )
+  assert.deepEqual(utils.supplierPayload({ name: 'A', document: '11144477735' }), {
+    name: 'A',
+    document: '11144477735',
+    phone: null,
+    email: null,
+  })
+})
+test('formulário vazio de fornecedor tem os quatro campos', () =>
+  assert.deepEqual(utils.createEmptySupplierForm(), {
+    name: '',
+    document: '',
+    phone: '',
+    email: '',
+  }))
+test('telefone ou e-mail digitados também contam como rascunho não salvo', () => {
+  assert.equal(utils.isSupplierDraftDirty(utils.createEmptySupplierForm()), false)
+  assert.equal(utils.isSupplierDraftDirty({ name: '', document: '', phone: '35' }), true)
+  assert.equal(utils.isSupplierDraftDirty({ name: '', document: '', email: 'a' }), true)
+  assert.equal(dirty(emptyForm(), [], [], { name: '', document: '', phone: '35' }), true)
+})
+
+test('cadastro rápido tem nome, CPF/CNPJ, telefone e e-mail', () => {
+  const inputs = byType(
+    supplierForm({
+      name: 'A',
+      document: '11222333000181',
+      phone: '35999998888',
+      email: 'a@b.com',
+    }),
+    'input',
+  )
+  assert.equal(inputs.length, 4)
+  assert.equal(inputs[2].props.type, 'tel')
+  assert.equal(inputs[2].props.value, '(35) 99999-8888')
+  assert.equal(inputs[3].props.type, 'email')
+  assert.equal(inputs[3].props.value, 'a@b.com')
+})
+test('telefone e e-mail do cadastro rápido não são obrigatórios', () => {
+  const inputs = byType(supplierForm({ name: 'A', document: '11222333000181' }), 'input')
+  assert.equal(inputs[0].props.required, true)
+  assert.equal(inputs[1].props.required, true)
+  assert.ok(!inputs[2].props.required)
+  assert.ok(!inputs[3].props.required)
+  assert.equal(inputs[2].props.value, '')
+  assert.equal(inputs[3].props.value, '')
+})
+test('digitação do telefone guarda somente números', () => {
+  let saved
+  const tree = mount(FiscalSupplierForm, {
+    form: { name: 'A', document: '', phone: '', email: '' },
+    busy: false,
+    onChange: (value) => (saved = value),
+    onSubmit: () => {},
+  })
+  byType(tree, 'input')[2].props.onChange({ target: { value: '(35) 99999-8888' } })
+  assert.equal(saved.phone, '35999998888')
+  assert.equal(saved.name, 'A')
+})
+test('salvar fornecedor fica desabilitado com telefone ou e-mail inválido', () => {
+  const base = { name: 'A', document: '11222333000181' }
+  for (const extra of [{ phone: '123' }, { email: 'sem-arroba' }]) {
+    assert.equal(
+      buttonByText(supplierForm({ ...base, ...extra }), 'Salvar fornecedor').props.disabled,
+      true,
+    )
+  }
+})
+test('cadastro rápido mostra o erro devolvido pela API', () => {
+  const tree = mount(FiscalSupplierForm, {
+    form: { name: 'A', document: '11222333000181' },
+    busy: false,
+    saving: false,
+    error: 'Já existe um fornecedor com este CPF/CNPJ nesta empresa.',
+    onAttempt: () => {},
+    onChange: () => {},
+    onSubmit: () => {},
+  })
+  const alerts = findAll(tree, (node) => node.props.role === 'alert')
+  assert.match(textOf(alerts), /Já existe um fornecedor com este CPF\/CNPJ/)
+})
+test('cadastro rápido só mostra Cancelar quando há para onde voltar', () => {
+  const props = {
+    form: { name: '', document: '' },
+    busy: false,
+    saving: false,
+    onAttempt: () => {},
+    onChange: () => {},
+    onSubmit: () => {},
+  }
+  assert.equal(buttonByText(mount(FiscalSupplierForm, props), 'Cancelar'), undefined)
+
+  let cancelled = false
+  const tree = mount(FiscalSupplierForm, { ...props, onCancel: () => (cancelled = true) })
+  buttonByText(tree, 'Cancelar').props.onClick()
+  assert.equal(cancelled, true)
+})
+test('envio do cadastro rápido é bloqueado enquanto outra operação roda', () => {
+  let submitted = false
+  const tree = mount(FiscalSupplierForm, {
+    form: { name: 'A', document: '11222333000181' },
+    busy: true,
+    saving: false,
+    onAttempt: () => {},
+    onChange: () => {},
+    onSubmit: () => (submitted = true),
+  })
+  const event = fakeEvent()
+  byType(tree, 'form')[0].props.onSubmit(event)
+  assert.equal(submitted, false)
+  assert.equal(event.prevented, true)
+})
+
+const { FiscalSupplierDialog } = load('FiscalSupplierDialog')
+const supplierDialog = (extra = {}) =>
+  mount(FiscalSupplierDialog, {
+    open: true,
+    form: { name: '', document: '', phone: '', email: '' },
+    busy: false,
+    saving: false,
+    onAttempt: () => {},
+    onChange: () => {},
+    onSubmit: () => {},
+    onClose: () => {},
+    ...extra,
+  })
+test('janela de fornecedor não é montada enquanto está fechada', () =>
+  assert.deepEqual(supplierDialog({ open: false }), []))
+test('janela de fornecedor é um diálogo acessível com título', () => {
+  const tree = supplierDialog()
+  const dialog = findAll(tree, (node) => node.props.role === 'dialog')[0]
+  assert.equal(dialog.props['aria-modal'], 'true')
+  assert.equal(dialog.props['aria-labelledby'], 'fiscal-supplier-dialog-title')
+  assert.match(textOf(byType(tree, 'h2')), /Novo fornecedor/)
+  assert.equal(byType(tree, 'input').length, 4)
+  assert.equal(byType(tree, 'input')[0].props.autoFocus, true)
+})
+test('janela vazia fecha direto pelo Cancelar', () => {
+  let closed = false
+  buttonByText(supplierDialog({ onClose: () => (closed = true) }), 'Cancelar').props.onClick()
+  assert.equal(closed, true)
+})
+test('janela não fecha enquanto o fornecedor está sendo salvo', () => {
+  let closed = false
+  const tree = supplierDialog({ saving: true, onClose: () => (closed = true) })
+  const close = byType(tree, 'button').find(
+    (button) => button.props['aria-label'] === 'Fechar cadastro de fornecedor',
+  )
+  assert.equal(close.props.disabled, true)
+  close.props.onClick()
+  assert.equal(closed, false)
+})
+test('janela com dados digitados pede confirmação antes de descartar', () => {
+  const previousWindow = global.window
+  let closed = 0
+  let answer = false
+  global.window = { confirm: () => answer }
+  try {
+    const tree = supplierDialog({
+      form: { name: 'Rascunho', document: '' },
+      onClose: () => closed++,
+    })
+    buttonByText(tree, 'Cancelar').props.onClick()
+    assert.equal(closed, 0)
+    answer = true
+    buttonByText(tree, 'Cancelar').props.onClick()
+    assert.equal(closed, 1)
+  } finally {
+    if (previousWindow === undefined) delete global.window
+    else global.window = previousWindow
+  }
+})
+
+const entryForm = (extra = {}) =>
+  documentForm(validForm({ document_type: 'entrada', order_id: '' }), extra)
+test('nota de entrada oferece "+ Novo fornecedor" ao lado do campo', () => {
+  let opened = false
+  const tree = entryForm({ onOpenSupplierDialog: () => (opened = true) })
+  const field = findAll(tree, (node) => node.props.className === 'fiscal-supplier-field')[0]
+  const button = buttonByText([field], '+ Novo fornecedor')
+  assert.equal(button.props.type, 'button')
+  assert.equal(button.props['aria-haspopup'], 'dialog')
+  button.props.onClick()
+  assert.equal(opened, true)
+  assert.equal(byType([field], 'select').length, 1)
+})
+test('cadastro de fornecedor não fica mais recolhido no fim do formulário', () => {
+  const tree = entryForm()
+  assert.equal(byType(tree, 'details').length, 0)
+  assert.equal(byType(tree, 'summary').length, 0)
+  assert.equal(findAll(tree, (node) => node.props.role === 'dialog').length, 0)
+})
+test('janela de fornecedor abre por cima da nota quando solicitada', () => {
+  const tree = entryForm({ supplierDialogOpen: true, supplierError: 'Falha de teste' })
+  assert.equal(findAll(tree, (node) => node.props.role === 'dialog').length, 1)
+  assert.match(textOf(tree), /Falha de teste/)
+})
+test('fornecedor inativo não é oferecido na nota de entrada', () => {
+  const tree = entryForm({
+    suppliers: [
+      { id: 's1', name: 'Ativo', document: '11222333000181', is_active: true },
+      { id: 's2', name: 'Desativado', document: '11144477735', is_active: false },
+    ],
+  })
+  const field = findAll(tree, (node) => node.props.className === 'fiscal-supplier-field')[0]
+  const options = textOf(byType([field], 'option'))
+  assert.match(options, /Ativo/)
+  assert.doesNotMatch(options, /Desativado/)
+})
+test('sem fornecedor ativo, o campo orienta a cadastrar', () => {
+  const text = textOf(entryForm({ suppliers: [] }))
+  assert.match(text, /Nenhum fornecedor ativo cadastrado\./)
+  assert.match(text, /\+ Novo fornecedor/)
+})
+test('nota de saída não mostra campo nem janela de fornecedor', () => {
+  const tree = documentForm(validForm(), { supplierDialogOpen: true })
+  assert.doesNotMatch(textOf(tree), /Novo fornecedor/)
+  assert.equal(findAll(tree, (node) => node.props.role === 'dialog').length, 0)
+})
+test('botão de novo fornecedor fica bloqueado enquanto a nota é salva', () => {
+  const tree = entryForm({ saving: true, busy: true })
+  assert.equal(buttonByText(tree, '+ Novo fornecedor').props.disabled, true)
+})
+
+test('hook carrega todos os fornecedores e mantém o erro na janela', () => {
+  assert.match(hook, /listAllSuppliers\(\)/)
+  assert.doesNotMatch(hook, /apiFetchItems<FiscalSupplier>/)
+  assert.match(hook, /supplierPayload\(supplierForm\)/)
+  assert.match(hook, /setSupplierError\(getErrorMessage\(requestError/)
+  assert.match(hook, /function openSupplierDialog\(\)/)
+  assert.match(hook, /function closeSupplierDialog\(\)/)
+})
+test('página repassa o controle da janela de fornecedor ao formulário', () => {
+  assert.match(page, /supplierDialogOpen=\{supplierDialogOpen\}/)
+  assert.match(page, /onOpenSupplierDialog=\{openSupplierDialog\}/)
+  assert.match(page, /onCloseSupplierDialog=\{closeSupplierDialog\}/)
+  assert.match(page, /supplierError=\{supplierError\}/)
+})
+test('estilos do campo e da janela de fornecedor existem', () => {
+  for (const selector of [
+    '.fiscal-supplier-field',
+    '.fiscal-supplier-hint',
+    '.fiscal-supplier-dialog',
+  ]) {
+    assert.ok(styles.includes(selector), `faltando ${selector}`)
+  }
+})
+
 test.after(() => {
   Module._load = originalLoad
   fs.rmSync(outDir, { recursive: true, force: true })

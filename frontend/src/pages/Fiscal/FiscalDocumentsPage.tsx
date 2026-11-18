@@ -85,6 +85,10 @@ export function FiscalDocumentsPage() {
     setDraftItems,
     supplierForm,
     setSupplierForm,
+    supplierDialogOpen,
+    supplierError,
+    openSupplierDialog,
+    closeSupplierDialog,
     selected,
     setSelected,
     eventForm,
@@ -331,6 +335,10 @@ export function FiscalDocumentsPage() {
           onSubmit={create}
           saving={pendingAction === 'document'}
           supplierSaving={pendingAction === 'supplier'}
+          supplierDialogOpen={supplierDialogOpen}
+          supplierError={supplierError}
+          onOpenSupplierDialog={openSupplierDialog}
+          onCloseSupplierDialog={closeSupplierDialog}
           onAttempt={clearFeedback}
           onCreateSupplier={createSupplier}
           onClose={() => void closeForm()}

@@ -40,6 +40,21 @@ def write(db, action: Callable):
         ) from exc
 
 
+DUPLICATE_SUPPLIER = "Já existe um fornecedor com este CPF/CNPJ nesta empresa."
+
+
+def write_supplier(db, action: Callable):
+    """Mesma proteção de `write`, com a mensagem de conflito do cadastro."""
+    try:
+        return action()
+    except service.FiscalError as exc:
+        db.rollback()
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=DUPLICATE_SUPPLIER) from exc
+
+
 def find(db, document_id, current):
     document = FiscalDocumentRepository.get_for_organization(
         db, document_id, current.organization.id
@@ -169,7 +184,20 @@ def create_supplier(payload: SupplierCreate, db: DatabaseSession, current: Curre
         db.refresh(supplier)
         return supplier
 
-    return write(db, action)
+    return write_supplier(db, action)
+
+
+@supplier_router.get("/{supplier_id}", response_model=SupplierRead)
+def get_supplier(supplier_id: uuid.UUID, db: DatabaseSession, current: CurrentUser):
+    supplier = db.scalar(
+        select(Supplier).where(
+            Supplier.id == supplier_id,
+            Supplier.organization_id == current.organization.id,
+        )
+    )
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Fornecedor não encontrado.")
+    return supplier
 
 
 @supplier_router.patch("/{supplier_id}", response_model=SupplierRead)
@@ -193,9 +221,11 @@ def update_supplier(
         )
         if not supplier:
             raise service.FiscalError("Fornecedor não encontrado.", 404)
-        supplier.is_active = payload.is_active
+        # Notas já registradas guardam a própria cópia de nome e documento.
+        for field, value in payload.model_dump(exclude_unset=True).items():
+            setattr(supplier, field, value)
         db.commit()
         db.refresh(supplier)
         return supplier
 
-    return write(db, action)
+    return write_supplier(db, action)
