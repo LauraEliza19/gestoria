@@ -18,6 +18,23 @@ type IoniconName = ComponentProps<
   typeof Ionicons
 >['name'];
 
+type IoniconColor = NonNullable<
+  ComponentProps<typeof Ionicons>['color']
+>;
+
+function normalizeIconColor(
+  color: ColorValue,
+): IoniconColor {
+  if (
+    typeof color === 'string' ||
+    typeof color === 'symbol'
+  ) {
+    return color;
+  }
+
+  return sereneColors.sheetTextMuted;
+}
+
 type TabIconProps = {
   color: ColorValue;
   focused: boolean;
@@ -45,7 +62,7 @@ function TabIcon({
         color={
           focused
             ? sereneColors.primary
-            : color
+            : normalizeIconColor(color)
         }
         name={focused ? activeName : inactiveName}
         size={size}

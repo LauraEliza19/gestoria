@@ -13,6 +13,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   Text,
   TextInput,
@@ -52,7 +53,8 @@ function isMobilePath(path: string): path is MobilePath {
 
 export function CopilotScreen() {
   const router = useRouter();
-  const messageScrollRef = useRef<ScrollView>(null);
+  const messageScrollRef =
+    useRef<ScrollViewInstance>(null);
   const { readableContentWidth } =
     useResponsiveLayout();
 
