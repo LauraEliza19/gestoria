@@ -38,17 +38,27 @@ def test_frozen_default_categories_match_the_application_list():
 
 def legacy_tables(connection):
     statements = (
-        "CREATE TABLE organizations (id INTEGER PRIMARY KEY, "
-        "next_order_code INTEGER NOT NULL DEFAULT 1)",
-        "CREATE TABLE orders (id INTEGER PRIMARY KEY, organization_id INTEGER, "
-        "created_at TEXT, code VARCHAR(20))",
-        "CREATE TABLE finance_categories (id INTEGER PRIMARY KEY, "
-        "organization_id INTEGER, name TEXT, description TEXT, is_active BOOLEAN)",
-        "CREATE TABLE finance_entries (id INTEGER PRIMARY KEY, "
-        "organization_id INTEGER, category_id INTEGER)",
+        (
+            "CREATE TABLE organizations (id INTEGER PRIMARY KEY, "
+            "next_order_code INTEGER NOT NULL DEFAULT 1)"
+        ),
+        (
+            "CREATE TABLE orders (id INTEGER PRIMARY KEY, organization_id INTEGER, "
+            "created_at TEXT, code VARCHAR(20))"
+        ),
+        (
+            "CREATE TABLE finance_categories (id INTEGER PRIMARY KEY, "
+            "organization_id INTEGER, name TEXT, description TEXT, is_active BOOLEAN)"
+        ),
+        (
+            "CREATE TABLE finance_entries (id INTEGER PRIMARY KEY, "
+            "organization_id INTEGER, category_id INTEGER)"
+        ),
         "INSERT INTO organizations (id) VALUES (1), (2), (3)",
-        "INSERT INTO orders VALUES (10, 1, '2026-01-02', NULL), "
-        "(11, 1, '2026-01-01', NULL), (12, 2, '2026-03-01', NULL)",
+        (
+            "INSERT INTO orders VALUES (10, 1, '2026-01-02', NULL), "
+            "(11, 1, '2026-01-01', NULL), (12, 2, '2026-03-01', NULL)"
+        ),
         "INSERT INTO finance_categories VALUES (50, 3, 'Minha', NULL, 1)",
     )
     for statement in statements:

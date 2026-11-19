@@ -560,7 +560,7 @@ def test_made_to_order_model_status_and_defaults():
         organization_id=uuid.uuid4(),
         code="PRO-1",
         name="Bolo",
-        price=Decimal("10"),
+        price=Decimal(10),
         stock_quantity=0,
         is_active=True,
         made_to_order=True,
