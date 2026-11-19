@@ -115,6 +115,18 @@ export function FiscalDocumentForm({
   const [submitted, setSubmitted] = useState(false)
 
   const chosenOrder = orders.find((order) => order.id === form.order_id)
+  // A prévia mostra o NCM/CEST atuais do cadastro; ao registrar, a nota guarda a cópia.
+  const previewItems = (chosenOrder?.items ?? []).map((item) => {
+    if (item.fiscal_snapshot) return item
+    const product = products.find((candidate) => candidate.id === item.product_id)
+    return {
+      ...item,
+      fiscal_snapshot: {
+        ncm_code: product?.ncm_code ?? null,
+        cest_code: product?.cest_code ?? null,
+      },
+    }
+  })
   const availableOrders = orders.filter(
     (order) => order.status !== 'cancelled' && !isOccupied(order.id),
   )
@@ -240,7 +252,7 @@ export function FiscalDocumentForm({
                   .filter((order) => order.status !== 'cancelled')
                   .map((order) => (
                     <option disabled={isOccupied(order.id)} key={order.id} value={order.id}>
-                      {order.id.slice(0, 8)} · {order.customer_name} ·{' '}
+                      {order.code ?? order.id.slice(0, 8)} · {order.customer_name} ·{' '}
                       {formatFiscalMoney(order.total_amount)}
                       {isOccupied(order.id) ? ' · já possui nota ativa' : ''}
                     </option>
@@ -452,7 +464,7 @@ export function FiscalDocumentForm({
               {' · '}Total do pedido: <strong>{formatFiscalMoney(chosenOrder.total_amount)}</strong>
             </p>
 
-            <FiscalItems items={chosenOrder.items} />
+            <FiscalItems items={previewItems} />
 
             <p>Os valores e itens serão conferidos e copiados do pedido pelo servidor.</p>
           </div>

@@ -22,6 +22,8 @@ export type FinanceEntry = {
   created_at: string
   updated_at: string
   version: number
+  /** Conta a receber gerada automaticamente por um pedido. */
+  order_id?: string | null
 }
 
 export type FinanceSummary = {

@@ -8,11 +8,13 @@ import {
   ClipboardCheck,
   Clock3,
   FileWarning,
+  FileText,
+  Landmark,
   Trophy,
   Users,
 } from 'lucide-react'
 import { useSession } from '../../contexts/SessionContext'
-import { apiFetchItems } from '../../services/api'
+import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
 
 type CustomerCategory = 'final_consumer' | 'reseller' | 'event'
@@ -33,7 +35,15 @@ type Product = {
   stock_quantity: string
   min_stock_quantity: string
   status: string
+  is_active?: boolean
+  made_to_order?: boolean
 }
+
+type DashboardOverview = {
+  summary: { fiscal_attention: number }
+}
+
+type FinanceSummary = { balance: string }
 
 type Order = {
   id: string
@@ -77,12 +87,16 @@ function formatCountMessage(count: number, singularMessage: string, pluralMessag
 }
 
 export function DashboardPage() {
-  const { session } = useSession()
+  const { session, can } = useSession()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [quotes, setQuotes] = useState<Quote[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [fiscalAttention, setFiscalAttention] = useState(0)
+  const [balance, setBalance] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const canReadFinance = can('finance:read')
 
   useEffect(() => {
     Promise.all([
@@ -96,16 +110,34 @@ export function DashboardPage() {
         setProducts(productList)
         setOrders(orderList)
         setQuotes(quoteList)
+        setLoaded(true)
       })
       .catch((requestError) => {
         setError(getErrorMessage(requestError, 'Não foi possível carregar o Radar.'))
       })
+
+    // Indicadores extras: se falharem, o restante do Radar continua aparecendo.
+    apiFetch<DashboardOverview>('/api/dashboard/overview')
+      .then((overview) => setFiscalAttention(overview.summary.fiscal_attention))
+      .catch(() => setFiscalAttention(0))
   }, [])
+
+  useEffect(() => {
+    if (!canReadFinance) return
+    apiFetch<FinanceSummary>('/api/finance/summary')
+      .then((summary) => setBalance(Number(summary.balance)))
+      .catch(() => setBalance(null))
+  }, [canReadFinance])
 
   const firstName = session.full_name.split(' ')[0] || 'gestor'
 
   const radar = useMemo(() => {
     const criticalProducts = products.filter((product) => {
+      // Produtos sob encomenda não têm estoque pronto, e inativos não são vendidos.
+      if (product.made_to_order || product.is_active === false) {
+        return false
+      }
+
       const stock = Number(product.stock_quantity)
       const minimumStock = Number(product.min_stock_quantity)
 
@@ -229,6 +261,18 @@ export function DashboardPage() {
       tone: 'bg-[#f2f5ff] text-signal',
     },
     {
+      active: fiscalAttention > 0,
+      label: 'Notas fiscais pendentes',
+      detail: formatCountMessage(
+        fiscalAttention,
+        'nota está em processamento ou com problema.',
+        'notas estão em processamento ou com problema.',
+      ),
+      href: '/notas-fiscais',
+      icon: FileText,
+      tone: 'bg-[#fff8eb] text-[#c77716]',
+    },
+    {
       active: radar.expiredQuotes.length > 0,
       label: 'Orçamentos vencidos',
       detail: formatCountMessage(
@@ -259,6 +303,23 @@ export function DashboardPage() {
   const alertLabel =
     activePriorities.length === 1 ? '1 alerta' : `${activePriorities.length} alertas`
 
+  const firstSteps = [
+    {
+      done: Boolean(session.organization.document),
+      label: 'Preencher os dados da empresa',
+      href: '/empresa/editar',
+    },
+    { done: customers.length > 0, label: 'Cadastrar o primeiro cliente', href: '/clientes/novo' },
+    { done: products.length > 0, label: 'Cadastrar o primeiro produto', href: '/produtos/novo' },
+    {
+      done: orders.length > 0 || quotes.length > 0,
+      label: 'Criar um orçamento ou pedido',
+      href: '/orcamentos',
+    },
+  ]
+  const showFirstSteps = loaded && firstSteps.some((step) => !step.done)
+  const emptyCompany = loaded && customers.length === 0 && products.length === 0
+
   return (
     <div className="page-wrap">
       <header className="page-header">
@@ -285,7 +346,48 @@ export function DashboardPage() {
 
       {error && <p className="error-banner mb-5">{error}</p>}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {showFirstSteps && (
+        <section className="page-card mb-6" aria-labelledby="first-steps-title">
+          <p className="eyebrow">Primeiros passos</p>
+          <h2 id="first-steps-title" className="font-display text-xl font-semibold">
+            Deixe a empresa pronta para vender
+          </h2>
+          <ol className="mt-4 grid gap-2.5 sm:grid-cols-2">
+            {firstSteps.map((step) => (
+              <li key={step.label}>
+                <Link
+                  className={`flex items-center gap-3 rounded-lg border px-3.5 py-3 text-sm no-underline ${
+                    step.done
+                      ? 'border-[#bfe8d8] bg-[#effbf6] text-[#28745b]'
+                      : 'border-line text-[#354064] hover:border-[#9fb5ff] hover:text-signal'
+                  }`}
+                  to={step.href}
+                >
+                  {step.done ? (
+                    <CircleCheck aria-hidden="true" className="shrink-0" size={18} />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="h-[18px] w-[18px] shrink-0 rounded-full border-2 border-[#c4cbe0]"
+                    />
+                  )}
+                  <span className="flex-1">
+                    {step.label}
+                    <span className="sr-only">{step.done ? ' (concluído)' : ' (pendente)'}</span>
+                  </span>
+                  {!step.done && <ArrowRight aria-hidden="true" size={15} />}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section
+        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
+          balance !== null ? 'xl:grid-cols-5' : 'xl:grid-cols-4'
+        }`}
+      >
         <RadarCard
           icon={Users}
           label="Clientes"
@@ -317,6 +419,16 @@ export function DashboardPage() {
           detail="pedidos concluídos"
           href="/pedidos"
         />
+
+        {balance !== null && (
+          <RadarCard
+            icon={Landmark}
+            label="Saldo realizado"
+            value={formatMoney(balance)}
+            detail="recebido menos pago no Financeiro"
+            href="/financeiro"
+          />
+        )}
       </section>
 
       <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
@@ -359,10 +471,13 @@ export function DashboardPage() {
               <CircleCheck className="mt-0.5 shrink-0" size={22} />
 
               <div>
-                <strong className="block text-sm">Tudo sob controle</strong>
+                <strong className="block text-sm">
+                  {emptyCompany ? 'Nada para acompanhar ainda' : 'Tudo sob controle'}
+                </strong>
                 <p className="mt-1 text-xs leading-relaxed">
-                  Não há estoques críticos, pedidos aguardando preparo ou orçamentos que exijam
-                  atenção imediata.
+                  {emptyCompany
+                    ? 'Os alertas aparecem aqui assim que houver clientes, produtos e pedidos.'
+                    : 'Não há estoques críticos, pedidos aguardando preparo, notas pendentes ou orçamentos que exijam atenção imediata.'}
                 </p>
               </div>
             </div>
@@ -498,7 +613,9 @@ export function DashboardPage() {
                           .slice(0, 2)
                           .map((customer) => customer.name)
                           .join(', ')
-                      : 'Todos os clientes ativos já compraram.'}
+                      : radar.customerSegments.every((segment) => segment.count === 0)
+                        ? 'Nenhum cliente cadastrado ainda.'
+                        : 'Todos os clientes ativos já compraram.'}
                   </small>
                 </div>
 

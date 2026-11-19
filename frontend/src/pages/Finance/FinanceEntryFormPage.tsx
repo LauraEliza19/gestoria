@@ -25,6 +25,7 @@ import {
 } from '../../services/finance.service'
 import { ApiError } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { localDateInputValue } from '../../utils/formatting'
 
 export function FinanceEntryFormPage() {
   const { entryId } = useParams()
@@ -40,8 +41,9 @@ function FinanceEntryForm({ entryId }: { entryId: string | undefined }) {
   const [amount, setAmount] = useState('')
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income')
   const [status, setStatus] = useState<'pending' | 'paid' | 'cancelled'>('pending')
-  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().slice(0, 10))
-  const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10))
+  // Data local: toISOString() usa UTC e, depois das 21h, sugeria o dia seguinte.
+  const [transactionDate, setTransactionDate] = useState(() => localDateInputValue())
+  const [dueDate, setDueDate] = useState(() => localDateInputValue())
   const [attachments, setAttachments] = useState<FinanceAttachment[]>([])
   const [attachmentError, setAttachmentError] = useState('')
   const [queuedFiles, setQueuedFiles] = useState<File[]>([])
@@ -368,7 +370,10 @@ function FinanceEntryForm({ entryId }: { entryId: string | undefined }) {
               {categories.length === 0 && (
                 <span className="text-xs font-normal text-muted">
                   Nenhuma categoria cadastrada.{' '}
-                  <Link className="font-bold text-signal" to="/financeiro/categorias/nova">
+                  <Link
+                    className="font-bold text-signal"
+                    to="/financeiro/categorias/nova?voltar=lancamento"
+                  >
                     Cadastrar categoria
                   </Link>
                 </span>

@@ -29,12 +29,14 @@ from app.operation_crypto import (
 )
 from app.schemas.order import OrderCreate, OrderItemCreate, OrderRead
 from app.services.auth import AuthenticatedUser
+from app.services.order_finance import create_order_receivables
 from app.services.order_serialization import order_to_read
 from app.services.orders import (
     CustomerNotFoundError,
-    InsufficientStockError,
     ProductNotFoundError,
     create_order,
+    insufficient_stock,
+    takes_finished_stock,
 )
 
 
@@ -148,8 +150,8 @@ def build_plan(
         if not product or not product.is_active:
             raise ProductNotFoundError(product_id)
         quantity = Decimal(item["quantity"])
-        if product.stock_quantity < quantity:
-            raise InsufficientStockError(product.name, product.stock_quantity, quantity)
+        if takes_finished_stock(product) and product.stock_quantity < quantity:
+            raise insufficient_stock(product, quantity)
         items.append(
             {
                 **item,
@@ -479,6 +481,8 @@ def confirm_order(
             "persisted_result_mismatch",
             "O resultado divergiu do valor aprovado; nenhuma alteração foi confirmada.",
         )
+    # A conta a receber nasce com o pedido, na mesma transação.
+    create_order_receivables(db, order, current.user.id)
     snapshot = result.model_dump(mode="json")
     operation.status = "executed"
     operation.receipt = signed(

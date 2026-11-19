@@ -73,6 +73,8 @@ class FinanceEntryRead(FinanceEntryCreate):
     created_at: datetime
     updated_at: datetime
     version: int
+    # Preenchido nas contas a receber geradas automaticamente por um pedido.
+    order_id: uuid.UUID | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

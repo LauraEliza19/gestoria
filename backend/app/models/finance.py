@@ -74,6 +74,7 @@ class FinanceEntry(Base, TimestampMixin):
         CheckConstraint(
             "status IN ('pending', 'paid', 'cancelled')", name="ck_finance_entry_status"
         ),
+        Index("ix_finance_entries_org_order", "organization_id", "order_id"),
         Index(
             "ix_finance_entries_org_date_filters",
             "organization_id",
@@ -98,6 +99,12 @@ class FinanceEntry(Base, TimestampMixin):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
     version: Mapped[int] = mapped_column(default=1, nullable=False)
+    # Conta a receber gerada automaticamente por um pedido. Fica vazio nos
+    # lançamentos manuais e quando o pedido de origem é excluído.
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("orders.id", ondelete="SET NULL", name="fk_finance_entry_order"),
+    )
 
     @property
     def is_overdue(self) -> bool:

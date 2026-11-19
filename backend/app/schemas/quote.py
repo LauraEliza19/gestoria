@@ -1,9 +1,9 @@
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.common import ItemQuantity, Money
 
@@ -49,6 +49,28 @@ class QuoteCreate(BaseModel):
 
 class QuoteStatusUpdate(BaseModel):
     status: str = Field(pattern="^(pending|approved|rejected)$")
+
+
+class QuoteConvert(BaseModel):
+    """Dados que o pedido recebe ao nascer do orçamento."""
+
+    model_config = ConfigDict(extra="forbid")
+    promised_at: datetime | None = None
+    priority: Literal["normal", "high", "urgent"] = "normal"
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("promised_at")
+    @classmethod
+    def promised_at_must_include_timezone(cls, value: datetime | None):
+        if value is not None and value.utcoffset() is None:
+            raise ValueError("Informe o fuso horário da data de entrega.")
+        return value.astimezone(UTC) if value is not None else None
+
+    @field_validator("notes")
+    @classmethod
+    def normalize_notes(cls, value: str | None):
+        normalized = value.strip() if value else ""
+        return normalized or None
 
 
 class QuoteItemRead(BaseModel):

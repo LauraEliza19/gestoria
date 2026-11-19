@@ -73,6 +73,7 @@ class DashboardRepository:
             select(func.count(), func.max(Product.updated_at)).where(
                 Product.organization_id == organization_id,
                 Product.is_active.is_(True),
+                Product.made_to_order.is_(False),
                 Product.stock_quantity <= Product.min_stock_quantity,
             )
         ).one()

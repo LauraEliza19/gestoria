@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.schemas.common import validate_tax_document
 
 
 class LoginRequest(BaseModel):
@@ -50,6 +52,16 @@ class OrganizationUpdate(BaseModel):
     state: str | None = Field(default=None, max_length=2)
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("document")
+    @classmethod
+    def validate_document(cls, value: str | None) -> str | None:
+        return validate_tax_document(value)
+
+    @field_validator("state")
+    @classmethod
+    def normalize_state(cls, value: str | None) -> str | None:
+        return value.upper() if value else None
 
 
 class CurrentUserRead(BaseModel):

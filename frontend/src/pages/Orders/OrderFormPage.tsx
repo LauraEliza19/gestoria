@@ -7,6 +7,7 @@ import { useSaveAction } from '../../components/forms/useFormState'
 import { Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { formatQuantity, orderLabel } from '../../utils/formatting'
 
 type Customer = {
   id: string
@@ -61,7 +62,17 @@ type Product = {
   price: string
   stock_quantity: string
   unit_of_measure: string
+  made_to_order?: boolean
   is_active?: boolean
+}
+
+const unitLabels: Record<string, string> = { unit: 'un', kg: 'kg', g: 'g', l: 'L' }
+
+function productOptionLabel(product: Product): string {
+  const stock = product.made_to_order
+    ? 'sob encomenda'
+    : `estoque ${formatQuantity(product.stock_quantity)} ${unitLabels[product.unit_of_measure] ?? ''}`.trim()
+  return `${product.name} — ${formatMoney(product.price)} — ${stock}`
 }
 
 type DraftItem = {
@@ -99,6 +110,7 @@ type OrderProposal = {
 
 type CreatedOrder = {
   id: string
+  code?: string | null
   customer_name: string
   total_amount: string
 }
@@ -156,6 +168,7 @@ export function OrderFormPage() {
   const [priority, setPriority] = useState<'normal' | 'high' | 'urgent'>('normal')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<DraftItem[]>([newItem()])
+  const [productSearch, setProductSearch] = useState('')
   const [proposal, setProposal] = useState<OrderProposal | null>(null)
   const [status, setStatus] = useState('Carregando clientes e produtos...')
   const { busy, pendingAction, run } = useSaveAction<'prepare' | 'confirm' | 'cancel'>()
@@ -232,6 +245,15 @@ export function OrderFormPage() {
     () => new Set(items.map((item) => item.productId).filter(Boolean)),
     [items],
   )
+
+  const visibleProducts = useMemo(() => {
+    const search = normalizeSearch(productSearch)
+    if (!search) return products
+    return products.filter(
+      (product) =>
+        selectedProductIds.has(product.id) || normalizeSearch(product.name).includes(search),
+    )
+  }, [products, productSearch, selectedProductIds])
 
   function updateItem(key: string, field: 'productId' | 'quantity', value: string) {
     setItems((current) =>
@@ -340,7 +362,7 @@ export function OrderFormPage() {
         navigate('/pedidos', {
           replace: true,
           state: {
-            notice: `Pedido criado para ${order.customer_name} no valor de ${formatMoney(order.total_amount)}.`,
+            notice: `Pedido ${orderLabel(order)} criado para ${order.customer_name} no valor de ${formatMoney(order.total_amount)}. A conta a receber já está no Financeiro.`,
           },
         })
       } catch (error) {
@@ -419,7 +441,7 @@ export function OrderFormPage() {
                 >
                   <strong>{item.product_name}</strong>
                   <span>
-                    {item.quantity} {item.unit_of_measure}
+                    {formatQuantity(item.quantity)} {unitLabels[item.unit_of_measure] ?? ''}
                   </span>
                   <span>{formatMoney(item.unit_price)}</span>
                   <span>{formatMoney(Number(item.quantity) * Number(item.unit_price))}</span>
@@ -647,10 +669,20 @@ export function OrderFormPage() {
               <h2 className="font-display text-xl font-semibold">Produtos e quantidades</h2>
             </div>
 
-            <button className="secondary-button w-full sm:w-auto" onClick={addItem} type="button">
-              <Plus size={16} />
-              Adicionar produto
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                type="search"
+                className="form-input sm:w-60"
+                aria-label="Buscar produto na lista"
+                placeholder="Buscar produto"
+                value={productSearch}
+                onChange={(event) => setProductSearch(event.target.value)}
+              />
+              <button className="secondary-button w-full sm:w-auto" onClick={addItem} type="button">
+                <Plus size={16} />
+                Adicionar produto
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -670,8 +702,12 @@ export function OrderFormPage() {
                     value={item.productId}
                     onChange={(event) => updateItem(item.key, 'productId', event.target.value)}
                   >
-                    <option value="">Selecione um produto</option>
-                    {products.map((product) => (
+                    <option value="">
+                      {visibleProducts.length === 0
+                        ? 'Nenhum produto encontrado na busca'
+                        : 'Selecione um produto'}
+                    </option>
+                    {visibleProducts.map((product) => (
                       <option
                         disabled={
                           item.productId !== product.id && selectedProductIds.has(product.id)
@@ -679,8 +715,7 @@ export function OrderFormPage() {
                         key={product.id}
                         value={product.id}
                       >
-                        {product.name} — {formatMoney(product.price)} — estoque{' '}
-                        {product.stock_quantity}
+                        {productOptionLabel(product)}
                       </option>
                     ))}
                   </select>

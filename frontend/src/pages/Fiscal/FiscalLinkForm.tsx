@@ -79,7 +79,7 @@ export function FiscalLinkForm({
 
             {availableOrders.map((order) => (
               <option key={order.id} value={order.id}>
-                {order.id.slice(0, 8)} · {order.customer_name} ·{' '}
+                {order.code ?? order.id.slice(0, 8)} · {order.customer_name} ·{' '}
                 {formatFiscalMoney(order.total_amount)}
               </option>
             ))}

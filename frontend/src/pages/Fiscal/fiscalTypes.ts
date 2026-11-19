@@ -61,6 +61,7 @@ export type FiscalDocument = {
 
 export type FiscalOrder = {
   id: string
+  code?: string | null
   customer_name: string
   status: string
   total_amount: string
@@ -72,6 +73,8 @@ export type FiscalProduct = {
   name: string
   is_active: boolean
   unit_of_measure?: string | null
+  ncm_code?: string | null
+  cest_code?: string | null
 }
 
 export type FiscalSupplier = {

@@ -229,7 +229,18 @@ export function CopilotConversation({
           rows={1}
           value={input}
           onChange={(event) => onInputChange(event.target.value)}
+          onKeyDown={(event) => {
+            // Enter envia, como em um chat; Shift+Enter pula linha.
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+              event.preventDefault()
+              if (!sending && input.trim()) event.currentTarget.form?.requestSubmit()
+            }
+          }}
+          aria-describedby="copilot-message-hint"
         />
+        <span id="copilot-message-hint" className="sr-only">
+          Enter envia. Shift+Enter pula linha.
+        </span>
 
         <button className="primary-button" disabled={sending || !input.trim()} type="submit">
           {sending ? 'Enviando...' : 'Enviar'}

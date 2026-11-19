@@ -12,6 +12,11 @@ from app.repositories import (
     OrderRepository,
     ProductRepository,
 )
+from app.services.order_finance import (
+    cancel_order_receivables,
+    detach_order_receivables,
+    reopen_order_receivables,
+)
 
 
 class OrderServiceError(Exception):
@@ -29,15 +34,52 @@ class ProductNotFoundError(OrderServiceError):
         super().__init__(f"Produto {product_id} não encontrado.")
 
 
+def format_quantity(value) -> str:
+    """Quantidade no padrão brasileiro, sem zeros inúteis: 3, 1,5, 0,25."""
+    number = Decimal(str(value))
+    if number == number.to_integral_value():
+        return str(number.quantize(Decimal(1)))
+    return format(number.normalize(), "f").replace(".", ",")
+
+
+MADE_TO_ORDER_HINT = (
+    ' Se ele é feito sob encomenda, marque "Vendido sob encomenda" '
+    "no cadastro do produto para vender sem estoque pronto."
+)
+
+
 class InsufficientStockError(OrderServiceError):
-    def __init__(self, product_name: str, available: int, requested: int):
+    def __init__(
+        self,
+        product_name: str,
+        available,
+        requested,
+        *,
+        manufactured: bool = False,
+    ):
         self.product_name = product_name
         self.available = available
         self.requested = requested
         super().__init__(
             f"Estoque insuficiente para '{product_name}': "
-            f"disponível {available}, solicitado {requested}."
+            f"disponível {format_quantity(available)}, "
+            f"solicitado {format_quantity(requested)}."
+            + (MADE_TO_ORDER_HINT if manufactured else "")
         )
+
+
+def insufficient_stock(product: Product, requested) -> InsufficientStockError:
+    return InsufficientStockError(
+        product.name,
+        product.stock_quantity,
+        requested,
+        manufactured=product.product_type == "manufactured",
+    )
+
+
+def takes_finished_stock(product: Product) -> bool:
+    """Produtos sob encomenda são vendidos antes de existirem prontos."""
+    return not product.made_to_order
 
 
 class OrderStatusTransitionError(OrderServiceError):
@@ -74,7 +116,7 @@ def create_order(
     """
     Cria um pedido com múltiplos itens, descontando o estoque de cada
     produto. Tudo acontece numa única transação: se qualquer item falhar,
-    nada é salvo.
+    nada é salvo. Produtos sob encomenda não exigem nem descontam estoque.
     """
     try:
         customer = CustomerRepository.get_for_organization(
@@ -108,12 +150,8 @@ def create_order(
             if not product or not product.is_active:
                 raise ProductNotFoundError(product_id)
 
-            if product.stock_quantity < quantity:
-                raise InsufficientStockError(
-                    product.name,
-                    product.stock_quantity,
-                    quantity,
-                )
+            if takes_finished_stock(product) and product.stock_quantity < quantity:
+                raise insufficient_stock(product, quantity)
 
             products.append((product, quantity))
 
@@ -128,7 +166,9 @@ def create_order(
         total = Decimal(0)
 
         for product, quantity in products:
-            product.stock_quantity -= quantity
+            stock_deducted = takes_finished_stock(product)
+            if stock_deducted:
+                product.stock_quantity -= quantity
 
             unit_price = (
                 unit_prices[product.id] if unit_prices is not None else product.price
@@ -140,6 +180,7 @@ def create_order(
                 product.id,
                 quantity,
                 unit_price,
+                stock_deducted=stock_deducted,
             )
 
             total += unit_price * quantity
@@ -180,7 +221,15 @@ def check_fiscal_documents(db, order, *, deleting=False):
         )
 
 
-def update_order_status(db: Session, order: Order, status: str) -> Order:
+def update_order_status(
+    db: Session, order: Order, status: str, *, actor_id=None
+) -> Order:
+    """Muda o status do pedido.
+
+    Com ``actor_id`` (o usuário que fez a mudança), as contas a receber do
+    pedido acompanham: cancelar o pedido cancela as parcelas pendentes e
+    reativá-lo as reabre.
+    """
     if order.status == status:
         return order
 
@@ -194,19 +243,11 @@ def update_order_status(db: Session, order: Order, status: str) -> Order:
     try:
         if status == "cancelled":
             check_fiscal_documents(db, order)
-            for item in sorted(
-                order.items, key=lambda current: str(current.product_id)
-            ):
-                product = ProductRepository.get_for_organization(
-                    db,
-                    item.product_id,
-                    order.organization_id,
-                    for_update=True,
-                )
-                if product:
-                    product.stock_quantity += item.quantity
+            return_stock(db, order)
+            if actor_id is not None:
+                cancel_order_receivables(db, order, actor_id)
         elif order.status == "cancelled":
-            products: list[tuple[Product, int]] = []
+            items = []
             for item in sorted(
                 order.items, key=lambda current: str(current.product_id)
             ):
@@ -218,16 +259,19 @@ def update_order_status(db: Session, order: Order, status: str) -> Order:
                 )
                 if not product or not product.is_active:
                     raise ProductNotFoundError(item.product_id)
-                if product.stock_quantity < item.quantity:
-                    raise InsufficientStockError(
-                        product.name,
-                        product.stock_quantity,
-                        item.quantity,
-                    )
-                products.append((product, item.quantity))
+                # Vale a regra atual do produto: se ele virou (ou deixou de ser)
+                # sob encomenda depois do pedido, a reativação segue o cadastro.
+                takes_stock = takes_finished_stock(product)
+                if takes_stock and product.stock_quantity < item.quantity:
+                    raise insufficient_stock(product, item.quantity)
+                items.append((item, product, takes_stock))
 
-            for product, quantity in products:
-                product.stock_quantity -= quantity
+            for item, product, takes_stock in items:
+                if takes_stock:
+                    product.stock_quantity -= item.quantity
+                item.stock_deducted = takes_stock
+            if actor_id is not None:
+                reopen_order_receivables(db, order, actor_id)
 
         return OrderRepository.update_status(db, order, status)
     except Exception:
@@ -235,21 +279,28 @@ def update_order_status(db: Session, order: Order, status: str) -> Order:
         raise
 
 
-def delete_order_record(db: Session, order: Order) -> None:
+def return_stock(db: Session, order: Order) -> None:
+    """Devolve ao estoque apenas o que o pedido realmente tirou dele."""
+    for item in sorted(order.items, key=lambda current: str(current.product_id)):
+        if not item.stock_deducted:
+            continue
+        product = ProductRepository.get_for_organization(
+            db,
+            item.product_id,
+            order.organization_id,
+            for_update=True,
+        )
+        if product:
+            product.stock_quantity += item.quantity
+
+
+def delete_order_record(db: Session, order: Order, *, actor_id=None) -> None:
     try:
         check_fiscal_documents(db, order, deleting=True)
         if order.status != "cancelled":
-            for item in sorted(
-                order.items, key=lambda current: str(current.product_id)
-            ):
-                product = ProductRepository.get_for_organization(
-                    db,
-                    item.product_id,
-                    order.organization_id,
-                    for_update=True,
-                )
-                if product:
-                    product.stock_quantity += item.quantity
+            return_stock(db, order)
+        if actor_id is not None:
+            detach_order_receivables(db, order, actor_id)
 
         OrderRepository.delete(db, order)
     except Exception:

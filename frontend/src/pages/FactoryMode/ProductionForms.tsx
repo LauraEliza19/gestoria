@@ -182,7 +182,8 @@ export function RecipeForm({
 }) {
   const [name, setName] = useState(recipe?.name ?? '')
   const [yieldQuantity, setYieldQuantity] = useState(recipe?.yield_quantity ?? '')
-  const [yieldUnit, setYieldUnit] = useState(recipe?.yield_unit ?? 'unidades')
+  // Começa vazio: um valor pronto fazia o texto digitado virar "unidadesunidades".
+  const [yieldUnit, setYieldUnit] = useState(recipe?.yield_unit ?? '')
   const [error, setError] = useState('')
   const [items, setItems] = useState(() =>
     recipe
@@ -293,10 +294,16 @@ export function RecipeForm({
               className="form-input"
               required
               maxLength={40}
+              list="recipe-yield-units"
               value={yieldUnit}
               onChange={(event) => setYieldUnit(event.target.value)}
               placeholder="Ex.: unidades, porções, kg"
             />
+            <datalist id="recipe-yield-units">
+              {['unidades', 'porções', 'fatias', 'kg', 'g'].map((unit) => (
+                <option key={unit} value={unit} />
+              ))}
+            </datalist>
           </label>
         </div>
         <p className="text-sm text-muted">

@@ -17,7 +17,9 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     Uuid,
+    false,
     func,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -79,6 +81,9 @@ class Organization(Base):
         default=1, server_default="1", nullable=False
     )
     next_product_code: Mapped[int] = mapped_column(
+        default=1, server_default="1", nullable=False
+    )
+    next_order_code: Mapped[int] = mapped_column(
         default=1, server_default="1", nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
@@ -165,7 +170,7 @@ class Product(Base, TimestampMixin):
             name="ck_product_min_stock_nonnegative",
         ),
         CheckConstraint(
-            "category IN ('padaria', 'frios', 'bebidas', 'outros')",
+            "category IN ('padaria', 'confeitaria', 'frios', 'bebidas', 'outros')",
             name="ck_product_category",
         ),
         CheckConstraint(
@@ -173,7 +178,7 @@ class Product(Base, TimestampMixin):
             name="ck_product_type",
         ),
         CheckConstraint(
-            "unit_of_measure IN ('unit', 'kg', 'g')",
+            "unit_of_measure IN ('unit', 'kg', 'g', 'l')",
             name="ck_product_unit_of_measure",
         ),
         CheckConstraint(
@@ -229,6 +234,12 @@ class Product(Base, TimestampMixin):
         Numeric(10, 3), default="5", nullable=False
     )
 
+    # Produto feito sob encomenda: é vendido antes de existir pronto, por isso
+    # o pedido não exige nem desconta estoque de produto acabado.
+    made_to_order: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+
     # perecibilidade
     perishable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     shelf_life_days: Mapped[int | None] = mapped_column()
@@ -251,6 +262,8 @@ class Product(Base, TimestampMixin):
     def status(self) -> str:
         if not self.is_active:
             return "Inativo"
+        if self.made_to_order:
+            return "Sob encomenda"
         if self.stock_quantity == 0:
             return "Esgotado"
         threshold = (
@@ -336,6 +349,7 @@ class Order(Base, TimestampMixin):
             "id",
             name="uq_orders_org_id",
         ),
+        UniqueConstraint("organization_id", "code", name="uq_orders_org_code"),
         CheckConstraint(
             "status IN ('in_preparation', 'in_production', 'ready', 'completed', 'cancelled')",
             name="ck_order_status",
@@ -382,6 +396,9 @@ class Order(Base, TimestampMixin):
         ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
     )
+    # Número amigável por empresa (PED-000001). Pedidos criados fora do fluxo
+    # normal, como em alguns testes, podem ficar sem número.
+    code: Mapped[str | None] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(
         String(20), default="in_preparation", nullable=False
     )
@@ -421,6 +438,11 @@ class OrderItem(Base, TimestampMixin):
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    # Registra se este item tirou unidades do estoque de produto acabado. Itens
+    # sob encomenda não tiram; cancelar ou excluir o pedido só devolve o que saiu.
+    stock_deducted: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=true(), nullable=False
+    )
     order: Mapped[Order] = relationship(back_populates="items")
     product: Mapped[Product] = relationship(back_populates="order_items")
 

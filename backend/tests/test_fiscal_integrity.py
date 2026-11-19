@@ -31,7 +31,7 @@ def setup_sale(client):
         json={
             "name": "Cliente fiscal",
             "phone": "35999998888",
-            "document": "12345678901",
+            "document": "12345678909",
         },
     ).json()
     product = client.post(

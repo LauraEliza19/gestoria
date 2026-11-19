@@ -10,6 +10,7 @@ from app.schemas import LoginRequest
 from app.security import hash_password
 from app.seed import slugify
 from app.services.auth import is_demo_account
+from app.services.finance_defaults import create_default_categories
 
 
 def main():
@@ -48,6 +49,8 @@ def main():
         else:
             organization = Organization(name=company, slug=slug)
             db.add(organization)
+            db.flush()
+            create_default_categories(db, organization.id)
         db.add(user)
         db.flush()
         db.add(

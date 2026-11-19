@@ -2,9 +2,21 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
-from app.schemas.common import Money, normalize_phone
+from app.schemas.common import (
+    Money,
+    document_matches_person_type,
+    normalize_phone,
+    validate_tax_document,
+)
 from app.schemas.order import OrderRead
 from app.schemas.quote import QuoteRead
 
@@ -43,6 +55,16 @@ class CustomerCreate(BaseModel):
     def validate_phone(cls, value: str | None) -> str | None:
         return normalize_phone(value) if value is not None else None
 
+    @field_validator("document")
+    @classmethod
+    def validate_document(cls, value: str | None) -> str | None:
+        return validate_tax_document(value)
+
+    @model_validator(mode="after")
+    def document_fits_person_type(self):
+        document_matches_person_type(self.document, self.person_type)
+        return self
+
 
 class CustomerUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
@@ -78,6 +100,16 @@ class CustomerUpdate(BaseModel):
     @classmethod
     def validate_phone(cls, value: str | None) -> str | None:
         return normalize_phone(value) if value is not None else None
+
+    @field_validator("document")
+    @classmethod
+    def validate_document(cls, value: str | None) -> str | None:
+        return validate_tax_document(value)
+
+    @model_validator(mode="after")
+    def document_fits_person_type(self):
+        document_matches_person_type(self.document, self.person_type)
+        return self
 
 
 class CustomerRead(BaseModel):

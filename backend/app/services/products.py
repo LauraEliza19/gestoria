@@ -54,6 +54,9 @@ def create_product(db: Session, organization_id: uuid.UUID, values: dict) -> Pro
 
 
 def update_product(db: Session, product: Product, values: dict) -> Product:
+    if values.get("made_to_order", False) is None:
+        # "Sob encomenda" é sim ou não; nulo no PATCH significa "não alterar".
+        values.pop("made_to_order")
     _validate_perishability(values, existing=product)
     _validate_recipe(db, product.organization_id, values)
     return ProductRepository.update(db, product, values)

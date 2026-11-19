@@ -17,9 +17,12 @@ class ProductCreate(BaseModel):
     is_active: bool = True
 
     # ---- Classificação ----
-    category: str = Field(default="outros", pattern="^(padaria|frios|bebidas|outros)$")
+    category: str = Field(
+        default="outros", pattern="^(padaria|confeitaria|frios|bebidas|outros)$"
+    )
     product_type: str = Field(default="resale", pattern="^(manufactured|resale)$")
-    unit_of_measure: str = Field(default="unit", pattern="^(unit|kg|g)$")
+    unit_of_measure: str = Field(default="unit", pattern="^(unit|kg|g|l)$")
+    made_to_order: bool = False
 
     # ---- Estoque e custo ----
     cost_price: Money | None = None
@@ -51,10 +54,11 @@ class ProductUpdate(BaseModel):
     is_active: bool | None = None
 
     category: str | None = Field(
-        default=None, pattern="^(padaria|frios|bebidas|outros)$"
+        default=None, pattern="^(padaria|confeitaria|frios|bebidas|outros)$"
     )
     product_type: str | None = Field(default=None, pattern="^(manufactured|resale)$")
-    unit_of_measure: str | None = Field(default=None, pattern="^(unit|kg|g)$")
+    unit_of_measure: str | None = Field(default=None, pattern="^(unit|kg|g|l)$")
+    made_to_order: bool | None = None
 
     cost_price: Money | None = None
     min_stock_quantity: StockQuantity | None = None
@@ -87,6 +91,7 @@ class ProductRead(BaseModel):
     category: str
     product_type: str
     unit_of_measure: str
+    made_to_order: bool = False
 
     cost_price: Money | None
     min_stock_quantity: StockQuantity

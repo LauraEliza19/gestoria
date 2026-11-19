@@ -5,6 +5,7 @@ import type { RecipeFilter, RecipeOutlook } from './availability'
 import { friendlyAmount } from './stockUsage'
 import { formatQuantity as format } from './productionTypes'
 import type { Recipe } from './productionTypes'
+import { formatYield } from '../../utils/formatting'
 
 const filters: { id: RecipeFilter; label: string }[] = [
   { id: 'all', label: 'Todas' },
@@ -28,7 +29,7 @@ function ReadyCard({ outlook }: { outlook: RecipeOutlook }) {
           {recipe.max_batches === 1 ? 'receita completa' : 'receitas completas'}
         </p>
         <p className="mt-1 text-sm text-muted">
-          Rendimento possível: {format(recipe.possible_yield)} {recipe.yield_unit} (
+          Rendimento possível: {formatYield(recipe.possible_yield, recipe.yield_unit)} (
           {format(recipe.yield_quantity)} por receita)
         </p>
       </div>
@@ -71,7 +72,7 @@ function BlockedCard({ outlook }: { outlook: RecipeOutlook }) {
         {outlook.next_batch.length === 1
           ? 'Falta 1 insumo para uma receita'
           : `Faltam ${outlook.next_batch.length} insumos para uma receita`}{' '}
-        de {format(recipe.yield_quantity)} {recipe.yield_unit}.
+        de {formatYield(recipe.yield_quantity, recipe.yield_unit)}.
       </p>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[360px] text-left text-sm">

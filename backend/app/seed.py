@@ -7,6 +7,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import Organization, OrganizationMember, User
 from app.security import hash_password
+from app.services.finance_defaults import create_default_categories
 
 
 def slugify(value: str) -> str:
@@ -32,6 +33,7 @@ def seed_demo_data(db: Session) -> None:
         organization = Organization(name=settings.demo_organization, slug=slug)
         db.add(organization)
         db.flush()
+        create_default_categories(db, organization.id)
 
     email = settings.demo_email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))

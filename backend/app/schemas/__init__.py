@@ -73,6 +73,7 @@ from app.schemas.order import (
 )
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.schemas.quote import (
+    QuoteConvert,
     QuoteCreate,
     QuoteItemCreate,
     QuoteItemRead,
@@ -141,6 +142,7 @@ __all__ = [
     "ProductCreate",
     "ProductRead",
     "ProductUpdate",
+    "QuoteConvert",
     "QuoteCreate",
     "QuoteItemCreate",
     "QuoteItemRead",

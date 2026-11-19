@@ -1,7 +1,7 @@
 import { Landmark, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { FormExit, SaveButton, SavingForm } from '../../components/forms/FormActions'
 import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
 import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
@@ -18,8 +18,13 @@ export function FinanceCategoryFormPage() {
   return <FinanceCategoryForm key={categoryId ?? 'new'} categoryId={categoryId} />
 }
 
+// Quem chegou pelo atalho do lançamento volta para o lançamento, não para o resumo.
+const RETURN_PATHS: Record<string, string> = { lancamento: '/financeiro/lancamentos/novo' }
+
 function FinanceCategoryForm({ categoryId }: { categoryId: string | undefined }) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnPath = RETURN_PATHS[searchParams.get('voltar') ?? ''] ?? '/financeiro'
   const editing = Boolean(categoryId)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -62,7 +67,7 @@ function FinanceCategoryForm({ categoryId }: { categoryId: string | undefined })
           await createFinanceCategory(payload)
         }
         announceSuccess(editing ? 'Categoria atualizada.' : 'Categoria cadastrada.')
-        navigate('/financeiro', { replace: true })
+        navigate(returnPath, { replace: true })
       } catch (requestError) {
         setError(getErrorMessage(requestError, 'Não foi possível salvar a categoria.'))
       }
@@ -92,7 +97,10 @@ function FinanceCategoryForm({ categoryId }: { categoryId: string | undefined })
         title={editing ? 'Editar categoria' : 'Nova categoria'}
         description="Organize lançamentos por grupos financeiros."
         mode={editing ? 'edit' : 'create'}
-        back={{ to: '/financeiro', label: 'Voltar para o Financeiro' }}
+        back={{
+          to: returnPath,
+          label: returnPath === '/financeiro' ? 'Voltar para o Financeiro' : 'Voltar ao lançamento',
+        }}
         dirty={dirty}
         blocked={saving}
       />
@@ -160,7 +168,7 @@ function FinanceCategoryForm({ categoryId }: { categoryId: string | undefined })
           </p>
         )}
         <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
-          <FormExit to="/financeiro" blocked={saving} dirty={dirty}>
+          <FormExit to={returnPath} blocked={saving} dirty={dirty}>
             Cancelar
           </FormExit>
           <SaveButton saving={saving} icon={<Save size={17} aria-hidden="true" />}>

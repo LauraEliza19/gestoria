@@ -1,4 +1,5 @@
 import { clearSession, renewSession } from './session'
+import { validationMessage } from '../utils/validationMessages'
 
 export class ApiError extends Error {
   readonly status: number
@@ -43,7 +44,7 @@ export async function apiFetch<T>(
   }
   if (response.ok && responseType === 'blob') return (await response.blob()) as T
   const body = response.status === 204 ? null : await response.json().catch(() => null)
-  const detail = Array.isArray(body?.detail) ? body.detail[0]?.msg : body?.detail
+  const detail = Array.isArray(body?.detail) ? validationMessage(body.detail) : body?.detail
   const message =
     typeof detail === 'object' && detail !== null
       ? (detail as { message?: string }).message || 'Não foi possível concluir a operação.'

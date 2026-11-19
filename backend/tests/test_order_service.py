@@ -136,7 +136,7 @@ def test_create_order_rolls_back_when_stock_is_insufficient(db: Session) -> None
         == []
     )
     assert "Última unidade" not in str(exc.value)
-    assert "disponível 1.000, solicitado 2" in str(exc.value)
+    assert "disponível 1, solicitado 2." in str(exc.value)
     assert exc.value.product_name == "Café"
 
 
