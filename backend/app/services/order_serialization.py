@@ -14,6 +14,7 @@ def _as_utc(value: datetime | None) -> datetime | None:
 def order_to_read(order) -> OrderRead:
     return OrderRead(
         id=order.id,
+        code=order.code,
         organization_id=order.organization_id,
         customer_id=order.customer_id,
         customer_name=order.customer.name if order.customer else "Cliente removido",

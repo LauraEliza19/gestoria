@@ -93,6 +93,13 @@ export function formatFiscalDateTime(value: string | null): string {
   return value ? new Date(value).toLocaleString('pt-BR') : 'Não registrado'
 }
 
+/** Data de hoje no fuso do navegador; toISOString() usaria UTC e viraria o dia após as 21h. */
+export function localToday(date: Date = new Date()): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
 export function createEmptyFiscalForm(): FiscalFormState {
   return {
     document_type: 'saida',
@@ -101,7 +108,7 @@ export function createEmptyFiscalForm(): FiscalFormState {
     number: '',
     series: '1',
     model: '55',
-    issue_date: new Date().toISOString().slice(0, 10),
+    issue_date: localToday(),
     cfop: '',
     operation_nature: '',
     access_key: '',

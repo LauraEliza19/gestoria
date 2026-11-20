@@ -4,7 +4,13 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.dependencies import CurrentUser, DatabaseSession, require_role
 from app.repositories import QuoteRepository
-from app.schemas import PaginatedResponse, QuoteCreate, QuoteRead, QuoteStatusUpdate
+from app.schemas import (
+    PaginatedResponse,
+    QuoteConvert,
+    QuoteCreate,
+    QuoteRead,
+    QuoteStatusUpdate,
+)
 from app.services import (
     CustomerNotFoundError,
     InsufficientStockError,
@@ -135,6 +141,7 @@ def convert_quote_route(
     quote_id: uuid.UUID,
     db: DatabaseSession,
     current: CurrentUser,
+    payload: QuoteConvert | None = None,
 ) -> QuoteRead:
     quote = QuoteRepository.get_for_organization(
         db,
@@ -147,9 +154,14 @@ def convert_quote_route(
         raise quote_not_found()
 
     try:
+        details = payload or QuoteConvert()
         quote = convert_quote_to_order(
             db,
             quote,
+            promised_at=details.promised_at,
+            priority=details.priority,
+            notes=details.notes,
+            actor_id=current.user.id,
         )
     except (
         QuoteNotConvertibleError,

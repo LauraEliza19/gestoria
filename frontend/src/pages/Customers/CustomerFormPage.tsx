@@ -6,6 +6,8 @@ import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
 import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { BRAZILIAN_STATES, maskTaxDocument, taxDocumentError } from '../../utils/documents'
+import { maskPhoneInput, maskPostalCode } from '../../utils/formatting'
 
 type Customer = Record<string, string | number | boolean | null | undefined> & {
   id: string
@@ -55,8 +57,25 @@ const addressFields = [
   ['complement', 'Complemento'],
   ['neighborhood', 'Bairro'],
   ['city', 'Cidade'],
-  ['state', 'Estado (UF)'],
 ] as const
+
+type FormField = keyof typeof initialForm
+
+// Máscaras aplicadas enquanto a pessoa digita; o servidor confere de novo ao salvar.
+const masks: Partial<Record<FormField, (value: string) => string>> = {
+  phone: maskPhoneInput,
+  whatsapp: maskPhoneInput,
+  document: maskTaxDocument,
+  postal_code: maskPostalCode,
+}
+
+const placeholders: Partial<Record<FormField, string>> = {
+  phone: '(35) 99999-8888',
+  whatsapp: '(35) 99999-8888',
+  document: '000.000.000-00 ou 00.000.000/0000-00',
+  postal_code: '00000-000',
+  email: 'nome@exemplo.com.br',
+}
 
 export function CustomerFormPage() {
   const [params] = useSearchParams()
@@ -72,7 +91,9 @@ function CustomerForm({ id }: { id: string | null }) {
   const { busy: saving, run: save } = useSaveAction()
   const announceSuccess = useFormSuccess()
   const [status, setStatus] = useState('')
+  const [documentTouched, setDocumentTouched] = useState(false)
   const [loading, setLoading] = useState(Boolean(id))
+  const documentProblem = taxDocumentError(form.document, form.person_type)
 
   useEffect(() => {
     if (!id) return
@@ -90,8 +111,9 @@ function CustomerForm({ id }: { id: string | null }) {
           Object.keys(initialForm).map((key) => {
             const formKey = key as keyof typeof initialForm
             const value = customer[key]
-
-            return [key, value == null ? initialForm[formKey] : String(value)]
+            if (value == null) return [key, initialForm[formKey]]
+            const mask = masks[formKey]
+            return [key, mask ? mask(String(value)) : String(value)]
           }),
         ) as typeof initialForm
 
@@ -105,9 +127,10 @@ function CustomerForm({ id }: { id: string | null }) {
   }, [id, resetBaseline])
 
   function update(field: keyof typeof initialForm, value: string) {
+    const mask = masks[field]
     setForm((current) => ({
       ...current,
-      [field]: value,
+      [field]: mask ? mask(value) : value,
     }))
   }
 
@@ -118,6 +141,12 @@ function CustomerForm({ id }: { id: string | null }) {
 
       if (!form.name.trim() || !form.phone.trim()) {
         setStatus('Nome e telefone são obrigatórios.')
+        return
+      }
+
+      if (documentProblem) {
+        setDocumentTouched(true)
+        setStatus(documentProblem)
         return
       }
 
@@ -215,20 +244,38 @@ function CustomerForm({ id }: { id: string | null }) {
               </select>
             </label>
 
-            {identificationFields.map(([field, label]) => (
-              <label className="form-label" key={field}>
-                <span>
-                  {label}
-                  {(field === 'name' || field === 'phone') && <RequiredMark />}
-                </span>
-                <input
-                  className="form-input"
-                  value={form[field]}
-                  onChange={(event) => update(field, event.target.value)}
-                  required={field === 'name' || field === 'phone'}
-                />
-              </label>
-            ))}
+            {identificationFields.map(([field, label]) => {
+              const showDocumentError = field === 'document' && documentTouched && documentProblem
+              return (
+                <label className="form-label" key={field}>
+                  <span>
+                    {label}
+                    {(field === 'name' || field === 'phone') && <RequiredMark />}
+                  </span>
+                  <input
+                    className={`form-input ${showDocumentError ? 'border-[#d84f62]' : ''}`}
+                    value={form[field]}
+                    inputMode={field === 'phone' || field === 'document' ? 'numeric' : undefined}
+                    placeholder={placeholders[field]}
+                    onChange={(event) => update(field, event.target.value)}
+                    onBlur={field === 'document' ? () => setDocumentTouched(true) : undefined}
+                    aria-invalid={showDocumentError ? true : undefined}
+                    aria-describedby={field === 'document' ? 'customer-document-help' : undefined}
+                    required={field === 'name' || field === 'phone'}
+                  />
+                  {field === 'document' && (
+                    <small
+                      id="customer-document-help"
+                      className={showDocumentError ? 'text-[#d84f62]' : 'text-muted'}
+                    >
+                      {showDocumentError
+                        ? documentProblem
+                        : 'CPF para pessoa física, CNPJ para pessoa jurídica.'}
+                    </small>
+                  )}
+                </label>
+              )
+            })}
           </div>
         </div>
 
@@ -242,7 +289,14 @@ function CustomerForm({ id }: { id: string | null }) {
                 <input
                   className="form-input"
                   type={field === 'email' ? 'email' : field === 'birth_date' ? 'date' : 'text'}
-                  inputMode={field === 'default_discount_percent' ? 'decimal' : undefined}
+                  inputMode={
+                    field === 'default_discount_percent'
+                      ? 'decimal'
+                      : field === 'whatsapp'
+                        ? 'numeric'
+                        : undefined
+                  }
+                  placeholder={placeholders[field]}
                   value={form[field]}
                   onChange={(event) => update(field, event.target.value)}
                 />
@@ -273,11 +327,31 @@ function CustomerForm({ id }: { id: string | null }) {
                 <input
                   className="form-input"
                   value={form[field]}
+                  inputMode={field === 'postal_code' ? 'numeric' : undefined}
+                  placeholder={placeholders[field]}
                   onChange={(event) => update(field, event.target.value)}
-                  maxLength={field === 'state' ? 2 : undefined}
                 />
               </label>
             ))}
+
+            <label className="form-label">
+              Estado (UF)
+              <select
+                className="form-input"
+                value={form.state}
+                onChange={(event) => update('state', event.target.value)}
+              >
+                <option value="">Selecione</option>
+                {BRAZILIAN_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+                {form.state && !(BRAZILIAN_STATES as readonly string[]).includes(form.state) && (
+                  <option value={form.state}>{form.state}</option>
+                )}
+              </select>
+            </label>
           </div>
         </div>
 

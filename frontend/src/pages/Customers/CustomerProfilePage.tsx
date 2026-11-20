@@ -13,6 +13,7 @@ import {
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { formatPhone, formatQuantity, orderLabel } from '../../utils/formatting'
 
 type OrderItem = {
   id: string
@@ -24,6 +25,7 @@ type OrderItem = {
 
 type Order = {
   id: string
+  code?: string | null
   status: string
   total_amount: string
   items: OrderItem[]
@@ -284,9 +286,7 @@ export function CustomerProfilePage() {
                 <article className="rounded-xl border border-line bg-[#fbfcff] p-4" key={order.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <strong className="block text-sm text-ink">
-                        Pedido #{order.id.slice(0, 8)}
-                      </strong>
+                      <strong className="block text-sm text-ink">Pedido {orderLabel(order)}</strong>
                       <span className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                         <CalendarDays size={14} />
                         {formatDate(order.created_at)}
@@ -311,7 +311,7 @@ export function CustomerProfilePage() {
                     {order.items.map((item) => (
                       <div className="flex flex-wrap justify-between gap-2 text-xs" key={item.id}>
                         <span className="text-[#536080]">
-                          {item.quantity} × {item.product_name}
+                          {formatQuantity(item.quantity)} × {item.product_name}
                         </span>
                         <span className="font-semibold text-ink">
                           {formatMoney(item.unit_price)}
@@ -398,7 +398,7 @@ export function CustomerProfilePage() {
                     {quote.items.map((item) => (
                       <div className="flex flex-wrap justify-between gap-2 text-xs" key={item.id}>
                         <span className="text-[#536080]">
-                          {item.quantity} × {item.product_name}
+                          {formatQuantity(item.quantity)} × {item.product_name}
                         </span>
 
                         <span className="font-semibold text-ink">
@@ -460,10 +460,12 @@ export function CustomerProfilePage() {
                   <small className="block text-[10px] uppercase tracking-wide text-muted">
                     Telefone
                   </small>
-                  <strong className="mt-1 block text-xs text-ink">{profile.phone}</strong>
+                  <strong className="mt-1 block text-xs text-ink">
+                    {formatPhone(profile.phone)}
+                  </strong>
                   {profile.whatsapp && (
                     <span className="mt-1 block text-xs text-muted">
-                      WhatsApp: {profile.whatsapp}
+                      WhatsApp: {formatPhone(profile.whatsapp)}
                     </span>
                   )}
                 </div>

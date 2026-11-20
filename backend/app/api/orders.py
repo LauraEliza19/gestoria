@@ -119,7 +119,7 @@ def update_status_route(
         raise order_not_found()
 
     try:
-        order = update_order_status(db, order, payload.status)
+        order = update_order_status(db, order, payload.status, actor_id=current.user.id)
     except ProductNotFoundError as exc:
         raise HTTPException(
             status_code=404,
@@ -154,7 +154,7 @@ def delete_order_route(
         raise order_not_found()
 
     try:
-        delete_order_record(db, order)
+        delete_order_record(db, order, actor_id=current.user.id)
     except OrderFiscalConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

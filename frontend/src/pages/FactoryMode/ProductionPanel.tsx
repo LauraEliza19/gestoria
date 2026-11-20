@@ -7,6 +7,7 @@ import { AvailabilityBoard } from './AvailabilityBoard'
 import { friendlyAmount } from './stockUsage'
 import { formatQuantity as format } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
+import { formatYield } from '../../utils/formatting'
 import type { Recipe, Snapshot, StockItem } from './productionTypes'
 import { useSession } from '../../contexts/SessionContext'
 
@@ -420,7 +421,7 @@ export function ProductionPanel({
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-muted">
-                  Uma receita rende {format(recipe.yield_quantity)} {recipe.yield_unit}.
+                  Uma receita rende {formatYield(recipe.yield_quantity, recipe.yield_unit)}.
                 </p>
                 <ul className="my-4 divide-y divide-line">
                   {recipe.items.map((item) => (

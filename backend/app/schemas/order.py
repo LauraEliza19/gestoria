@@ -57,6 +57,8 @@ class OrderItemRead(BaseModel):
 
 class OrderRead(BaseModel):
     id: uuid.UUID
+    # Comprovantes antigos não tinham o número do pedido; por isso é opcional.
+    code: str | None = None
     organization_id: uuid.UUID
     customer_id: uuid.UUID
     customer_name: str

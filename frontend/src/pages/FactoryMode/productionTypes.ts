@@ -46,6 +46,7 @@ export const reference = (choice: IngredientChoice): IngredientReference =>
 
 export type Order = {
   id: string
+  code?: string | null
   customer_name: string
   status: 'in_preparation' | 'in_production' | 'ready' | 'completed' | 'cancelled'
   promised_at?: string | null

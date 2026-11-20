@@ -6,6 +6,7 @@ import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
 import { useFormChanges, useFormSuccess, useSaveAction } from '../../components/forms/useFormState'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { formatYield } from '../../utils/formatting'
 
 type Product = Record<string, string | number | boolean | null | undefined> & {
   id: string
@@ -17,6 +18,21 @@ type FiscalFieldErrors = {
   fiscal_origin?: string
 }
 
+const MONEY_FIELDS = new Set(['price', 'cost_price'])
+const QUANTITY_FIELDS = new Set(['stock_quantity', 'min_stock_quantity'])
+
+/** Valor do servidor para o campo: "85.00" vira "85,00" e "2.000" vira "2". */
+function toInputValue(field: string, value: unknown): string {
+  const number = Number(value)
+  if (MONEY_FIELDS.has(field) && Number.isFinite(number)) {
+    return number.toFixed(2).replace('.', ',')
+  }
+  if (QUANTITY_FIELDS.has(field) && Number.isFinite(number)) {
+    return String(number).replace('.', ',')
+  }
+  return String(value)
+}
+
 const initialForm = {
   name: '',
   description: '',
@@ -25,6 +41,7 @@ const initialForm = {
   category: 'outros',
   product_type: 'resale',
   unit_of_measure: 'unit',
+  made_to_order: false,
   cost_price: '',
   min_stock_quantity: '5',
   perishable: false,
@@ -103,7 +120,7 @@ function ProductForm({ id }: { id: string | null }) {
               return [key, initialForm[formKey]]
             }
 
-            return [key, String(value)]
+            return [key, toInputValue(formKey, value)]
           }),
         ) as typeof initialForm
 
@@ -124,6 +141,7 @@ function ProductForm({ id }: { id: string | null }) {
   }
 
   function updateFiscal(field: keyof FiscalFieldErrors, value: string, maxLength: number) {
+    // Os pontos são removidos antes de limitar o tamanho: "1905.90.90" vira "19059090".
     const numbersOnly = value.replace(/\D/g, '').slice(0, maxLength)
 
     update(field, numbersOnly)
@@ -137,7 +155,10 @@ function ProductForm({ id }: { id: string | null }) {
   }
 
   function decimal(value: string) {
-    return value ? Number(value.replace(',', '.')) : null
+    if (!value) return null
+    // Aceita "1.234,56" e "2,5" (padrão brasileiro) e também "2.5".
+    const normalized = value.includes(',') ? value.replace(/\./g, '').replace(',', '.') : value
+    return Number(normalized)
   }
 
   function validateFiscalFields() {
@@ -191,7 +212,7 @@ function ProductForm({ id }: { id: string | null }) {
           price,
           stock_quantity: decimal(form.stock_quantity) || 0,
           cost_price: decimal(form.cost_price),
-          min_stock_quantity: decimal(form.min_stock_quantity) || 5,
+          min_stock_quantity: decimal(form.min_stock_quantity) ?? 5,
           shelf_life_days:
             form.perishable && form.shelf_life_days ? Number(form.shelf_life_days) : null,
           fiscal_origin: form.fiscal_origin ? Number(form.fiscal_origin) : null,
@@ -293,6 +314,7 @@ function ProductForm({ id }: { id: string | null }) {
               onChange={(event) => update('category', event.target.value)}
             >
               <option value="padaria">Padaria</option>
+              <option value="confeitaria">Confeitaria</option>
               <option value="frios">Frios</option>
               <option value="bebidas">Bebidas</option>
               <option value="outros">Outros</option>
@@ -321,7 +343,24 @@ function ProductForm({ id }: { id: string | null }) {
               <option value="unit">Unidade</option>
               <option value="kg">Quilograma</option>
               <option value="g">Grama</option>
+              <option value="l">Litro</option>
             </select>
+          </label>
+
+          <label className="grid gap-1 md:col-span-3">
+            <span className="flex items-center gap-2 text-[13px] font-bold text-[#354064]">
+              <input
+                type="checkbox"
+                checked={form.made_to_order}
+                onChange={(event) => update('made_to_order', event.target.checked)}
+                aria-describedby="made-to-order-help"
+              />
+              Vendido sob encomenda
+            </span>
+            <small id="made-to-order-help" className="text-muted">
+              Marque quando o produto é feito depois do pedido, como bolos e doces de festa. O
+              pedido é aceito sem estoque pronto e o produto não aparece como esgotado.
+            </small>
           </label>
 
           <label className="flex items-center gap-2 text-[13px] font-bold text-[#354064] md:col-span-3">
@@ -366,8 +405,7 @@ function ProductForm({ id }: { id: string | null }) {
               <option value="">Sem receita vinculada</option>
               {recipes?.map((recipe) => (
                 <option key={recipe.id} value={recipe.id}>
-                  {recipe.name} (rende {Number(recipe.yield_quantity).toLocaleString('pt-BR')}{' '}
-                  {recipe.yield_unit})
+                  {recipe.name} (rende {formatYield(recipe.yield_quantity, recipe.yield_unit)})
                 </option>
               ))}
               {recipes === null && form.recipe_id && (
@@ -402,14 +440,13 @@ function ProductForm({ id }: { id: string | null }) {
             <input
               className={`form-input ${fieldErrors.ncm_code ? 'border-[#d84f62]' : ''}`}
               inputMode="numeric"
-              maxLength={8}
               value={form.ncm_code}
               onChange={(event) => updateFiscal('ncm_code', event.target.value, 8)}
               aria-invalid={Boolean(fieldErrors.ncm_code)}
               aria-describedby="ncm-help"
             />
             <small id="ncm-help" className={fieldErrors.ncm_code ? 'text-[#d84f62]' : 'text-muted'}>
-              {fieldErrors.ncm_code || 'Informe exatamente 8 números, sem pontos.'}
+              {fieldErrors.ncm_code || '8 números. Pode colar com pontos, ex.: 1905.90.90.'}
             </small>
           </label>
 
@@ -418,7 +455,6 @@ function ProductForm({ id }: { id: string | null }) {
             <input
               className={`form-input ${fieldErrors.cest_code ? 'border-[#d84f62]' : ''}`}
               inputMode="numeric"
-              maxLength={7}
               value={form.cest_code}
               onChange={(event) => updateFiscal('cest_code', event.target.value, 7)}
               aria-invalid={Boolean(fieldErrors.cest_code)}
@@ -428,7 +464,7 @@ function ProductForm({ id }: { id: string | null }) {
               id="cest-help"
               className={fieldErrors.cest_code ? 'text-[#d84f62]' : 'text-muted'}
             >
-              {fieldErrors.cest_code || 'Informe exatamente 7 números, sem pontos.'}
+              {fieldErrors.cest_code || '7 números. Pode colar com pontos, ex.: 17.049.00.'}
             </small>
           </label>
 

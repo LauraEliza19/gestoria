@@ -160,7 +160,7 @@ export function FinancePage() {
                 {money(summary?.total_income || '0')}
               </strong>
               <small className="mt-2 block text-xs leading-5 text-[#8991aa]">
-                Lançamentos com situação realizado
+                Valores já recebidos. Vendas ainda não pagas ficam em Contas a receber.
               </small>
             </article>
 
@@ -346,7 +346,15 @@ export function FinancePage() {
                         <Landmark className="shrink-0 text-muted" size={18} aria-hidden="true" />
                         <span>
                           <strong>{entry.description}</strong>
-                          <small>{entry.entry_type === 'income' ? 'Entrada' : 'Saída'}</small>
+                          <small>
+                            {entry.entry_type === 'income' ? 'Entrada' : 'Saída'}
+                            {entry.order_id && (
+                              <>
+                                {' · '}
+                                <Link to={`/pedidos?order_id=${entry.order_id}`}>Ver pedido</Link>
+                              </>
+                            )}
+                          </small>
                         </span>
                       </span>
                       <span>

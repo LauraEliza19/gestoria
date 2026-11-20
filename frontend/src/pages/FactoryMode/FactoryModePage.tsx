@@ -15,6 +15,7 @@ import {
 } from './orderWorkflow'
 import type { Order, Snapshot } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
+import { orderLabel } from '../../utils/formatting'
 
 type Queue = 'active' | 'completed'
 
@@ -365,8 +366,7 @@ export function FactoryModePage() {
               >
                 <div>
                   <p className="font-semibold text-[#28745b]" id="completed-order-title">
-                    Pedido {completedOrder.id.slice(0, 8)} de {completedOrder.customer_name}{' '}
-                    concluído.
+                    Pedido {orderLabel(completedOrder)} de {completedOrder.customer_name} concluído.
                   </p>
                   <p className="mt-1 text-sm text-[#4f7769]">
                     A produção foi finalizada. Registre os ingredientes usados para manter o estoque
@@ -427,7 +427,7 @@ export function FactoryModePage() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="mb-1 font-mono text-xs text-muted">
-                            Pedido {order.id.slice(0, 8)}
+                            Pedido {orderLabel(order)}
                           </p>
                           <h2
                             id={`order-${order.id}`}
@@ -523,7 +523,7 @@ export function FactoryModePage() {
                             className="primary-button w-full gap-2 sm:w-auto"
                             disabled={disabled}
                             onClick={() => void updateStatus(order)}
-                            aria-label={`Avançar pedido ${order.id.slice(0, 8)} de ${order.customer_name} para a próxima etapa`}
+                            aria-label={`Avançar pedido ${orderLabel(order)} de ${order.customer_name} para a próxima etapa`}
                           >
                             <Check size={17} aria-hidden="true" />
                             {completing === order.id

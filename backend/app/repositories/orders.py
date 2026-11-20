@@ -2,10 +2,10 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Customer, Order, OrderItem
+from app.models import Customer, Order, OrderItem, Organization
 from app.repositories.pagination import paginate
 
 
@@ -34,7 +34,12 @@ class OrderRepository:
         )
         if search:
             term = f"%{search}%"
-            query = query.where(Order.customer.has(Customer.name.ilike(term)))
+            query = query.where(
+                or_(
+                    Order.customer.has(Customer.name.ilike(term)),
+                    Order.code.ilike(term),
+                )
+            )
         if status:
             query = query.where(Order.status == status)
         if priority:
@@ -109,9 +114,23 @@ class OrderRepository:
         priority: str = "normal",
         notes: str | None = None,
     ) -> Order:
+        # FOR NO KEY UPDATE serializa a numeração entre pedidos da mesma empresa
+        # sem bloquear outras gravações que apenas referenciam a empresa.
+        organization = db.scalar(
+            select(Organization)
+            .where(Organization.id == organization_id)
+            .with_for_update(key_share=True)
+            .execution_options(populate_existing=True)
+        )
+        if organization is None:
+            raise ValueError("Empresa não encontrada.")
+        code = f"PED-{organization.next_order_code:06d}"
+        organization.next_order_code += 1
+
         order = Order(
             organization_id=organization_id,
             customer_id=customer_id,
+            code=code,
             status="in_preparation",
             promised_at=promised_at,
             priority=priority,
@@ -143,12 +162,15 @@ class OrderItemRepository:
         product_id: uuid.UUID,
         quantity: Decimal,
         unit_price,
+        *,
+        stock_deducted: bool = True,
     ) -> OrderItem:
         item = OrderItem(
             order_id=order_id,
             product_id=product_id,
             quantity=quantity,
             unit_price=unit_price,
+            stock_deducted=stock_deducted,
         )
         db.add(item)
         db.flush()

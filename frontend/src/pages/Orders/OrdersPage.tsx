@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { formatQuantity, orderLabel } from '../../utils/formatting'
 import { useSession } from '../../contexts/SessionContext'
 
 import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncState'
@@ -14,6 +15,7 @@ type OrderItem = {
 
 type Order = {
   id: string
+  code?: string | null
   customer_id: string
   customer_name: string
   status: string
@@ -149,6 +151,15 @@ export function OrdersPage() {
       return
     }
 
+    if (
+      nextStatus === 'cancelled' &&
+      !window.confirm(
+        `Cancelar o pedido ${orderLabel(order)} de ${order.customer_name}? O estoque volta e as parcelas ainda não recebidas são canceladas no Financeiro.`,
+      )
+    ) {
+      return
+    }
+
     setUpdatingId(order.id)
     setActionError('')
     setActionNotice('')
@@ -170,7 +181,7 @@ export function OrdersPage() {
   }
 
   async function removeOrder(order: Order) {
-    if (!window.confirm(`Excluir o pedido de ${order.customer_name}?`)) {
+    if (!window.confirm(`Excluir o pedido ${orderLabel(order)} de ${order.customer_name}?`)) {
       return
     }
 
@@ -200,7 +211,7 @@ export function OrdersPage() {
     <div className="page-wrap">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Operação</p>
+          <p className="eyebrow">Comercial</p>
           <h1>Pedidos</h1>
           <p>Acompanhe o andamento dos pedidos registrados.</p>
         </div>
@@ -304,6 +315,7 @@ export function OrdersPage() {
               >
                 <span>
                   <strong>{order.customer_name}</strong>
+                  <small>{orderLabel(order)}</small>
                   <small className={isLate(order) ? 'font-semibold text-[#b42318]' : undefined}>
                     {isLate(order) ? 'Atrasado · ' : 'Entrega · '}
                     {formatPromisedAt(order.promised_at)}
@@ -314,7 +326,7 @@ export function OrdersPage() {
                   {order.items.length === 1 ? '1 item' : `${order.items.length} itens`}
                   <small>
                     {order.items
-                      .map((item) => `${item.quantity}x ${item.product_name}`)
+                      .map((item) => `${formatQuantity(item.quantity)}× ${item.product_name}`)
                       .join(' · ')}
                   </small>
                 </span>
@@ -326,7 +338,7 @@ export function OrdersPage() {
                     className="inline-status"
                     value={order.status}
                     disabled={updatingId === order.id || deletingId === order.id}
-                    aria-label={`Status do pedido de ${order.customer_name}`}
+                    aria-label={`Status do pedido ${orderLabel(order)} de ${order.customer_name}`}
                     onChange={(event) => void updateStatus(order, event.target.value)}
                   >
                     {(statusTransitions[order.status] ?? [order.status]).map((availableStatus) => (

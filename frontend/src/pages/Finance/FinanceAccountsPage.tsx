@@ -155,6 +155,11 @@ export function FinanceAccountsPage() {
                 <div className="data-table-row" key={entry.id}>
                   <span>
                     <strong>{entry.description}</strong>
+                    {entry.order_id && (
+                      <small>
+                        <Link to={`/pedidos?order_id=${entry.order_id}`}>Ver pedido</Link>
+                      </small>
+                    )}
                   </span>
                   <span>{categoryNames.get(entry.category_id) || 'Categoria não encontrada'}</span>
                   <span>{date(entry.due_date)}</span>

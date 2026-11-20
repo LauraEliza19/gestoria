@@ -60,7 +60,8 @@ test('auditoria nomeia baixa e anexos', () => {
 
 test('formulário avisa quando não há categoria e leva ao cadastro', () => {
   assert.match(entryForm, /Nenhuma categoria cadastrada/)
-  assert.match(entryForm, /to="\/financeiro\/categorias\/nova"/)
+  // O atalho volta para o lançamento depois de salvar a categoria.
+  assert.match(entryForm, /to="\/financeiro\/categorias\/nova\?voltar=lancamento"/)
 })
 
 test('baixa permite enviar comprovante junto', () => {

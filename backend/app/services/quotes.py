@@ -12,6 +12,7 @@ from app.repositories import (
     QuoteItemRepository,
     QuoteRepository,
 )
+from app.services.order_finance import create_order_receivables
 from app.services.orders import (
     CustomerNotFoundError,
     ProductNotFoundError,
@@ -165,9 +166,21 @@ def update_quote_status(db: Session, quote: Quote, status: str) -> Quote:
     return QuoteRepository.update_status(db, quote, status)
 
 
-def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
+def convert_quote_to_order(
+    db: Session,
+    quote: Quote,
+    *,
+    promised_at: datetime | None = None,
+    priority: str = "normal",
+    notes: str | None = None,
+    actor_id=None,
+) -> Quote:
     """
     Converte um orçamento aprovado em um pedido usando uma única transação.
+
+    A data de entrega, a prioridade e as observações vão para o pedido. Com
+    ``actor_id``, as contas a receber são geradas conforme as parcelas do
+    orçamento, na mesma transação.
     """
     if quote.status != "approved":
         raise QuoteNotConvertibleError(quote.status)
@@ -210,11 +223,22 @@ def convert_quote_to_order(db: Session, quote: Quote) -> Quote:
             quote.organization_id,
             quote.customer_id,
             order_items,
+            promised_at=promised_at,
+            priority=priority,
+            notes=notes,
             unit_prices=unit_prices,
             commit=False,
         )
 
         order.total_amount = quote.total_amount
+
+        if actor_id is not None:
+            create_order_receivables(
+                db,
+                order,
+                actor_id,
+                installment_count=quote.installment_count,
+            )
 
         QuoteRepository.mark_converted(
             db,

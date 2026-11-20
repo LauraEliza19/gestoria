@@ -4,6 +4,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncStat
 import { useSession } from '../../contexts/SessionContext'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { formatQuantity } from '../../utils/formatting'
 
 type Product = {
   id: string
@@ -11,8 +12,20 @@ type Product = {
   price: string
   category: string
   stock_quantity: string
+  unit_of_measure?: string
+  made_to_order?: boolean
   status?: string
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  padaria: 'Padaria',
+  confeitaria: 'Confeitaria',
+  frios: 'Frios',
+  bebidas: 'Bebidas',
+  outros: 'Outros',
+}
+
+const UNIT_LABELS: Record<string, string> = { unit: 'un', kg: 'kg', g: 'g', l: 'L' }
 
 export function ProductsPage() {
   const { can } = useSession()
@@ -66,7 +79,9 @@ export function ProductsPage() {
   const normalizedSearch = search.trim().toLowerCase()
 
   const filtered = products.filter((product) =>
-    `${product.name} ${product.category}`.toLowerCase().includes(normalizedSearch),
+    `${product.name} ${product.category} ${CATEGORY_LABELS[product.category] ?? ''}`
+      .toLowerCase()
+      .includes(normalizedSearch),
   )
 
   return (
@@ -132,11 +147,15 @@ export function ProductsPage() {
                   <small>{product.status || 'Ativo'}</small>
                 </span>
 
-                <span>{product.category}</span>
+                <span>{CATEGORY_LABELS[product.category] ?? product.category}</span>
 
                 <span>R$ {Number(product.price).toFixed(2).replace('.', ',')}</span>
 
-                <span>{product.stock_quantity}</span>
+                <span>
+                  {product.made_to_order
+                    ? 'Sob encomenda'
+                    : `${formatQuantity(product.stock_quantity)} ${UNIT_LABELS[product.unit_of_measure ?? 'unit'] ?? ''}`.trim()}
+                </span>
 
                 <span className="row-actions">
                   <Link to={`/produtos/novo?id=${product.id}`}>Editar</Link>

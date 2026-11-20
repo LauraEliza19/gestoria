@@ -11,6 +11,7 @@ import {
   formatFiscalDateTime,
   formatFiscalMoney,
   isActiveFiscalStatus,
+  localToday,
 } from './fiscalUtils'
 
 import { FiscalSummary } from './FiscalSummary'
@@ -156,7 +157,7 @@ export function FiscalDocumentsPage() {
 
   function exportCsv() {
     const rows = selectedDocuments.length > 0 ? selectedDocuments : visible
-    const stamp = new Date().toISOString().slice(0, 10)
+    const stamp = localToday()
     downloadTextFile(
       `notas-${type === 'saida' ? 'saida' : 'entrada'}-${stamp}.csv`,
       buildFiscalCsv(rows, organization),
@@ -349,7 +350,10 @@ export function FiscalDocumentsPage() {
         {orderFilter && (
           <div className="info-note flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold">Documentos do pedido {orderFilter.slice(0, 8)}</p>
+              <p className="font-semibold">
+                Documentos do pedido{' '}
+                {orders.find((order) => order.id === orderFilter)?.code ?? orderFilter.slice(0, 8)}
+              </p>
 
               {contextOrder && (
                 <p className="mt-1 text-sm">

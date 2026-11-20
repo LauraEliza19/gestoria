@@ -4,6 +4,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../components/AsyncStat
 import { useSession } from '../../contexts/SessionContext'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import { formatPhone } from '../../utils/formatting'
 
 type CustomerCategory = 'final_consumer' | 'reseller' | 'event'
 
@@ -143,6 +144,7 @@ export function CustomersPage() {
     const searchableContent = [
       customer.name,
       customer.phone,
+      formatPhone(customer.phone),
       customer.email || '',
       getCategoryLabel(customer.category),
     ]
@@ -242,7 +244,7 @@ export function CustomersPage() {
                     <small>{getCategoryLabel(customer.category)}</small>
                   </span>
 
-                  <span>{customer.phone}</span>
+                  <span>{formatPhone(customer.phone)}</span>
 
                   <span>{customer.email || 'Não informado'}</span>
 

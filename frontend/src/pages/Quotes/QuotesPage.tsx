@@ -6,6 +6,11 @@ import { FormHeader, RequiredMark } from '../../components/forms/FormHeader'
 import { useFormChanges, useSaveAction } from '../../components/forms/useFormState'
 import { apiFetch, apiFetchItems } from '../../services/api'
 import { getErrorMessage } from '../../utils/errors'
+import {
+  defaultDeliveryInputValue,
+  formatQuantity,
+  localDateAfterDays,
+} from '../../utils/formatting'
 import { useSession } from '../../contexts/SessionContext'
 import { QuotePrintArea } from './QuotePrintArea'
 
@@ -302,11 +307,18 @@ export function QuotesPage() {
       current.length === 1 ? current : current.filter((item) => item.key !== key),
     )
   }
-  const [validUntil, setValidUntil] = useState(() =>
-    new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-  )
+  const [validUntil, setValidUntil] = useState(() => localDateAfterDays(7))
   const [status, setStatus] = useState('Carregando orçamentos...')
   const [notice, setNotice] = useState('')
+  const [listError, setListError] = useState('')
+  const [convertingQuote, setConvertingQuote] = useState<Quote | null>(null)
+  const [conversion, setConversion] = useState({
+    promisedAt: '',
+    priority: 'normal' as 'normal' | 'high' | 'urgent',
+    notes: '',
+  })
+  const [conversionError, setConversionError] = useState('')
+  const [converting, setConverting] = useState(false)
   const formValues = {
     customerId,
     customerSearch,
@@ -423,6 +435,13 @@ export function QuotesPage() {
   }
 
   async function updateQuote(quote: Quote, nextStatus: string) {
+    if (
+      nextStatus === 'rejected' &&
+      !window.confirm(`Marcar o orçamento de ${quote.customer_name} como rejeitado?`)
+    ) {
+      return
+    }
+    setListError('')
     try {
       const updated = await apiFetch<Quote>(`/api/quotes/${quote.id}`, {
         method: 'PATCH',
@@ -433,19 +452,50 @@ export function QuotesPage() {
 
       setQuotes((current) => current.map((item) => (item.id === quote.id ? updated : item)))
     } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível atualizar o orçamento.'))
+      setListError(getErrorMessage(error, 'Não foi possível atualizar o orçamento.'))
     }
   }
 
-  async function convert(quote: Quote) {
+  function startConversion(quote: Quote) {
+    setListError('')
+    setNotice('')
+    setConversionError('')
+    setConversion({ promisedAt: defaultDeliveryInputValue(), priority: 'normal', notes: '' })
+    setConvertingQuote(quote)
+  }
+
+  async function convert(event: React.FormEvent) {
+    event.preventDefault()
+    const quote = convertingQuote
+    if (!quote || converting) return
+
+    const promisedAt = new Date(conversion.promisedAt)
+    if (!conversion.promisedAt || Number.isNaN(promisedAt.getTime())) {
+      setConversionError('Informe a data e o horário da entrega.')
+      return
+    }
+
+    setConverting(true)
+    setConversionError('')
     try {
       const updated = await apiFetch<Quote>(`/api/quotes/${quote.id}/convert`, {
         method: 'POST',
+        body: JSON.stringify({
+          promised_at: promisedAt.toISOString(),
+          priority: conversion.priority,
+          notes: conversion.notes.trim() || null,
+        }),
       })
 
       setQuotes((current) => current.map((item) => (item.id === quote.id ? updated : item)))
+      setConvertingQuote(null)
+      setNotice(
+        `Orçamento de ${quote.customer_name} convertido em pedido. A conta a receber já está no Financeiro.`,
+      )
     } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível converter o orçamento.'))
+      setConversionError(getErrorMessage(error, 'Não foi possível converter o orçamento.'))
+    } finally {
+      setConverting(false)
     }
   }
 
@@ -463,7 +513,7 @@ export function QuotesPage() {
 
       setQuotes((current) => current.filter((item) => item.id !== quote.id))
     } catch (error) {
-      setStatus(getErrorMessage(error, 'Não foi possível excluir o orçamento.'))
+      setListError(getErrorMessage(error, 'Não foi possível excluir o orçamento.'))
     }
   }
 
@@ -1016,7 +1066,7 @@ export function QuotesPage() {
                   <tr className="border-b border-line" key={item.id}>
                     <td className="py-3 pr-4">{item.product_code}</td>
                     <td className="py-3 pr-4">{item.product_name}</td>
-                    <td className="py-3 pr-4">{item.quantity}</td>
+                    <td className="py-3 pr-4">{formatQuantity(item.quantity)}</td>
                     <td className="py-3 pr-4">{formatMoney(item.unit_price)}</td>
                     <td className="py-3 pr-4">
                       {Number(item.discount_percent).toLocaleString('pt-BR', {
@@ -1069,7 +1119,106 @@ export function QuotesPage() {
         </section>
       )}
 
+      {convertingQuote && (
+        <section
+          className="page-card mb-6 border-[#9fb5ff]"
+          role="dialog"
+          aria-labelledby="quote-conversion-title"
+        >
+          <form className="grid gap-4" onSubmit={(event) => void convert(event)}>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-signal">
+                Converter em pedido
+              </span>
+              <h2 id="quote-conversion-title">
+                Pedido de {convertingQuote.customer_name} ·{' '}
+                {formatMoney(convertingQuote.total_amount)}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                O pedido entra na agenda da produção na data de entrega. As parcelas do orçamento
+                viram contas a receber no Financeiro.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="form-label">
+                <span>
+                  Entrega combinada
+                  <RequiredMark />
+                </span>
+                <input
+                  autoFocus
+                  required
+                  className="form-input"
+                  type="datetime-local"
+                  value={conversion.promisedAt}
+                  onChange={(event) =>
+                    setConversion((current) => ({ ...current, promisedAt: event.target.value }))
+                  }
+                />
+              </label>
+
+              <label className="form-label">
+                <span>Prioridade</span>
+                <select
+                  className="form-input"
+                  value={conversion.priority}
+                  onChange={(event) =>
+                    setConversion((current) => ({
+                      ...current,
+                      priority: event.target.value as 'normal' | 'high' | 'urgent',
+                    }))
+                  }
+                >
+                  <option value="normal">Normal</option>
+                  <option value="high">Alta</option>
+                  <option value="urgent">Urgente</option>
+                </select>
+              </label>
+
+              <label className="form-label sm:col-span-2">
+                <span>Observações da produção</span>
+                <textarea
+                  className="form-input min-h-20 resize-y"
+                  maxLength={1000}
+                  placeholder="Ex.: decoração, embalagem, retirada ou cuidados especiais."
+                  value={conversion.notes}
+                  onChange={(event) =>
+                    setConversion((current) => ({ ...current, notes: event.target.value }))
+                  }
+                />
+              </label>
+            </div>
+
+            {conversionError && (
+              <p className="form-status" role="alert">
+                {conversionError}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <SaveButton saving={converting} pendingLabel="Criando pedido...">
+                Criar pedido
+              </SaveButton>
+              <button
+                className="secondary-button"
+                disabled={converting}
+                onClick={() => setConvertingQuote(null)}
+                type="button"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
       <section id="lista-orcamentos" className="page-card scroll-mt-4" tabIndex={-1}>
+        {listError && (
+          <p className="error-banner mb-4" role="alert">
+            {listError}
+          </p>
+        )}
         <div className="data-table quote-table">
           <div className="data-table-row data-table-head">
             <span>Cliente</span>
@@ -1088,7 +1237,9 @@ export function QuotesPage() {
               </span>
 
               <span>
-                {quote.items.map((item) => `${item.product_name} (${item.quantity})`).join(', ')}
+                {quote.items
+                  .map((item) => `${item.product_name} (${formatQuantity(item.quantity)})`)
+                  .join(', ')}
               </span>
 
               <span>{formatMoney(quote.total_amount)}</span>
@@ -1101,6 +1252,7 @@ export function QuotesPage() {
                 </button>
                 <select
                   className="inline-status"
+                  aria-label={`Situação do orçamento de ${quote.customer_name}`}
                   disabled={quote.status === 'converted'}
                   value={quote.status}
                   onChange={(event) => void updateQuote(quote, event.target.value)}
@@ -1113,7 +1265,7 @@ export function QuotesPage() {
                 </select>
 
                 {quote.status === 'approved' && !quote.converted_order_id && (
-                  <button type="button" onClick={() => void convert(quote)}>
+                  <button type="button" onClick={() => startConversion(quote)}>
                     Converter
                   </button>
                 )}

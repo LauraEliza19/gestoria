@@ -34,6 +34,7 @@ const massYields: Record<string, number> = {
   quilogramas: 1000,
 }
 const productMass: Record<string, number> = { g: 1, kg: 1000 }
+const soldUnitNames: Record<string, string> = { kg: 'quilos', g: 'gramas', l: 'litros' }
 
 export function normalizeText(value: string) {
   return value
@@ -121,7 +122,7 @@ export function batchesFor(
   const produced = massYields[yieldUnit]
   if (sold && produced) return { batches: (quantity * sold) / (yieldQuantity * produced) }
   return {
-    reason: `O produto é vendido em ${productUnit === 'kg' ? 'quilos' : 'gramas'} e a receita rende ${recipe.yield_unit}.`,
+    reason: `O produto é vendido em ${soldUnitNames[productUnit] ?? productUnit} e a receita rende ${recipe.yield_unit}.`,
   }
 }
 
