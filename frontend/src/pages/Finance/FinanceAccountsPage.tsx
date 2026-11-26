@@ -155,14 +155,12 @@ export function FinanceAccountsPage() {
                 <div className="data-table-row" key={entry.id}>
                   <span>
                     <strong>{entry.description}</strong>
-                    {entry.order_id && (
-                      <small>
-                        <Link to={`/pedidos?order_id=${entry.order_id}`}>Ver pedido</Link>
-                      </small>
-                    )}
                   </span>
+
                   <span>{categoryNames.get(entry.category_id) || 'Categoria não encontrada'}</span>
+
                   <span>{date(entry.due_date)}</span>
+
                   <span>
                     <span
                       className={`fiscal-status-badge ${
@@ -178,20 +176,32 @@ export function FinanceAccountsPage() {
                       {entry.is_overdue ? 'Vencido' : statusLabels[entry.status]}
                     </span>
                   </span>
+
                   <strong className="text-right">{money(entry.amount)}</strong>
-                  <span className="flex flex-wrap gap-x-3 gap-y-1">
+
+                  <span className="flex flex-nowrap items-center gap-1">
+                    {entry.order_id && (
+                      <Link
+                        className="inline-flex h-8 shrink-0 items-center rounded-md bg-[#edf2ff] px-2 text-sm font-bold text-signal transition-colors hover:bg-[#dce6ff]"
+                        to={`/pedidos?order_id=${entry.order_id}`}
+                      >
+                        Ver pedido
+                      </Link>
+                    )}
+
                     {can('finance:manage') && entry.status === 'pending' && (
                       <button
-                        className="text-sm font-bold text-[#268267]"
+                        className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-md px-2 text-sm font-bold text-[#268267] transition-colors hover:bg-[#e7f6ef] hover:text-[#17624c]"
                         type="button"
                         onClick={() => setSettling(entry)}
                       >
                         Baixar
                       </button>
                     )}
+
                     {can('finance:manage') && (
                       <Link
-                        className="text-sm font-bold text-signal"
+                        className="inline-flex h-8 shrink-0 items-center rounded-md px-2 text-sm font-bold text-signal transition-colors hover:bg-[#eef3ff]"
                         to={`/financeiro/lancamentos/${entry.id}/editar`}
                       >
                         Abrir

@@ -258,7 +258,7 @@
   }
 
   .finance-accounts-table .data-table-row {
-    @apply min-w-[880px] grid-cols-[1.5fr_1fr_1fr_.9fr_.9fr_.9fr];
+    @apply min-w-[1080px] grid-cols-[1.5fr_1fr_1fr_.9fr_.7fr_220px];
   }
 
   .fiscal-summary {
