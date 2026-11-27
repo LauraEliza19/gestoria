@@ -17,7 +17,7 @@ import type { Order, Snapshot } from './productionTypes'
 import { getErrorMessage } from '../../utils/errors'
 import { orderLabel } from '../../utils/formatting'
 
-type Queue = 'active' | 'completed'
+type Queue = 'active' | 'producing' | 'completed'
 
 const statusLabels: Record<Order['status'], string> = {
   in_preparation: 'Confirmado',
@@ -174,6 +174,21 @@ export function FactoryModePage() {
 
   const pending = orders.filter((order) => isOperationalOrderStatus(order.status))
   const completed = orders.filter((order) => order.status === 'completed')
+
+  const producing = orders.filter((order) => order.status === 'in_production')
+
+  const tabLabels: Record<Queue, string> = {
+    active: 'Pedidos ativos',
+    producing: 'Em produção',
+    completed: 'Entregues',
+  }
+
+  const tabCounts: Record<Queue, number> = {
+    active: pending.length,
+    producing: producing.length,
+    completed: completed.length,
+  }
+
   const pendingItems = pending.reduce(
     (total, order) => total + order.items.reduce((sum, item) => sum + Number(item.quantity), 0),
     0,
@@ -184,7 +199,7 @@ export function FactoryModePage() {
     [orders, snapshot],
   )
   const query = normalize(search)
-  const visible = (tab === 'active' ? pending : completed)
+  const visible = (tab === 'active' ? pending : tab === 'producing' ? producing : completed)
     .filter(
       (order) =>
         normalize(order.customer_name).includes(query) ||
@@ -271,16 +286,18 @@ export function FactoryModePage() {
           <section className="page-card" aria-label="Fila de produção">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
               <div className="flex flex-wrap gap-2" role="group" aria-label="Status dos pedidos">
-                {(['active', 'completed'] as const).map((value) => (
+                {(['active', 'producing', 'completed'] as const).map((value) => (
                   <button
                     key={value}
                     type="button"
                     aria-pressed={tab === value}
-                    className={`rounded-lg px-4 py-3 text-[13px] font-bold transition-colors ${tab === value ? 'bg-signal text-white' : 'bg-paper text-muted hover:text-ink'}`}
+                    className={`rounded-lg px-4 py-3 text-[13px] font-bold transition-colors ${
+                      tab === value ? 'bg-signal text-white' : 'bg-paper text-muted hover:text-ink'
+                    }`}
                     onClick={() => setTab(value)}
                   >
-                    {value === 'active' ? 'Pedidos ativos' : 'Entregues'}
-                    {loaded && ` (${value === 'active' ? pending.length : completed.length})`}
+                    {tabLabels[value]}
+                    {loaded && ` (${tabCounts[value]})`}
                   </button>
                 ))}
               </div>
@@ -543,7 +560,9 @@ export function FactoryModePage() {
                         ? 'Nenhum pedido corresponde à busca.'
                         : tab === 'active'
                           ? 'Nenhum pedido ativo.'
-                          : 'Nenhum pedido entregue.'}
+                          : tab === 'producing'
+                            ? 'Nenhum pedido em produção.'
+                            : 'Nenhum pedido entregue.'}
                     </p>
                     <p className="mt-2 text-sm text-muted">
                       {query
