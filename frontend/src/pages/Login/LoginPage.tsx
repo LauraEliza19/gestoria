@@ -50,7 +50,7 @@ export function LoginPage() {
             <img
               src={logoGestoria}
               alt="GestorIA"
-              className="absolute left-[-40px] top-[-50px] h-auto w-[260px] max-w-none"
+              className="absolute left-[-94px] top-[-46px] h-auto w-[260px] max-w-none"
               draggable={false}
             />
           </div>
